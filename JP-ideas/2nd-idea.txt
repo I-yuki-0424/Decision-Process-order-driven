@@ -1,0 +1,24 @@
+# Model Mathematical 
+Transformer
+N = actions**A** +status**S** + histry**H** + transition target**T** 
+d = A(Costs) + A(conditions) + S(Can use Costs) + H(reward) + H(Cost-change) + T(conditions(H))
+
+## exanple
+
+||                   | d1(A-cost)... | d2(A-conditions)... | dn(S-Can use cost)...ex | 
+| ----------------- | ------------- | ------------------- | ----------------------- | 
+| N1(Actions) ~ Na  | 1             | 0                   | 1                       | 
+| Nh+1(target)      | 5             | 10                  | 100                     | 
+| Na+1(histry(k)) ~ Nh | 5             | 2                   | 80                      | 
+
+## Needs
+Channel Separation
+histry increases with each step of reasoning
+### If, step = 100(s), MDP-choices = 5(k), start N = 1024
+learning Weght must bigglest N size so 
+1024 + (100*5) = 1524
+
+### KV cache 
+step 1 : N=1024 , No history
+step 2 : N=1029(1024+5)   <- +5 KV calculation
+step 3 : N= 1034(1024 + 5*2) <- +5 KV calculation

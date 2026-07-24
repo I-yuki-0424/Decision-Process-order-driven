@@ -1,0 +1,19 @@
+protocol_version: v6
+project_name: "Decision-Process-order-driven"
+project_short_name: "DecisionProcess"
+current_goal: "Develop 4th-Idea JAX-based generic decision process model and Gymnax training/evaluation framework"
+active_tasks:
+  - "TASK-20260725-001-4th-idea-jax-architecture"
+recent_changes:
+  - "Created src/model/ (types, channel_encoder, transformer_decision_core, beam_search, logger_utils)"
+  - "Created src/environment/gymnax_decision_env.py"
+  - "Created src/pipeline/ (trainer, evaluator, plotter) and src/main.py"
+  - "Created core/DECISIONS/ADR-001_4TH_IDEA_JAX_ARCHITECTURE.md and core/LOGS/DESIGN_HINTS_AND_FAILURE_LOG.md"
+decisions_index:
+  - "core/DECISIONS/ADR-001_4TH_IDEA_JAX_ARCHITECTURE.md"
+smoke_status:
+  last_run: "2026-07-25"
+  command: "python -m py_compile src/main.py"
+  result: "Static analysis passed"
+hazards:
+  - "Ensure JAX JIT static shape constraints are respected in beam search width."
