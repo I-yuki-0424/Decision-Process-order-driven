@@ -58,7 +58,7 @@ def beam_search_init(
     )
     
     # Broadcast to K beams using jax.tree_map
-    beams = jax.tree_map(lambda x: jnp.repeat(x[None, ...], beam_width, axis=0), init_candidate)
+    beams = jax.tree_util.tree_map(lambda x: jnp.repeat(x[None, ...], beam_width, axis=0), init_candidate)
     active_mask = jnp.ones((beam_width,), dtype=jnp.bool_)
     
     return BeamSearchState(
@@ -140,7 +140,7 @@ def beam_search_step(
 
     # 4. Gather selected parent candidates and update states (S_t, A_t)
     def _gather_parent(tree):
-        return jax.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
+        return jax.tree_util.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
 
     new_beams_parent = _gather_parent(state.beams)
 

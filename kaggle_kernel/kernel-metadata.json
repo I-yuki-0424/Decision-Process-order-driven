@@ -1,0 +1,14 @@
+{
+  "id": "bfloat16/4th-idea-jax-decision-transformer-benchmark",
+  "title": "4th-Idea JAX Decision Transformer Gymnax Benchmark",
+  "code_file": "decision_process_benchmark.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

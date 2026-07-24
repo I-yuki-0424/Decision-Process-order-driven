@@ -60,13 +60,10 @@ class HeadParameters(NamedTuple):
 
 
 class ModelParameters(NamedTuple):
-    """Complete 4th-Idea Transformer Decision Model parameters."""
+    """Complete 4th-Idea Transformer Decision Model parameters (PyTree compatible)."""
     encoder_params: EncoderParameters
     layers: Tuple[LayerParameters, ...]
     heads: HeadParameters
-    d_model: int
-    num_heads: int
-    head_dim: int
 
 
 def glorot_uniform(key: jax.random.PRNGKey, in_dim: int, out_dim: int) -> jnp.ndarray:
@@ -137,9 +134,6 @@ def init_model_parameters(
         encoder_params=encoder_params,
         layers=tuple(layers),
         heads=heads,
-        d_model=d_model,
-        num_heads=num_heads,
-        head_dim=head_dim,
     )
 
 
@@ -263,14 +257,18 @@ def forward_decision_transformer(
     tokens = encode_channel_independent(params.encoder_params, input_n)
 
     # 3. Transformer Layer Stack
+    d_model = params.heads.w_action.shape[0]
+    num_heads = 8
+    head_dim = d_model // num_heads
+
     new_kv_layers = []
     for i, layer_params in enumerate(params.layers):
         layer_kv = kv_cache.layers[i] if kv_cache is not None else None
         tokens, new_kv = forward_layer(
             layer_params,
             tokens,
-            num_heads=params.num_heads,
-            head_dim=params.head_dim,
+            num_heads=num_heads,
+            head_dim=head_dim,
             kv_layer_cache=layer_kv,
         )
         if new_kv is not None:

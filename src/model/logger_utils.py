@@ -7,7 +7,7 @@ and assertion utilities.
 
 import logging
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 import jax
 import jax.numpy as jnp
 

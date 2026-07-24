@@ -108,7 +108,7 @@ def evaluate_beam_search(
             beam_state = beam_search_step(params, beam_state, actions_data, obs.target, beam_width=beam_width)
             
             top_beam = beam_state.beams.history
-            best_action_idx = int(top_beam.action_indices[-1])
+            best_action_idx = int(top_beam.action_indices[0, -1])
             
             obs, env_state, reward, done, info = env.step(ep_key, env_state, best_action_idx, actions_data)
             

@@ -83,7 +83,7 @@ def train_step(
     rng_key: jax.random.PRNGKey,
 ) -> Tuple[ModelParameters, optax.OptState, TrainingMetrics]:
     """Execute a single JIT-compiled training step."""
-    grad_fn = jax.value_and_grad(compute_loss, has_aux=True)
+    grad_fn = jax.value_and_grad(compute_loss, argnums=0, has_aux=True)
     (_, metrics), grads = grad_fn(params, input_n, target_action, target_cost, target_progress, rng_key)
 
     updates, new_opt_state = optimizer.update(grads, opt_state, params)

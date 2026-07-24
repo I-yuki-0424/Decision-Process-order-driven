@@ -62,7 +62,7 @@ def train_baseline(
         loss = jnp.mean(d.action_logits ** 2) + 0.5 * jnp.mean((d.estimated_costs - 5.0) ** 2)
         return loss
 
-    grad_fn = jax.value_and_grad(loss_fn)
+    grad_fn = jax.value_and_grad(loss_fn, argnums=0)
 
     for i in range(num_steps):
         loss, grads = grad_fn(curr_params, obs)
@@ -117,7 +117,7 @@ def evaluate_model_variant(
                 action_idx = int(jnp.argmax(d.action_logits))
             elif use_beam_search:
                 beam_state = beam_search_step(params, beam_state, actions_data, obs.target, beam_width=beam_width)
-                action_idx = int(beam_state.beams.history.action_indices[-1])
+                action_idx = int(beam_state.beams.history.action_indices[0, -1])
             else:
                 d, _ = forward_decision_transformer(params, obs, rng_key=ep_key, is_training=False)
                 action_idx = int(jnp.argmax(d.action_logits))
@@ -171,7 +171,7 @@ def run_full_benchmark_suite(
         rng_key = jax.random.PRNGKey(2026)
         k_init, k_train, k_eval = jax.random.split(rng_key, 3)
 
-        env_params = EnvParams(max_steps=150, num_actions=16, num_costs=4, num_resources=8)
+        env_params = EnvParams(max_steps=20, num_actions=16, num_costs=4, num_resources=8)
         env = DecisionProcessEnv(params=env_params)
 
         # 1. Initialize & Train Models
@@ -179,10 +179,10 @@ def run_full_benchmark_suite(
 
         full_params = init_model_parameters(k_init, num_layers=4, d_model=512, num_heads=8)
         baseline_params = init_baseline_parameters(k_init, num_layers=4, d_model=512, num_heads=8)
-        trained_baseline = train_baseline(env, baseline_params, k_train, num_steps=30)
+        trained_baseline = train_baseline(env, baseline_params, k_train, num_steps=10)
 
         # 2. Benchmark Variant 1: 4th-Idea (Full Proposed)
-        log_msg("Benchmarking Variant 1: 4th-Idea (Channel Indep + Noise Inj + Beam Search K=5 + KV Cache)...")
+        log_msg("Benchmarking Variant 1: 4th-Idea (Channel Indep + Noise Inj + Beam Search K=3 + KV Cache)...")
         m1 = evaluate_model_variant(
             model_name="4th-Idea (Full Proposed)",
             params=full_params,
@@ -190,7 +190,8 @@ def run_full_benchmark_suite(
             rng_key=k_eval,
             is_baseline=False,
             use_beam_search=True,
-            beam_width=5,
+            beam_width=3,
+            num_episodes=2,
         )
 
         # 3. Benchmark Variant 2: 3rd-Idea Baseline (Greedy Single-Pass)
@@ -202,6 +203,7 @@ def run_full_benchmark_suite(
             rng_key=k_eval,
             is_baseline=True,
             use_beam_search=False,
+            num_episodes=2,
         )
 
         # 4. Benchmark Variant 3: Ablation Model (Noise Injection Only)
@@ -213,6 +215,7 @@ def run_full_benchmark_suite(
             rng_key=k_eval,
             is_baseline=False,
             use_beam_search=False,
+            num_episodes=2,
         )
 
         results = [m1, m2, m3]

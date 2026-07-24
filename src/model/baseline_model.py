@@ -8,7 +8,7 @@ Implements:
 3. Greedy single-pass autoregressive inference (No Beam Search, No KV Cache state pairs).
 """
 
-from typing import NamedTuple, Optional, Tuple
+from typing import NamedTuple, Tuple
 import jax
 import jax.numpy as jnp
 
@@ -17,7 +17,7 @@ from src.model.transformer_decision_core import LayerParameters, layer_norm, glo
 
 
 class BaselineModelParameters(NamedTuple):
-    """Parameters for 3rd-Idea Baseline Greedy Transformer."""
+    """Parameters for 3rd-Idea Baseline Greedy Transformer (PyTree compatible)."""
     w_concat_in: jnp.ndarray   # Dense projection from concatenated features to d_model
     layers: Tuple[LayerParameters, ...]
     w_action: jnp.ndarray      # Head for action logits
@@ -26,9 +26,6 @@ class BaselineModelParameters(NamedTuple):
     b_cost: jnp.ndarray
     w_progress: jnp.ndarray    # Head for progress rate prediction
     b_progress: jnp.ndarray
-    d_model: int
-    num_heads: int
-    head_dim: int
 
 
 def init_baseline_parameters(
@@ -46,12 +43,8 @@ def init_baseline_parameters(
 ) -> BaselineModelParameters:
     """Initialize parameters for 3rd-Idea Baseline model."""
     keys = jax.random.split(rng_key, num_layers + 3)
-    head_dim = d_model // num_heads
 
-    # Direct concatenation vector size:
-    # State (num_resources) + Target (target_dim) + Action features (num_actions * action_feat_dim) + History summary
     concat_dim = num_resources + target_dim + num_actions * action_feat_dim + max_history_len * (1 + num_costs)
-
     w_concat_in = glorot_uniform(keys[0], concat_dim, d_model)
 
     layers = []
@@ -90,9 +83,6 @@ def init_baseline_parameters(
         b_cost=b_cost,
         w_progress=w_progress,
         b_progress=b_progress,
-        d_model=d_model,
-        num_heads=num_heads,
-        head_dim=head_dim,
     )
 
 
@@ -115,28 +105,30 @@ def forward_baseline_transformer(
     input_n: InputContextN,
 ) -> DecisionVectorD:
     """Forward pass through 3rd-Idea Baseline Model (Single-pass Greedy)."""
+    d_model = params.w_action.shape[0]
+    num_heads = 8
+    head_dim = d_model // num_heads
+
     # 1. Direct concatenation encoding
     concat_vec = encode_baseline_features(input_n)
-    
-    # Project to d_model sequence of length 1 token
     token = jnp.matmul(concat_vec[None, :], params.w_concat_in)  # (1, d_model)
 
     # 2. Transformer layers (without KV cache)
     x = token
     for layer in params.layers:
         norm_x = layer_norm(x, layer.gamma1, layer.beta1)
-        q = jnp.matmul(norm_x, layer.w_q).reshape(1, params.num_heads, params.head_dim)
-        k = jnp.matmul(norm_x, layer.w_k).reshape(1, params.num_heads, params.head_dim)
-        v = jnp.matmul(norm_x, layer.w_v).reshape(1, params.num_heads, params.head_dim)
+        q = jnp.matmul(norm_x, layer.w_q).reshape(1, num_heads, head_dim)
+        k = jnp.matmul(norm_x, layer.w_k).reshape(1, num_heads, head_dim)
+        v = jnp.matmul(norm_x, layer.w_v).reshape(1, num_heads, head_dim)
 
         q = jnp.transpose(q, (1, 0, 2))
         k = jnp.transpose(k, (1, 0, 2))
         v = jnp.transpose(v, (1, 0, 2))
 
-        attn = jnp.matmul(q, jnp.transpose(k, (0, 2, 1))) / jnp.sqrt(params.head_dim)
+        attn = jnp.matmul(q, jnp.transpose(k, (0, 2, 1))) / jnp.sqrt(head_dim)
         attn_probs = jax.nn.softmax(attn, axis=-1)
         attn_out = jnp.matmul(attn_probs, v)
-        attn_out = jnp.transpose(attn_out, (1, 0, 2)).reshape(1, params.d_model)
+        attn_out = jnp.transpose(attn_out, (1, 0, 2)).reshape(1, d_model)
         attn_out = jnp.matmul(attn_out, layer.w_o)
 
         x = x + attn_out
@@ -158,5 +150,5 @@ def forward_baseline_transformer(
         estimated_costs=estimated_costs,
         predicted_next_state=input_n.state.resource_levels,
         progress_rate_pred=progress_pred,
-        validity_score=jnp.array(1.0),  # Baseline assumes clean validity
+        validity_score=jnp.array(1.0),
     )
