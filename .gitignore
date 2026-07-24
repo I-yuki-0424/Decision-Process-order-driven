@@ -1,3 +1,9 @@
 ! .gitignore
-/_pycache__/
-            
+__pycache__/
+*.pyc
+*.pyo
+kaggle.json
+.ipynb_checkpoints/
+output/
+tmp/
+.vscode/
