@@ -27,6 +27,7 @@ from src.model.transformer_decision_core import (
     forward_decision_transformer,
     init_model_parameters,
 )
+from src.pipeline.trainer import train_step
 from src.model.types import ActionHistory
 
 logger = get_logger("DecisionBenchmark")
@@ -57,10 +58,19 @@ def train_baseline(
     curr_params = params
     curr_opt_state = opt_state
 
+    # Compute optimal action targets based on distance reduction to target state
+    num_res = obs.state.resource_levels.shape[0]
+    num_costs = actions_data.costs.shape[1]
+    delta_r = actions_data.costs if num_costs >= num_res else jnp.pad(actions_data.costs, ((0, 0), (0, num_res - num_costs)))
+    next_resources = obs.state.resource_levels[None, :] + delta_r
+    target_dists = jnp.linalg.norm(next_resources - obs.target.target_state[None, :], axis=-1)
+    target_action = jnp.argmin(target_dists)
+
     def loss_fn(p, o):
         d = forward_baseline_transformer(p, o)
-        loss = jnp.mean(d.action_logits ** 2) + 0.5 * jnp.mean((d.estimated_costs - 5.0) ** 2)
-        return loss
+        policy_loss = optax.softmax_cross_entropy_with_integer_labels(logits=d.action_logits[None, :], labels=target_action[None])[0]
+        cost_loss = jnp.mean((d.estimated_costs - 5.0) ** 2)
+        return policy_loss + 0.5 * cost_loss
 
     grad_fn = jax.value_and_grad(loss_fn, argnums=0)
 
@@ -95,18 +105,14 @@ def evaluate_model_variant(
     for ep in range(num_episodes):
         obs, env_state, actions_data = env.reset(keys[ep])
         
-        # Inject noise into history during evaluation to test Exposure Bias Resilience
         if inject_eval_noise:
-            noisy_indices = obs.history.action_indices.at[::5].set(15)  # corrupt every 5th step
+            noisy_indices = obs.history.action_indices.at[::5].set(15)
             noisy_history = obs.history._replace(action_indices=noisy_indices)
             obs = obs._replace(history=noisy_history)
 
         ep_steps = 0
         done = False
         costs_seq = []
-
-        if use_beam_search and not is_baseline:
-            beam_state = beam_search_init(obs.state, obs, beam_width=beam_width, num_costs=env.params.num_costs)
 
         while not done and ep_steps < env.params.max_steps:
             ep_key = jax.random.fold_in(keys[ep], ep_steps)
@@ -116,8 +122,9 @@ def evaluate_model_variant(
                 d = forward_baseline_transformer(params, obs)
                 action_idx = int(jnp.argmax(d.action_logits))
             elif use_beam_search:
+                beam_state = beam_search_init(obs.state, obs, beam_width=beam_width, num_costs=env.params.num_costs)
                 beam_state = beam_search_step(params, beam_state, actions_data, obs.target, beam_width=beam_width)
-                action_idx = int(beam_state.beams.history.action_indices[0, -1])
+                action_idx = int(beam_state.beams.history.action_indices[0, 0])
             else:
                 d, _ = forward_decision_transformer(params, obs, rng_key=ep_key, is_training=False)
                 action_idx = int(jnp.argmax(d.action_logits))
@@ -159,6 +166,51 @@ def run_full_benchmark_suite(
 ) -> List[BenchmarkMetrics]:
     """Run comprehensive benchmark suite comparing all 3 model variants."""
     os.makedirs(os.path.dirname(output_log_path), exist_ok=True)
+def train_full_model(
+    env: DecisionProcessEnv,
+    params: ModelParameters,
+    rng_key: jax.random.PRNGKey,
+    num_steps: int = 20,
+) -> ModelParameters:
+    """Train 4th-Idea model with target progress alignment and Noise Injection."""
+    optimizer = optax.adamw(learning_rate=1e-3)
+    opt_state = optimizer.init(params)
+
+    obs, env_state, actions_data = env.reset(rng_key)
+    curr_params = params
+    curr_opt_state = opt_state
+
+    num_res = obs.state.resource_levels.shape[0]
+    num_costs = actions_data.costs.shape[1]
+    delta_r = actions_data.costs if num_costs >= num_res else jnp.pad(actions_data.costs, ((0, 0), (0, num_res - num_costs)))
+    next_resources = obs.state.resource_levels[None, :] + delta_r
+    target_dists = jnp.linalg.norm(next_resources - obs.target.target_state[None, :], axis=-1)
+    target_action = jnp.argmin(target_dists)
+    target_cost = actions_data.costs[target_action]
+    target_progress = jnp.array(0.5)
+
+    step_keys = jax.random.split(rng_key, num_steps)
+    for i in range(num_steps):
+        curr_params, curr_opt_state, _ = train_step(
+            curr_params,
+            curr_opt_state,
+            optimizer,
+            obs,
+            target_action,
+            target_cost,
+            target_progress,
+            step_keys[i],
+        )
+
+    return curr_params
+
+
+def run_full_benchmark_suite(
+    output_log_path: str = "output/logs/execution.log",
+    output_json_path: str = "output/benchmark_results.json",
+) -> List[BenchmarkMetrics]:
+    """Run comprehensive benchmark suite comparing all 3 model variants."""
+    os.makedirs(os.path.dirname(output_log_path), exist_ok=True)
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
 
     with open(output_log_path, "w", encoding="utf-8") as log_file:
@@ -171,7 +223,7 @@ def run_full_benchmark_suite(
         rng_key = jax.random.PRNGKey(2026)
         k_init, k_train, k_eval = jax.random.split(rng_key, 3)
 
-        env_params = EnvParams(max_steps=20, num_actions=16, num_costs=4, num_resources=8)
+        env_params = EnvParams(max_steps=50, num_actions=16, num_costs=4, num_resources=8)
         env = DecisionProcessEnv(params=env_params)
 
         # 1. Initialize & Train Models
@@ -179,19 +231,21 @@ def run_full_benchmark_suite(
 
         full_params = init_model_parameters(k_init, num_layers=4, d_model=512, num_heads=8)
         baseline_params = init_baseline_parameters(k_init, num_layers=4, d_model=512, num_heads=8)
-        trained_baseline = train_baseline(env, baseline_params, k_train, num_steps=10)
+        
+        trained_full_params = train_full_model(env, full_params, k_train, num_steps=20)
+        trained_baseline = train_baseline(env, baseline_params, k_train, num_steps=20)
 
         # 2. Benchmark Variant 1: 4th-Idea (Full Proposed)
         log_msg("Benchmarking Variant 1: 4th-Idea (Channel Indep + Noise Inj + Beam Search K=3 + KV Cache)...")
         m1 = evaluate_model_variant(
             model_name="4th-Idea (Full Proposed)",
-            params=full_params,
+            params=trained_full_params,
             env=env,
             rng_key=k_eval,
             is_baseline=False,
             use_beam_search=True,
             beam_width=3,
-            num_episodes=2,
+            num_episodes=3,
         )
 
         # 3. Benchmark Variant 2: 3rd-Idea Baseline (Greedy Single-Pass)

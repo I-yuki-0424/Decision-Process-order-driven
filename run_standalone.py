@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath("."))
 from src.pipeline.benchmark import run_full_benchmark_suite
 from src.pipeline.plotter import plot_full_benchmark_results
 
-if __name__ == "__main__":
+def main():
     try:
         print("Starting Benchmark Suite...")
         results = run_full_benchmark_suite()
@@ -19,6 +19,10 @@ if __name__ == "__main__":
         
         plot_full_benchmark_results(res_data)
         print("Plotting completed successfully!")
+        return results
     except Exception as e:
         print("EXCEPTION ENCOUNTERED:")
         traceback.print_exc()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,19 @@
+services:
+  jax-gpu-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: jax_decision_process_gpu
+    volumes:
+      - ..:/workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+      - KAGGLE_CONFIG_DIR=/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: python run_standalone.py

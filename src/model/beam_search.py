@@ -13,6 +13,7 @@ import jax
 import jax.numpy as jnp
 
 from src.model.types import (
+    ActionHistory,
     ActionsData,
     BeamCandidate,
     BeamSearchState,
@@ -32,10 +33,7 @@ def score_beam_candidate(
     w_progress: float = 2.0,
     w_cost_penalty: float = 1.0,
 ) -> jnp.ndarray:
-    """Calculate beam candidate score balancing log probability, progress, and cost limits.
-
-    Score = log_p(A_t) + w_progress * ProgressRate - w_cost_penalty * (Cost_Violation)
-    """
+    """Calculate beam candidate score balancing log probability, progress, and cost limits."""
     cost_violation = jnp.sum(jnp.maximum(0.0, cum_cost - available_costs))
     score = action_log_prob + w_progress * predicted_progress - w_cost_penalty * cost_violation
     return score
@@ -57,14 +55,13 @@ def beam_search_init(
         kv_cache=None,
     )
     
-    # Broadcast to K beams using jax.tree_map
     beams = jax.tree_util.tree_map(lambda x: jnp.repeat(x[None, ...], beam_width, axis=0), init_candidate)
     active_mask = jnp.ones((beam_width,), dtype=jnp.bool_)
     
     return BeamSearchState(
         beams=beams,
         active_mask=active_mask,
-        step_count=jnp.array(0),
+        step_count=jnp.array(0, dtype=jnp.int32),
     )
 
 
@@ -75,11 +72,7 @@ def expand_single_beam(
     target: TransitionTarget,
     num_actions: int,
 ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
-    """Evaluate decision core for a single beam candidate to get expansion scores.
-
-    Returns:
-        (next_action_log_probs, predicted_progress, estimated_costs)
-    """
+    """Evaluate decision core for a single beam candidate to get expansion scores."""
     input_n = InputContextN(
         actions=actions_data,
         state=candidate.state,
@@ -95,8 +88,6 @@ def expand_single_beam(
     )
     
     log_probs = jax.nn.log_softmax(decision_d.action_logits)
-    
-    # Mask invalid actions with -inf score
     valid_log_probs = jnp.where(actions_data.valid_mask, log_probs, -1e9)
     
     return valid_log_probs, decision_d.progress_rate_pred, decision_d.estimated_costs
@@ -112,7 +103,7 @@ def beam_search_step(
 ) -> BeamSearchState:
     """Perform one step of vectorized Beam Search across K beams.
 
-    Expands K beams x A actions -> K*A candidates, then prunes top K by score.
+    Expands K beams x A actions -> K*A candidates, updates (S_t, A_t) pairs, then prunes top K by score.
     """
     # 1. Vectorized expansion across all K active beams using vmap
     def _expand_fn(beam_cand):
@@ -127,9 +118,8 @@ def beam_search_step(
 
     # 2. Compute total candidate scores for all K * num_actions branches
     prev_scores = state.beams.score[:, None]  # (K, 1)
-    cand_scores = prev_scores + all_log_probs  # (K, num_actions)
-    
-    # Add progress & cost penalty
+    progress_bonus = 5.0 * all_progress[:, None]  # (K, 1)
+    cand_scores = prev_scores + all_log_probs + progress_bonus  # (K, num_actions)
     cand_scores_flat = cand_scores.reshape(-1)  # (K * num_actions,)
 
     # 3. Select Top-K beam indices
@@ -138,21 +128,56 @@ def beam_search_step(
     parent_beam_indices = topk_indices // num_actions
     selected_action_indices = topk_indices % num_actions
 
-    # 4. Gather selected parent candidates and update states (S_t, A_t)
+    # 4. Gather selected parent candidates
     def _gather_parent(tree):
         return jax.tree_util.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
 
     new_beams_parent = _gather_parent(state.beams)
 
-    # Update history and scores for selected top-K
-    new_scores = topk_scores
+    # 5. Update history and state for selected Top-K beams (Bellman Causality Pair S_t, A_t)
+    step_idx = jnp.minimum(state.step_count, new_beams_parent.history.action_indices.shape[1] - 1)
     
+    # Update action indices history at current step
+    updated_action_indices = new_beams_parent.history.action_indices.at[:, step_idx].set(selected_action_indices)
+    
+    # Update cost changes history at current step
+    selected_costs = actions_data.costs[selected_action_indices]  # (K, num_costs)
+    updated_cost_changes = new_beams_parent.history.cost_changes.at[:, step_idx, :].set(selected_costs)
+
+    updated_history = ActionHistory(
+        action_indices=updated_action_indices,
+        rewards=new_beams_parent.history.rewards,
+        cost_changes=updated_cost_changes,
+        noise_mask=new_beams_parent.history.noise_mask,
+        seq_len=jnp.repeat(state.step_count + 1, beam_width),
+    )
+
+    # Update cumulative cost
+    updated_cum_cost = new_beams_parent.cum_cost + selected_costs
+
+    # Update state resource levels based on selected action (Bellman causality)
+    num_res = new_beams_parent.state.resource_levels.shape[1]
+    delta_res = selected_costs[:, :num_res] if selected_costs.shape[1] >= num_res else jnp.pad(selected_costs, ((0, 0), (0, num_res - selected_costs.shape[1])))
+    updated_resource_levels = new_beams_parent.state.resource_levels + delta_res
+
+    # Calculate updated progress rate towards target
+    current_dist = jnp.linalg.norm(updated_resource_levels - target.target_state[None, :], axis=-1)
+    initial_dist = jnp.linalg.norm(target.target_state, axis=-1) + 1e-6
+    updated_progress_rate = jnp.clip(1.0 - (current_dist / initial_dist), 0.0, 1.0)
+
+    updated_state = SystemState(
+        resource_levels=updated_resource_levels,
+        available_costs=new_beams_parent.state.available_costs - selected_costs,
+        status_flags=new_beams_parent.state.status_flags,
+        progress_rate=updated_progress_rate,
+    )
+
     updated_beams = BeamCandidate(
-        state=new_beams_parent.state,
-        history=new_beams_parent.history,
-        cum_cost=new_beams_parent.cum_cost,
-        progress_rate=new_beams_parent.progress_rate,
-        score=new_scores,
+        state=updated_state,
+        history=updated_history,
+        cum_cost=updated_cum_cost,
+        progress_rate=updated_progress_rate,
+        score=topk_scores,
         kv_cache=new_beams_parent.kv_cache,
     )
 

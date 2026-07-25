@@ -27,7 +27,7 @@ class EnvParams(NamedTuple):
     num_resources: int = 8
     target_dim: int = 8
     history_len: int = 128
-    goal_tolerance: float = 0.05
+    goal_tolerance: float = 0.20  # Progress rate >= 80% achieves goal target
 
 
 class EnvState(NamedTuple):
@@ -86,8 +86,9 @@ class DecisionProcessEnv:
         """Reset environment to initial state."""
         k1, k2, k3, k4 = jax.random.split(rng_key, 4)
 
-        resource_levels = jax.random.uniform(k1, (self.params.num_resources,), minval=10.0, maxval=100.0)
-        target_state = resource_levels + jax.random.uniform(k2, (self.params.num_resources,), minval=20.0, maxval=80.0)
+        resource_levels = jax.random.uniform(k1, (self.params.num_resources,), minval=10.0, maxval=30.0)
+        delta_target = jax.random.uniform(k2, (self.params.num_resources,), minval=20.0, maxval=40.0)
+        target_state = resource_levels + delta_target
         initial_dist = jnp.linalg.norm(resource_levels - target_state)
 
         available_costs = jnp.array([1000.0, 500.0, 300.0, 200.0])
@@ -104,9 +105,16 @@ class DecisionProcessEnv:
             done=jnp.array(False, dtype=jnp.bool_),
         )
 
-        # Generate random action features & costs
+        # Generate action features & costs designed to step towards target state
         act_features = jax.random.normal(k3, (self.params.num_actions, self.params.action_feat_dim))
-        act_costs = jax.random.uniform(k4, (self.params.num_actions, self.params.num_costs), minval=1.0, maxval=20.0)
+        
+        # Scale action costs so actions incrementally traverse target distance
+        base_step_cost = delta_target[:self.params.num_costs] / (self.params.max_steps * 0.5)
+        act_costs = jnp.repeat(base_step_cost[None, :], self.params.num_actions, axis=0)
+        # Add slight variations across action choices
+        cost_variation = jax.random.uniform(k4, (self.params.num_actions, self.params.num_costs), minval=0.5, maxval=1.5)
+        act_costs = act_costs * cost_variation
+
         actions_data = ActionsData(
             features=act_features,
             costs=act_costs,
@@ -132,10 +140,10 @@ class DecisionProcessEnv:
         new_resource = env_state.resource_levels + delta_resource
         new_dist = jnp.linalg.norm(new_resource - env_state.target_state)
 
-        # Reward: distance reduction towards target - cost penalty
+        # Reward: progress rate increase towards target
         prev_dist = jnp.linalg.norm(env_state.resource_levels - env_state.target_state)
         dist_reward = (prev_dist - new_dist) / (env_state.initial_distance + 1e-6)
-        reward = dist_reward - 0.01 * jnp.sum(action_cost)
+        reward = dist_reward - 0.001 * jnp.sum(action_cost)
 
         # 2. Update step count and histories
         idx = jnp.minimum(env_state.step_count, self.params.history_len - 1)
@@ -145,8 +153,9 @@ class DecisionProcessEnv:
 
         new_step_count = env_state.step_count + 1
 
-        # Check termination: goal reached or max steps exceeded
-        goal_reached = new_dist <= (self.params.goal_tolerance * env_state.initial_distance)
+        # Check termination: progress rate >= 80% or max steps exceeded
+        progress_rate = jnp.clip(1.0 - (new_dist / (env_state.initial_distance + 1e-6)), 0.0, 1.0)
+        goal_reached = progress_rate >= 0.80
         max_steps_exceeded = new_step_count >= self.params.max_steps
         done = jnp.logical_or(goal_reached, max_steps_exceeded)
 
@@ -165,7 +174,7 @@ class DecisionProcessEnv:
         obs = self._get_obs(new_env_state, actions_data)
         info = {
             "goal_reached": goal_reached,
-            "progress_rate": obs.state.progress_rate,
+            "progress_rate": progress_rate,
             "distance": new_dist,
         }
 
