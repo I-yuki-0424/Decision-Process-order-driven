@@ -13,6 +13,7 @@ import time
 from typing import Dict, List, NamedTuple, Any
 import jax
 import jax.numpy as jnp
+import numpy as np
 import optax
 
 from src.environment.gymnax_decision_env import DecisionProcessEnv, EnvParams
@@ -49,11 +50,14 @@ def train_full_model_trajectory(
     env: DecisionProcessEnv,
     params: ModelParameters,
     rng_key: jax.random.PRNGKey,
-    num_episodes: int = 5,
-    steps_per_ep: int = 20,
+    num_episodes: int = 10,
+    steps_per_ep: int = 80,
 ) -> ModelParameters:
-    """Train 4th-Idea model over dynamic environment trajectories to generalize goal progress."""
-    optimizer = optax.adamw(learning_rate=1e-3)
+    """Train 4th-Idea model over full dynamic environment trajectories to generalize goal progress across all stages."""
+    optimizer = optax.chain(
+        optax.clip_by_global_norm(1.0),
+        optax.adamw(learning_rate=1e-3),
+    )
     opt_state = optimizer.init(params)
     curr_params = params
     curr_opt_state = opt_state
@@ -68,12 +72,12 @@ def train_full_model_trajectory(
 
         for step in range(steps_per_ep):
             # Compute distance-minimizing target action
-            delta_r = actions_data.costs if num_costs >= num_res else jnp.pad(actions_data.costs, ((0, 0), (0, num_res - num_costs)))
+            delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
             next_resources = obs.state.resource_levels[None, :] + delta_r
             target_dists = jnp.linalg.norm(next_resources - obs.target.target_state[None, :], axis=-1)
             target_action = jnp.argmin(target_dists)
             target_cost = actions_data.costs[target_action]
-            target_progress = obs.state.progress_rate + 0.05
+            target_progress = jnp.clip(obs.state.progress_rate + 0.02, 0.0, 1.0)
 
             curr_params, curr_opt_state, _ = train_step(
                 curr_params,
@@ -231,7 +235,7 @@ def run_mdp_transformer_bottleneck_analysis(
         steps_o = 0
         while not done_o and steps_o < env.params.max_steps:
             ep_key = jax.random.fold_in(keys[ep], steps_o)
-            delta_r = actions_o.costs if num_costs >= num_res else jnp.pad(actions_o.costs, ((0, 0), (0, num_res - num_costs)))
+            delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_o.costs)
             next_r = obs_o.state.resource_levels[None, :] + delta_r
             dists = jnp.linalg.norm(next_r - obs_o.target.target_state[None, :], axis=-1)
             oracle_act = int(jnp.argmin(dists))
@@ -246,10 +250,10 @@ def run_mdp_transformer_bottleneck_analysis(
         steps_t = 0
         while not done_t and steps_t < env.params.max_steps:
             ep_key = jax.random.fold_in(keys[ep], steps_t)
-            delta_r = actions_t.costs if num_costs >= num_res else jnp.pad(actions_t.costs, ((0, 0), (0, num_res - num_costs)))
-            next_r = obs_t.state.resource_levels[None, :] + delta_r
-            dists = jnp.linalg.norm(next_r - obs_t.target.target_state[None, :], axis=-1)
-            oracle_act = int(jnp.argmin(dists))
+            delta_r_t = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_t.costs)
+            next_r_t = obs_t.state.resource_levels[None, :] + delta_r_t
+            dists_t = jnp.linalg.norm(next_r_t - obs_t.target.target_state[None, :], axis=-1)
+            oracle_act = int(jnp.argmin(dists_t))
 
             beam_state = beam_search_init(obs_t.state, obs_t, beam_width=3, num_costs=env.params.num_costs)
             beam_state = beam_search_step(params, beam_state, actions_t, obs_t.target, beam_width=3)

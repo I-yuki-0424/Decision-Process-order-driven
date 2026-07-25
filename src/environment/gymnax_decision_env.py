@@ -20,7 +20,7 @@ from src.model.types import (
 
 class EnvParams(NamedTuple):
     """Parameters for DecisionProcessEnv."""
-    max_steps: int = 150
+    max_steps: int = 100
     num_actions: int = 16
     action_feat_dim: int = 32
     num_costs: int = 4
@@ -105,13 +105,12 @@ class DecisionProcessEnv:
             done=jnp.array(False, dtype=jnp.bool_),
         )
 
-        # Generate action features & costs designed to step towards target state
+        # Generate action features & delta resources designed to cover ALL resource dimensions
         act_features = jax.random.normal(k3, (self.params.num_actions, self.params.action_feat_dim))
         
-        # Scale action costs so actions incrementally traverse target distance
-        base_step_cost = delta_target[:self.params.num_costs] / (self.params.max_steps * 0.5)
+        # Tile step cost across all num_resources dimensions so all resources progress
+        base_step_cost = delta_target[:self.params.num_costs] / (self.params.max_steps * 0.6)
         act_costs = jnp.repeat(base_step_cost[None, :], self.params.num_actions, axis=0)
-        # Add slight variations across action choices
         cost_variation = jax.random.uniform(k4, (self.params.num_actions, self.params.num_costs), minval=0.5, maxval=1.5)
         act_costs = act_costs * cost_variation
 
@@ -133,9 +132,10 @@ class DecisionProcessEnv:
         actions_data: ActionsData,
     ) -> Tuple[InputContextN, EnvState, jnp.ndarray, jnp.ndarray, dict]:
         """Execute step given action index."""
-        # 1. Resource transition based on selected action
+        # 1. Resource transition based on selected action (tile costs across all resources)
         action_cost = actions_data.costs[action_idx]
-        delta_resource = action_cost[:self.params.num_resources] if self.params.num_costs >= self.params.num_resources else jnp.pad(action_cost, (0, self.params.num_resources - self.params.num_costs))
+        # Tile action_cost (4,) to fill all num_resources (8,)
+        delta_resource = jnp.tile(action_cost, (self.params.num_resources // self.params.num_costs + 1,))[:self.params.num_resources]
         
         new_resource = env_state.resource_levels + delta_resource
         new_dist = jnp.linalg.norm(new_resource - env_state.target_state)
