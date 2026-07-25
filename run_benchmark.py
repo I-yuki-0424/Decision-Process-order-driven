@@ -5,21 +5,23 @@ import traceback
 
 sys.path.insert(0, os.path.abspath("."))
 
-from src.pipeline.benchmark import run_full_benchmark_suite
-from src.pipeline.plotter import plot_full_benchmark_results
+from src.pipeline.benchmark import run_layer_depth_scaling_experiment
+from src.pipeline.plotter import plot_layer_depth_scaling_and_bottlenecks, plot_full_benchmark_results
 
-def run():
+def run(run_seq: str = "Run-Seq: #001"):
     try:
-        print("=== Executing Gymnax Decision Transformer Benchmark Suite ===")
-        results = run_full_benchmark_suite()
-        print(f"Benchmark completed successfully! Evaluated {len(results)} variants.")
+        print(f"=== Executing Layer Depth Scaling & MDP Bottleneck Suite [{run_seq}] ===")
+        scaling_results, friction_data = run_layer_depth_scaling_experiment(
+            layer_list=[2, 4, 8, 12],
+            d_model=512,
+            max_steps=100,
+            run_seq=run_seq,
+        )
         
-        with open("output/benchmark_results.json", "r", encoding="utf-8") as f:
-            res_data = json.load(f)
-        
-        plot_full_benchmark_results(res_data)
-        print("Comparative plots generated in output/plots/.")
-        return results
+        plot_layer_depth_scaling_and_bottlenecks(scaling_results, friction_data, run_seq=run_seq)
+        plot_full_benchmark_results(scaling_results, run_seq=run_seq)
+        print(f"Comparative plots generated successfully in output/plots/ [{run_seq}].")
+        return scaling_results, friction_data
     except Exception as e:
         print("ERROR IN BENCHMARK EXECUTION:")
         traceback.print_exc()
