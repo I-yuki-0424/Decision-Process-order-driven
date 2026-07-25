@@ -1,11 +1,13 @@
 """
-Types and PyTree Data Structures for 4th-Idea JAX Decision Process Architecture.
+Types and PyTree Data Structures for 4th & 5th-Idea JAX Decision Process Architecture.
 
 This module defines structured types for:
 - Input Context N = {Actions A, State S, History H, Transition Target T}
 - Decision Vector d = A(costs) + A(conditions) + S(Can use Costs) + H(reward) + H(Cost-change) + T(conditions(H))
+- Hierarchical Decision Vector d (5th-Idea: Macro Cluster Head + Micro Fine Head)
 - KV Cache state for Transformer autoregressive step generation
 - Beam Search state for holding (S_t, A_t) candidate trajectories
+- Working Memory state for compressed history representation
 """
 
 from typing import NamedTuple, Optional, Tuple
@@ -74,9 +76,9 @@ class TransitionTarget(NamedTuple):
 
 
 class InputContextN(NamedTuple):
-    """Complete Input Context N = {A, S, H, T} for 4th-Idea Decision Model.
+    """Complete Input Context N = {A, S, H, T} for Decision Model.
 
-    Adheres to 4th-Idea Channel Independence:
+    Adheres to Channel Independence:
     Physical properties and scales (Time, Cost, State, History) are structurally
     segregated into distinct PyTree fields / channels.
     """
@@ -105,14 +107,44 @@ class DecisionVectorD(NamedTuple):
     validity_score: jnp.ndarray
 
 
-class KVCacheLayer(NamedTuple):
-    """Key-Value Cache for a single Transformer Attention Layer.
+class HierarchicalDecisionVectorD(NamedTuple):
+    """5th-Idea Hierarchical Decision Vector d.
+
+    Decomposes action selection into Macro Cluster Head (M clusters) + Micro Fine Action Head (K actions/cluster).
 
     Attributes:
-        cached_keys: Shape (batch_size, num_heads, max_seq_len, head_dim)
-        cached_values: Shape (batch_size, num_heads, max_seq_len, head_dim)
-        current_len: Shape (batch_size,) - active cached length
+        macro_logits: Shape (num_macro_clusters,) - logit probabilities over macro clusters (M)
+        micro_logits: Shape (num_fine_actions_per_cluster,) - logit probabilities over fine actions (K)
+        action_logits: Shape (num_actions,) - flattened logit probabilities over all |A| = M * K actions
+        estimated_costs: Shape (num_costs,) - predicted cost impact of decision
+        predicted_next_state: Shape (num_resources,) - predicted state S_{t+1}
+        progress_rate_pred: Shape () - predicted goal progress rate
+        validity_score: Shape () - predicted validity score
+        selected_macro_cluster: Shape () - chosen macro cluster index
     """
+    macro_logits: jnp.ndarray
+    micro_logits: jnp.ndarray
+    action_logits: jnp.ndarray
+    estimated_costs: jnp.ndarray
+    predicted_next_state: jnp.ndarray
+    progress_rate_pred: jnp.ndarray
+    validity_score: jnp.ndarray
+    selected_macro_cluster: jnp.ndarray
+
+
+class WorkingMemoryState(NamedTuple):
+    """5th-Idea Compressed Working Memory State for long sequence processing.
+
+    Attributes:
+        compressed_memory: Shape (memory_slots, d_model) - compressed latent history tokens
+        last_compressed_step: Shape () - last step index where memory compression occurred
+    """
+    compressed_memory: jnp.ndarray
+    last_compressed_step: jnp.ndarray
+
+
+class KVCacheLayer(NamedTuple):
+    """Key-Value Cache for a single Transformer Attention Layer."""
     cached_keys: jnp.ndarray
     cached_values: jnp.ndarray
     current_len: jnp.ndarray
@@ -124,16 +156,7 @@ class KVCacheState(NamedTuple):
 
 
 class BeamCandidate(NamedTuple):
-    """Single Beam Candidate holding paired (S_t, A_t) in accordance with Bellman causality.
-
-    Attributes:
-        state: SystemState - state S_t
-        history: ActionHistory - trajectory history H_t
-        cum_cost: Shape (num_costs,) - accumulated multi-dimensional cost
-        progress_rate: Shape () - progress rate towards target T
-        score: Shape () - total beam evaluation score (log prob + progress - cost penalty)
-        kv_cache: KVCacheState - cached keys and values up to current step
-    """
+    """Single Beam Candidate holding paired (S_t, A_t) in accordance with Bellman causality."""
     state: SystemState
     history: ActionHistory
     cum_cost: jnp.ndarray
@@ -143,13 +166,7 @@ class BeamCandidate(NamedTuple):
 
 
 class BeamSearchState(NamedTuple):
-    """Beam Search State holding K concurrent beam candidates.
-
-    Attributes:
-        beams: PyTree of K BeamCandidates (batched over beam dimension K)
-        active_mask: Shape (K,) - boolean mask indicating non-terminated beams
-        step_count: Shape () - current decision step count
-    """
+    """Beam Search State holding K concurrent beam candidates."""
     beams: BeamCandidate
     active_mask: jnp.ndarray
     step_count: jnp.ndarray

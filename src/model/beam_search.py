@@ -1,14 +1,13 @@
 """
-Vectorized Beam Search with KV Cache & Bellman Causality Preservation.
+Vectorized Beam Search with KV Cache & 5th-Idea Hierarchical Abstraction.
 
-Adheres to 4th-Idea Section 4:
+Adheres to:
 1. Maintains action-state candidate pairs (S_t, A_t) in K beams.
 2. Pruning based on multi-dimensional cost minimization and Goal Progress Rate.
-3. KV Cache reuse across decision steps.
-4. Vectorized top-K selection using JAX vmap.
+3. Hierarchical Beam Search for 5th-Idea: Decomposes |A| = 2000 into top M clusters * top K fine actions.
 """
 
-from typing import NamedTuple, Tuple
+from typing import NamedTuple, Tuple, Optional
 import jax
 import jax.numpy as jnp
 
@@ -18,11 +17,16 @@ from src.model.types import (
     BeamCandidate,
     BeamSearchState,
     DecisionVectorD,
+    HierarchicalDecisionVectorD,
     InputContextN,
     SystemState,
     TransitionTarget,
 )
 from src.model.transformer_decision_core import ModelParameters, forward_decision_transformer
+from src.model.hierarchical_transformer import (
+    HierarchicalModelParameters,
+    forward_hierarchical_transformer,
+)
 
 
 def score_beam_candidate(
@@ -101,47 +105,31 @@ def beam_search_step(
     beam_width: int = 5,
     num_actions: int = 16,
 ) -> BeamSearchState:
-    """Perform one step of vectorized Beam Search across K beams.
-
-    Expands K beams x A actions -> K*A candidates, updates (S_t, A_t) pairs, then prunes top K by score.
-    """
-    # 1. Vectorized expansion across all K active beams using vmap
+    """Perform one step of vectorized Beam Search across K beams."""
     def _expand_fn(beam_cand):
         return expand_single_beam(params, beam_cand, actions_data, target, num_actions)
 
     vmap_expand = jax.vmap(_expand_fn)
     all_log_probs, all_progress, all_costs = vmap_expand(state.beams)
-    # Shapes:
-    # all_log_probs: (K, num_actions)
-    # all_progress: (K,)
-    # all_costs: (K, num_costs)
 
-    # 2. Compute total candidate scores for all K * num_actions branches
     prev_scores = state.beams.score[:, None]  # (K, 1)
     progress_bonus = 5.0 * all_progress[:, None]  # (K, 1)
     cand_scores = prev_scores + all_log_probs + progress_bonus  # (K, num_actions)
     cand_scores_flat = cand_scores.reshape(-1)  # (K * num_actions,)
 
-    # 3. Select Top-K beam indices
     topk_scores, topk_indices = jax.lax.top_k(cand_scores_flat, beam_width)
 
     parent_beam_indices = topk_indices // num_actions
     selected_action_indices = topk_indices % num_actions
 
-    # 4. Gather selected parent candidates
     def _gather_parent(tree):
         return jax.tree_util.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
 
     new_beams_parent = _gather_parent(state.beams)
-
-    # 5. Update history and state for selected Top-K beams (Bellman Causality Pair S_t, A_t)
     step_idx = jnp.minimum(state.step_count, new_beams_parent.history.action_indices.shape[1] - 1)
     
-    # Update action indices history at current step
     updated_action_indices = new_beams_parent.history.action_indices.at[:, step_idx].set(selected_action_indices)
-    
-    # Update cost changes history at current step
-    selected_costs = actions_data.costs[selected_action_indices]  # (K, num_costs)
+    selected_costs = actions_data.costs[selected_action_indices]
     updated_cost_changes = new_beams_parent.history.cost_changes.at[:, step_idx, :].set(selected_costs)
 
     updated_history = ActionHistory(
@@ -152,15 +140,109 @@ def beam_search_step(
         seq_len=jnp.repeat(state.step_count + 1, beam_width),
     )
 
-    # Update cumulative cost
     updated_cum_cost = new_beams_parent.cum_cost + selected_costs
 
-    # Update state resource levels based on selected action (Bellman causality)
     num_res = new_beams_parent.state.resource_levels.shape[1]
-    delta_res = selected_costs[:, :num_res] if selected_costs.shape[1] >= num_res else jnp.pad(selected_costs, ((0, 0), (0, num_res - selected_costs.shape[1])))
+    num_costs = selected_costs.shape[1]
+    delta_res = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(selected_costs)
     updated_resource_levels = new_beams_parent.state.resource_levels + delta_res
 
-    # Calculate updated progress rate towards target
+    current_dist = jnp.linalg.norm(updated_resource_levels - target.target_state[None, :], axis=-1)
+    initial_dist = jnp.linalg.norm(target.target_state, axis=-1) + 1e-6
+    updated_progress_rate = jnp.clip(1.0 - (current_dist / initial_dist), 0.0, 1.0)
+
+    updated_state = SystemState(
+        resource_levels=updated_resource_levels,
+        available_costs=new_beams_parent.state.available_costs - selected_costs,
+        status_flags=new_beams_parent.state.status_flags,
+        progress_rate=updated_progress_rate,
+    )
+
+    updated_beams = BeamCandidate(
+        state=updated_state,
+        history=updated_history,
+        cum_cost=updated_cum_cost,
+        progress_rate=updated_progress_rate,
+        score=topk_scores,
+        kv_cache=new_beams_parent.kv_cache,
+    )
+
+    return BeamSearchState(
+        beams=updated_beams,
+        active_mask=state.active_mask,
+        step_count=state.step_count + 1,
+    )
+
+
+def hierarchical_beam_search_step(
+    params: HierarchicalModelParameters,
+    state: BeamSearchState,
+    actions_data: ActionsData,
+    target: TransitionTarget,
+    use_hierarchical: bool = True,
+    beam_width: int = 5,
+    num_actions: int = 2000,
+) -> BeamSearchState:
+    """Perform 5th-Idea Hierarchical Beam Search across K beams (|A| = 2000).
+
+    When use_hierarchical=True, expands top M clusters * top K fine choices,
+    reducing candidate evaluations from 2000 down to 40 per beam!
+    """
+    def _expand_fn(beam_cand):
+        input_n = InputContextN(
+            actions=actions_data,
+            state=beam_cand.state,
+            history=beam_cand.history,
+            target=target,
+        )
+        decision_d, _ = forward_hierarchical_transformer(
+            params,
+            input_n,
+            use_hierarchical=use_hierarchical,
+            is_training=False,
+        )
+        log_probs = jax.nn.log_softmax(decision_d.action_logits)
+        valid_log_probs = jnp.where(actions_data.valid_mask, log_probs, -1e9)
+        return valid_log_probs, decision_d.progress_rate_pred, decision_d.estimated_costs
+
+    vmap_expand = jax.vmap(_expand_fn)
+    all_log_probs, all_progress, all_costs = vmap_expand(state.beams)
+
+    prev_scores = state.beams.score[:, None]
+    progress_bonus = 5.0 * all_progress[:, None]
+    cand_scores = prev_scores + all_log_probs + progress_bonus
+    cand_scores_flat = cand_scores.reshape(-1)
+
+    topk_scores, topk_indices = jax.lax.top_k(cand_scores_flat, beam_width)
+
+    parent_beam_indices = topk_indices // num_actions
+    selected_action_indices = topk_indices % num_actions
+
+    def _gather_parent(tree):
+        return jax.tree_util.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
+
+    new_beams_parent = _gather_parent(state.beams)
+    step_idx = jnp.minimum(state.step_count, new_beams_parent.history.action_indices.shape[1] - 1)
+    
+    updated_action_indices = new_beams_parent.history.action_indices.at[:, step_idx].set(selected_action_indices)
+    selected_costs = actions_data.costs[selected_action_indices]
+    updated_cost_changes = new_beams_parent.history.cost_changes.at[:, step_idx, :].set(selected_costs)
+
+    updated_history = ActionHistory(
+        action_indices=updated_action_indices,
+        rewards=new_beams_parent.history.rewards,
+        cost_changes=updated_cost_changes,
+        noise_mask=new_beams_parent.history.noise_mask,
+        seq_len=jnp.repeat(state.step_count + 1, beam_width),
+    )
+
+    updated_cum_cost = new_beams_parent.cum_cost + selected_costs
+
+    num_res = new_beams_parent.state.resource_levels.shape[1]
+    num_costs = selected_costs.shape[1]
+    delta_res = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(selected_costs)
+    updated_resource_levels = new_beams_parent.state.resource_levels + delta_res
+
     current_dist = jnp.linalg.norm(updated_resource_levels - target.target_state[None, :], axis=-1)
     initial_dist = jnp.linalg.norm(target.target_state, axis=-1) + 1e-6
     updated_progress_rate = jnp.clip(1.0 - (current_dist / initial_dist), 0.0, 1.0)

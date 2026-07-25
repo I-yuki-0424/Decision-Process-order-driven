@@ -21,7 +21,9 @@ from src.model.types import (
 class EnvParams(NamedTuple):
     """Parameters for DecisionProcessEnv."""
     max_steps: int = 100
-    num_actions: int = 16
+    num_actions: int = 2000
+    num_macro_clusters: int = 50
+    num_fine_actions: int = 40
     action_feat_dim: int = 32
     num_costs: int = 4
     num_resources: int = 8

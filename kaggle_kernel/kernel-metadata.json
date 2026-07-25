@@ -1,6 +1,6 @@
 {
-  "id": "bfloat16/4th-idea-jax-decision-transformer-benchmark",
-  "title": "4th-Idea JAX Decision Transformer Gymnax Benchmark",
+  "id": "bfloat16/5th-idea-jax-hierarchical-decision-transformer",
+  "title": "5th Idea JAX Hierarchical Decision Transformer",
   "code_file": "decision_process_benchmark.ipynb",
   "language": "python",
   "kernel_type": "notebook",
