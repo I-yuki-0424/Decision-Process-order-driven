@@ -238,15 +238,18 @@ def forward_hierarchical_transformer(
     q_val_pred = jnp.matmul(pooled_context, params.heads.w_q_value) + params.heads.b_q_value  # (|A|,)
 
     if use_hierarchical:
+        n_macro = params.heads.w_macro_cluster.shape[1]
+        n_micro = params.heads.w_micro_action.shape[1]
+        
         macro_logits = jnp.matmul(pooled_context, params.heads.w_macro_cluster) + params.heads.b_macro_cluster
         micro_logits = jnp.matmul(pooled_context, params.heads.w_micro_action) + params.heads.b_micro_action
 
         macro_log_probs = jax.nn.log_softmax(macro_logits)
         micro_log_probs = jax.nn.log_softmax(micro_logits)
 
-        macro_expanded = jnp.repeat(macro_log_probs, num_fine_actions)
-        micro_tiled = jnp.tile(micro_log_probs, num_macro_clusters)
-        joint_action_logits = macro_expanded + micro_tiled
+        macro_expanded = jnp.repeat(macro_log_probs, n_micro)
+        micro_tiled = jnp.tile(micro_log_probs, n_macro)
+        joint_action_logits = (macro_expanded + micro_tiled)[:num_actions]
 
         selected_macro = jnp.argmax(macro_logits)
 
