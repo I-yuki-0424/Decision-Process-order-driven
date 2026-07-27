@@ -16,9 +16,9 @@ import numpy as np
 def plot_craftax_benchmark_results(
     results: List[dict],
     output_dir: str = "output/plots",
-    run_seq: str = "Run-Seq: #004",
+    run_seq: str = "Run-Seq: #005",
 ):
-    """Generate high-resolution visual plots for Craftax-Classic RL Benchmark."""
+    """Generate high-resolution visual plots for Craftax-Classic RL Benchmark (1,000 Episodes)."""
     os.makedirs(output_dir, exist_ok=True)
 
     names = [r["model_name"] for r in results]
@@ -52,7 +52,7 @@ def plot_craftax_benchmark_results(
         ax.set_xticklabels(names, rotation=15, ha="right", fontsize=9)
 
     plt.tight_layout()
-    plot_path1 = os.path.join(output_dir, "craftax_crafter_score_summary_seq004.png")
+    plot_path1 = os.path.join(output_dir, "craftax_crafter_score_summary_seq005.png")
     plt.savefig(plot_path1, dpi=300)
     plt.close()
 

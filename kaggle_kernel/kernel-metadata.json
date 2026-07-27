@@ -1,6 +1,6 @@
 {
-  "id": "bfloat16/5th-idea-jax-hierarchical-decision-transformer",
-  "title": "5th Idea JAX Hierarchical Decision Transformer",
+  "id": "bfloat16/craftax-classic-1000-episode-rl-benchmark",
+  "title": "Craftax Classic 1000 Episode RL Benchmark",
   "code_file": "decision_process_benchmark.ipynb",
   "language": "python",
   "kernel_type": "notebook",
