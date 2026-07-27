@@ -27,6 +27,7 @@ RUN python -m pip install --no-cache-dir \
     flax \
     optax \
     gymnax \
+    craftax \
     matplotlib \
     numpy \
     pandas \

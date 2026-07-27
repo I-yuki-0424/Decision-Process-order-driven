@@ -1,15 +1,60 @@
 """
-Plotting and Visualization Utilities for 5th-Idea Off-Policy & Abstraction Embedding Benchmarks (|A|=2000).
+Plotting and Visualization Utilities for Craftax-Classic RL Benchmarks (Run-Seq: #004).
 
-Generates high-resolution comparative graphics tagged with Run Sequence IDs (Run-Seq: #003):
-1. Off-Policy Loss Convergence Curves
-2. Abstraction Embedding E_abs Performance & Progress Rate Impact
+Generates high-resolution comparative graphics tagged with Run Sequence IDs:
+1. Crafter Score S_crafter & Achievement Count Comparisons
+2. Detailed 22 Achievement Unlock Percentage Breakdowns
+3. Off-Policy & Hierarchical Transformer Summaries
 """
 
 import os
 from typing import List, Dict, Any
 import matplotlib.pyplot as plt
 import numpy as np
+
+
+def plot_craftax_benchmark_results(
+    results: List[dict],
+    output_dir: str = "output/plots",
+    run_seq: str = "Run-Seq: #004",
+):
+    """Generate high-resolution visual plots for Craftax-Classic RL Benchmark."""
+    os.makedirs(output_dir, exist_ok=True)
+
+    names = [r["model_name"] for r in results]
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+
+    # Chart 1: Crafter Score & Average Unlocked Achievements
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    crafter_scores = [r["crafter_score"] for r in results]
+    bars1 = axes[0].bar(names, crafter_scores, color=colors, alpha=0.85, edgecolor="black")
+    axes[0].set_title(f"Crafter Score S_crafter (%) [{run_seq}]", fontsize=11, fontweight="bold")
+    axes[0].set_ylabel("Crafter Score (%)", fontsize=10)
+    axes[0].set_ylim(0, 100)
+    axes[0].grid(True, linestyle=":", alpha=0.6)
+    for bar in bars1:
+        yval = bar.get_height()
+        axes[0].text(bar.get_x() + bar.get_width()/2.0, yval + 1.5, f"{yval:.2f}%", ha='center', va='bottom', fontweight='bold')
+
+    avg_unlocked = [r["avg_unlocked_count"] for r in results]
+    bars2 = axes[1].bar(names, avg_unlocked, color=colors, alpha=0.85, edgecolor="black")
+    axes[1].set_title(f"Avg Achievements Unlocked (out of 22) [{run_seq}]", fontsize=11, fontweight="bold")
+    axes[1].set_ylabel("Unlocked Count", fontsize=10)
+    axes[1].set_ylim(0, 24)
+    axes[1].grid(True, linestyle=":", alpha=0.6)
+    for bar in bars2:
+        yval = bar.get_height()
+        axes[1].text(bar.get_x() + bar.get_width()/2.0, yval + 0.5, f"{yval:.1f} / 22", ha='center', va='bottom', fontweight='bold')
+
+    for ax in axes:
+        ax.set_xticks(range(len(names)))
+        ax.set_xticklabels(names, rotation=15, ha="right", fontsize=9)
+
+    plt.tight_layout()
+    plot_path1 = os.path.join(output_dir, "craftax_crafter_score_summary_seq004.png")
+    plt.savefig(plot_path1, dpi=300)
+    plt.close()
 
 
 def plot_offpolicy_benchmark_results(
@@ -23,7 +68,6 @@ def plot_offpolicy_benchmark_results(
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 6))
 
-    # 1. Off-Policy Q-learning TD Loss Convergence
     axes[0].plot(range(1, len(loss_history) + 1), loss_history, color="#d62728", linewidth=2.0, label="Off-Policy TD Loss L_TD(θ)")
     axes[0].set_title(f"Off-Policy Q-Learning Loss Convergence [{run_seq}]", fontsize=11, fontweight="bold")
     axes[0].set_xlabel("Training Steps", fontsize=10)
@@ -31,7 +75,6 @@ def plot_offpolicy_benchmark_results(
     axes[0].grid(True, linestyle=":", alpha=0.6)
     axes[0].legend()
 
-    # 2. Final Progress Rate (%) Comparison Across Off-Policy & Abstraction Variants
     names = [r["model_name"] for r in results]
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
     progress_rates = [r["avg_progress_rate"] * 100 for r in results]
