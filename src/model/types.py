@@ -23,22 +23,17 @@ class ActionsData(NamedTuple):
         costs: Shape (num_actions, num_costs) - multi-dimensional cost associated with each action
         preconditions: Shape (num_actions, max_preconditions) - indices of required preceding actions
         valid_mask: Shape (num_actions,) - boolean mask indicating valid choices
+        abstraction_scales: Shape (num_actions,) - coverage scale N_enpass (e.g. fine actions encompassed)
     """
     features: jnp.ndarray
     costs: jnp.ndarray
     preconditions: jnp.ndarray
     valid_mask: jnp.ndarray
+    abstraction_scales: Optional[jnp.ndarray] = None
 
 
 class SystemState(NamedTuple):
-    """System State representation (S).
-
-    Attributes:
-        resource_levels: Shape (num_resources,) - current budget/resource capacities
-        available_costs: Shape (num_costs,) - maximum available cost budget
-        status_flags: Shape (num_status_flags,) - status flags of system
-        progress_rate: Shape () - float scalar indicating global progress rate [0, 1]
-    """
+    """System State representation (S)."""
     resource_levels: jnp.ndarray
     available_costs: jnp.ndarray
     status_flags: jnp.ndarray
@@ -46,15 +41,7 @@ class SystemState(NamedTuple):
 
 
 class ActionHistory(NamedTuple):
-    """Action History representation (H).
-
-    Attributes:
-        action_indices: Shape (seq_len,) - sequence of selected action indices
-        rewards: Shape (seq_len,) - sequence of observed scalar rewards
-        cost_changes: Shape (seq_len, num_costs) - sequence of multi-dimensional cost deltas
-        noise_mask: Shape (seq_len,) - boolean mask indicating injected noise (sub-optimal actions)
-        seq_len: Shape () - actual filled sequence length
-    """
+    """Action History representation (H)."""
     action_indices: jnp.ndarray
     rewards: jnp.ndarray
     cost_changes: jnp.ndarray
@@ -63,25 +50,14 @@ class ActionHistory(NamedTuple):
 
 
 class TransitionTarget(NamedTuple):
-    """Transition Target representation (T).
-
-    Attributes:
-        target_state: Shape (num_resources,) - goal state configuration
-        conditions: Shape (num_conditions,) - goal constraints on history and final state
-        deadline_step: Shape () - maximum allowed step count for process completion
-    """
+    """Transition Target representation (T)."""
     target_state: jnp.ndarray
     conditions: jnp.ndarray
     deadline_step: jnp.ndarray
 
 
 class InputContextN(NamedTuple):
-    """Complete Input Context N = {A, S, H, T} for Decision Model.
-
-    Adheres to Channel Independence:
-    Physical properties and scales (Time, Cost, State, History) are structurally
-    segregated into distinct PyTree fields / channels.
-    """
+    """Complete Input Context N = {A, S, H, T} for Decision Model."""
     actions: ActionsData
     state: SystemState
     history: ActionHistory
@@ -89,17 +65,7 @@ class InputContextN(NamedTuple):
 
 
 class DecisionVectorD(NamedTuple):
-    """Multi-dimensional Decision Vector d.
-
-    d = A(Costs) + A(conditions) + S(Can use Costs) + H(reward) + H(Cost-change) + T(conditions(H))
-
-    Attributes:
-        action_logits: Shape (num_actions,) - logit probabilities over candidate actions
-        estimated_costs: Shape (num_costs,) - predicted cost impact of selected decision
-        predicted_next_state: Shape (num_resources,) - predicted state S_{t+1}
-        progress_rate_pred: Shape () - predicted global goal progress rate [0.0, 1.0]
-        validity_score: Shape () - predicted logical validity score (rejecting noise)
-    """
+    """Multi-dimensional Decision Vector d."""
     action_logits: jnp.ndarray
     estimated_costs: jnp.ndarray
     predicted_next_state: jnp.ndarray
@@ -111,16 +77,6 @@ class HierarchicalDecisionVectorD(NamedTuple):
     """5th-Idea Hierarchical Decision Vector d.
 
     Decomposes action selection into Macro Cluster Head (M clusters) + Micro Fine Action Head (K actions/cluster).
-
-    Attributes:
-        macro_logits: Shape (num_macro_clusters,) - logit probabilities over macro clusters (M)
-        micro_logits: Shape (num_fine_actions_per_cluster,) - logit probabilities over fine actions (K)
-        action_logits: Shape (num_actions,) - flattened logit probabilities over all |A| = M * K actions
-        estimated_costs: Shape (num_costs,) - predicted cost impact of decision
-        predicted_next_state: Shape (num_resources,) - predicted state S_{t+1}
-        progress_rate_pred: Shape () - predicted goal progress rate
-        validity_score: Shape () - predicted validity score
-        selected_macro_cluster: Shape () - chosen macro cluster index
     """
     macro_logits: jnp.ndarray
     micro_logits: jnp.ndarray
@@ -130,6 +86,7 @@ class HierarchicalDecisionVectorD(NamedTuple):
     progress_rate_pred: jnp.ndarray
     validity_score: jnp.ndarray
     selected_macro_cluster: jnp.ndarray
+    q_values: Optional[jnp.ndarray] = None
 
 
 class WorkingMemoryState(NamedTuple):

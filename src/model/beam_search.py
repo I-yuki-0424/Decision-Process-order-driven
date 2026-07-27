@@ -180,14 +180,11 @@ def hierarchical_beam_search_step(
     actions_data: ActionsData,
     target: TransitionTarget,
     use_hierarchical: bool = True,
+    use_abstraction_embed: bool = True,
     beam_width: int = 5,
     num_actions: int = 2000,
 ) -> BeamSearchState:
-    """Perform 5th-Idea Hierarchical Beam Search across K beams (|A| = 2000).
-
-    When use_hierarchical=True, expands top M clusters * top K fine choices,
-    reducing candidate evaluations from 2000 down to 40 per beam!
-    """
+    """Perform 5th-Idea Hierarchical Beam Search across K beams (|A| = 2000)."""
     def _expand_fn(beam_cand):
         input_n = InputContextN(
             actions=actions_data,
@@ -199,6 +196,7 @@ def hierarchical_beam_search_step(
             params,
             input_n,
             use_hierarchical=use_hierarchical,
+            use_abstraction_embed=use_abstraction_embed,
             is_training=False,
         )
         log_probs = jax.nn.log_softmax(decision_d.action_logits)

@@ -48,19 +48,18 @@ class LayerParameters(NamedTuple):
 
 class HierarchicalHeadParameters(NamedTuple):
     """5th-Idea Multi-task prediction heads supporting Hierarchical Abstraction & Flat Toggle."""
-    # Flat Policy Head (|A| = 2000)
     w_action_flat: jnp.ndarray        # (d_model, num_actions)
     b_action_flat: jnp.ndarray        # (num_actions,)
 
-    # Hierarchical Macro Subgoal Cluster Head (M = 50)
     w_macro_cluster: jnp.ndarray      # (d_model, num_macro_clusters)
     b_macro_cluster: jnp.ndarray      # (num_macro_clusters,)
 
-    # Hierarchical Micro Fine Action Head (K = 40)
     w_micro_action: jnp.ndarray       # (d_model, num_fine_actions)
     b_micro_action: jnp.ndarray       # (num_fine_actions,)
 
-    # Common multi-task prediction heads
+    w_q_value: jnp.ndarray            # (d_model, num_actions) - Off-Policy Q-head
+    b_q_value: jnp.ndarray            # (num_actions,)
+
     w_cost: jnp.ndarray               # (d_model, num_costs)
     b_cost: jnp.ndarray               # (num_costs,)
     w_next_state: jnp.ndarray         # (d_model, num_resources)
@@ -129,7 +128,7 @@ def init_hierarchical_model_parameters(
         )
         layers.append(layer)
 
-    h_keys = jax.random.split(keys[-1], 7)
+    h_keys = jax.random.split(keys[-1], 8)
     heads = HierarchicalHeadParameters(
         w_action_flat=glorot_uniform(h_keys[0], d_model, num_actions),
         b_action_flat=jnp.zeros((num_actions,)),
@@ -137,13 +136,15 @@ def init_hierarchical_model_parameters(
         b_macro_cluster=jnp.zeros((num_macro_clusters,)),
         w_micro_action=glorot_uniform(h_keys[2], d_model, num_fine_actions),
         b_micro_action=jnp.zeros((num_fine_actions,)),
-        w_cost=glorot_uniform(h_keys[3], d_model, num_costs),
+        w_q_value=glorot_uniform(h_keys[3], d_model, num_actions),
+        b_q_value=jnp.zeros((num_actions,)),
+        w_cost=glorot_uniform(h_keys[4], d_model, num_costs),
         b_cost=jnp.zeros((num_costs,)),
-        w_next_state=glorot_uniform(h_keys[4], d_model, num_resources),
+        w_next_state=glorot_uniform(h_keys[5], d_model, num_resources),
         b_next_state=jnp.zeros((num_resources,)),
-        w_progress=glorot_uniform(h_keys[5], d_model, 1),
+        w_progress=glorot_uniform(h_keys[6], d_model, 1),
         b_progress=jnp.zeros((1,)),
-        w_validity=glorot_uniform(h_keys[6], d_model, 1),
+        w_validity=glorot_uniform(h_keys[7], d_model, 1),
         b_validity=jnp.zeros((1,)),
     )
 
@@ -184,27 +185,19 @@ def forward_hierarchical_transformer(
     params: HierarchicalModelParameters,
     input_n: InputContextN,
     use_hierarchical: bool = True,
+    use_abstraction_embed: bool = True,
     window_size: int = 32,
     rng_key: Optional[jax.random.PRNGKey] = None,
     is_training: bool = False,
     num_macro_clusters: int = 50,
     num_fine_actions: int = 40,
 ) -> Tuple[HierarchicalDecisionVectorD, Optional[WorkingMemoryState]]:
-    """Forward pass of 5th-Idea Hierarchical Transformer Decision Core.
-
-    Args:
-        params: Model parameters PyTree
-        input_n: Complete InputContextN
-        use_hierarchical: Configurable Feature Toggle (True = 2-stage cluster+fine action, False = Flat 2000)
-        window_size: Sliding window size r=32 for restricted local attention
-        rng_key: PRNGKey for noise injection
-        is_training: Training flag
-    """
+    """Forward pass of 5th-Idea Hierarchical Transformer Decision Core."""
     d_model = params.heads.w_action_flat.shape[0]
     num_actions = params.heads.w_action_flat.shape[1]
 
     # 1. Encode Context Tokens using Channel-Independent Encoder
-    tokens = encode_channel_independent(params.encoder_params, input_n)  # (seq_len, d_model)
+    tokens = encode_channel_independent(params.encoder_params, input_n, use_abstraction_embed=use_abstraction_embed)
     seq_len = tokens.shape[0]
 
     # 2. Process through Transformer Attention Layers
@@ -213,53 +206,46 @@ def forward_hierarchical_transformer(
     head_dim = d_model // num_heads
 
     for layer in params.layers:
-        # Layer Norm 1
         x_norm1 = (x - jnp.mean(x, axis=-1, keepdims=True)) / jnp.sqrt(jnp.var(x, axis=-1, keepdims=True) + 1e-5)
         x_norm1 = x_norm1 * layer.gamma1 + layer.beta1
 
-        # Q, K, V projections
         q = jnp.matmul(x_norm1, layer.w_q).reshape(seq_len, num_heads, head_dim).swapaxes(0, 1)
         k = jnp.matmul(x_norm1, layer.w_k).reshape(seq_len, num_heads, head_dim).swapaxes(0, 1)
         v = jnp.matmul(x_norm1, layer.w_v).reshape(seq_len, num_heads, head_dim).swapaxes(0, 1)
 
-        # Restricted Local Causal Attention
         attn_out = restricted_local_causal_attention(q, k, v, window_size=window_size)
         attn_out = attn_out.swapaxes(0, 1).reshape(seq_len, d_model)
         x_attn = jnp.matmul(attn_out, layer.w_o)
 
-        # Residual 1
         x = x + x_attn
 
-        # Layer Norm 2 & Feed-Forward
         x_norm2 = (x - jnp.mean(x, axis=-1, keepdims=True)) / jnp.sqrt(jnp.var(x, axis=-1, keepdims=True) + 1e-5)
         x_norm2 = x_norm2 * layer.gamma2 + layer.beta2
 
         ff1 = jax.nn.gelu(jnp.matmul(x_norm2, layer.w_ff1) + layer.b_ff1)
         ff2 = jnp.matmul(ff1, layer.w_ff2) + layer.b_ff2
 
-        # Residual 2
         x = x + ff2
 
-    # Global context representation from pooled sequence tokens
+    # Global context representation
     pooled_context = jnp.mean(x, axis=0)  # (d_model,)
 
-    # 3. Multi-Task Heads & Feature Toggle Logic
+    # 3. Multi-Task Heads & Off-Policy Q-head
     cost_pred = jnp.matmul(pooled_context, params.heads.w_cost) + params.heads.b_cost
     next_state_pred = jnp.matmul(pooled_context, params.heads.w_next_state) + params.heads.b_next_state
     progress_pred = jax.nn.sigmoid(jnp.matmul(pooled_context, params.heads.w_progress) + params.heads.b_progress)[0]
     validity_pred = jax.nn.sigmoid(jnp.matmul(pooled_context, params.heads.w_validity) + params.heads.b_validity)[0]
+    q_val_pred = jnp.matmul(pooled_context, params.heads.w_q_value) + params.heads.b_q_value  # (|A|,)
 
     if use_hierarchical:
-        # Hierarchical Selection: Macro Cluster Head (M) + Micro Fine Action Head (K)
-        macro_logits = jnp.matmul(pooled_context, params.heads.w_macro_cluster) + params.heads.b_macro_cluster  # (M,)
-        micro_logits = jnp.matmul(pooled_context, params.heads.w_micro_action) + params.heads.b_micro_action    # (K,)
+        macro_logits = jnp.matmul(pooled_context, params.heads.w_macro_cluster) + params.heads.b_macro_cluster
+        micro_logits = jnp.matmul(pooled_context, params.heads.w_micro_action) + params.heads.b_micro_action
 
         macro_log_probs = jax.nn.log_softmax(macro_logits)
         micro_log_probs = jax.nn.log_softmax(micro_logits)
 
-        # Compute full joint log probability over all M * K actions: P(a) = P(macro) + P(micro)
-        macro_expanded = jnp.repeat(macro_log_probs, num_fine_actions)  # (M * K,)
-        micro_tiled = jnp.tile(micro_log_probs, num_macro_clusters)      # (M * K,)
+        macro_expanded = jnp.repeat(macro_log_probs, num_fine_actions)
+        micro_tiled = jnp.tile(micro_log_probs, num_macro_clusters)
         joint_action_logits = macro_expanded + micro_tiled
 
         selected_macro = jnp.argmax(macro_logits)
@@ -273,10 +259,10 @@ def forward_hierarchical_transformer(
             progress_rate_pred=progress_pred,
             validity_score=validity_pred,
             selected_macro_cluster=selected_macro,
+            q_values=q_val_pred,
         )
     else:
-        # Direct Flat Action Selection over all |A| = 2000 choices
-        flat_logits = jnp.matmul(pooled_context, params.heads.w_action_flat) + params.heads.b_action_flat  # (|A|,)
+        flat_logits = jnp.matmul(pooled_context, params.heads.w_action_flat) + params.heads.b_action_flat
         selected_macro = jnp.array(0, dtype=jnp.int32)
 
         decision_d = HierarchicalDecisionVectorD(
@@ -288,9 +274,9 @@ def forward_hierarchical_transformer(
             progress_rate_pred=progress_pred,
             validity_score=validity_pred,
             selected_macro_cluster=selected_macro,
+            q_values=q_val_pred,
         )
 
-    # Working Memory Compression PyTree output
     memory_slots = 4
     compressed_mem = jnp.zeros((memory_slots, d_model)).at[0, :].set(pooled_context)
     memory_state = WorkingMemoryState(

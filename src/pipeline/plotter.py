@@ -1,9 +1,9 @@
 """
-Plotting and Visualization Utilities for 5th-Idea Hierarchical Transformer Benchmarks (|A|=2000).
+Plotting and Visualization Utilities for 5th-Idea Off-Policy & Abstraction Embedding Benchmarks (|A|=2000).
 
-Generates high-resolution comparative graphics tagged with Run Sequence IDs (Run-Seq: #002):
-1. 5th-Idea Hierarchical (Toggle ON) vs Flat (Toggle OFF) vs MDP Baseline (|A|=2000)
-2. Inference Latency & Expansion Efficiency Bar Charts
+Generates high-resolution comparative graphics tagged with Run Sequence IDs (Run-Seq: #003):
+1. Off-Policy Loss Convergence Curves
+2. Abstraction Embedding E_abs Performance & Progress Rate Impact
 """
 
 import os
@@ -12,67 +12,47 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_full_benchmark_results(
+def plot_offpolicy_benchmark_results(
     results: List[dict],
+    loss_history: List[float],
     output_dir: str = "output/plots",
-    run_seq: str = "Run-Seq: #001",
+    run_seq: str = "Run-Seq: #003",
 ):
-    """Generate comprehensive comparison plot suite from benchmark results list."""
+    """Generate visual graphics for Off-Policy Learning & Abstraction Embedding E_abs benchmark."""
     os.makedirs(output_dir, exist_ok=True)
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
 
+    # 1. Off-Policy Q-learning TD Loss Convergence
+    axes[0].plot(range(1, len(loss_history) + 1), loss_history, color="#d62728", linewidth=2.0, label="Off-Policy TD Loss L_TD(θ)")
+    axes[0].set_title(f"Off-Policy Q-Learning Loss Convergence [{run_seq}]", fontsize=11, fontweight="bold")
+    axes[0].set_xlabel("Training Steps", fontsize=10)
+    axes[0].set_ylabel("TD Loss", fontsize=10)
+    axes[0].grid(True, linestyle=":", alpha=0.6)
+    axes[0].legend()
+
+    # 2. Final Progress Rate (%) Comparison Across Off-Policy & Abstraction Variants
     names = [r["model_name"] for r in results]
-    colors = ["#1f77b4", "#d62728", "#2ca02c"]
-
-    # Goal Success Rate (%)
-    success_rates = [r["success_rate"] * 100 for r in results]
-    bars1 = axes[0, 0].bar(names, success_rates, color=colors, alpha=0.85, edgecolor="black")
-    axes[0, 0].axhline(80, color="red", linestyle="--", label="1st-Idea Goal (80%)")
-    axes[0, 0].set_title(f"Goal Success Rate (%) [{run_seq}]", fontsize=11, fontweight="bold")
-    axes[0, 0].set_ylabel("Success Rate (%)")
-    axes[0, 0].set_ylim(0, 110)
-    axes[0, 0].legend()
-    for bar in bars1:
-        yval = bar.get_height()
-        axes[0, 0].text(bar.get_x() + bar.get_width()/2.0, yval + 2, f"{yval:.1f}%", ha='center', va='bottom', fontweight='bold')
-
-    # Average Decision Steps
-    avg_steps = [r["avg_steps"] for r in results]
-    bars2 = axes[0, 1].bar(names, avg_steps, color=colors, alpha=0.85, edgecolor="black")
-    axes[0, 1].set_title(f"Average Process Steps (~100 steps) [{run_seq}]", fontsize=11, fontweight="bold")
-    axes[0, 1].set_ylabel("Steps")
-    for bar in bars2:
-        yval = bar.get_height()
-        axes[0, 1].text(bar.get_x() + bar.get_width()/2.0, yval + 1, f"{yval:.1f}", ha='center', va='bottom', fontweight='bold')
-
-    # Goal Progress Rate (%)
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
     progress_rates = [r["avg_progress_rate"] * 100 for r in results]
-    bars3 = axes[1, 0].bar(names, progress_rates, color=colors, alpha=0.85, edgecolor="black")
-    axes[1, 0].set_title(f"Average Final Progress Rate (%) [{run_seq}]", fontsize=11, fontweight="bold")
-    axes[1, 0].set_ylabel("Progress Rate (%)")
-    axes[1, 0].set_ylim(0, 110)
-    for bar in bars3:
-        yval = bar.get_height()
-        axes[1, 0].text(bar.get_x() + bar.get_width()/2.0, yval + 2, f"{yval:.1f}%", ha='center', va='bottom', fontweight='bold')
 
-    # Exposure Bias Resilience (%)
-    resilience = [r["exposure_bias_resilience"] * 100 for r in results]
-    bars4 = axes[1, 1].bar(names, resilience, color=colors, alpha=0.85, edgecolor="black")
-    axes[1, 1].set_title(f"Exposure Bias Resilience (%) [{run_seq}]", fontsize=11, fontweight="bold")
-    axes[1, 1].set_ylabel("Resilience Score (%)")
-    axes[1, 1].set_ylim(0, 110)
-    for bar in bars4:
-        yval = bar.get_height()
-        axes[1, 1].text(bar.get_x() + bar.get_width()/2.0, yval + 2, f"{yval:.1f}%", ha='center', va='bottom', fontweight='bold')
+    bars = axes[1].bar(names, progress_rates, color=colors, alpha=0.85, edgecolor="black")
+    axes[1].axhline(80, color="red", linestyle="--", label="Goal Target (80%)")
+    axes[1].set_title(f"Goal Progress Rate (%) across Off-Policy & E_abs Variants [{run_seq}]", fontsize=11, fontweight="bold")
+    axes[1].set_ylabel("Progress Rate (%)", fontsize=10)
+    axes[1].set_ylim(0, 110)
+    axes[1].grid(True, linestyle=":", alpha=0.6)
+    axes[1].legend()
 
-    for ax in axes.flat:
-        ax.grid(True, linestyle=":", alpha=0.6)
-        ax.set_xticks(range(len(names)))
-        ax.set_xticklabels(names, rotation=15, ha="right", fontsize=9)
+    for bar in bars:
+        yval = bar.get_height()
+        axes[1].text(bar.get_x() + bar.get_width()/2.0, yval + 2, f"{yval:.1f}%", ha='center', va='bottom', fontweight='bold')
+
+    axes[1].set_xticks(range(len(names)))
+    axes[1].set_xticklabels(names, rotation=20, ha="right", fontsize=8)
 
     plt.tight_layout()
-    plot_path = os.path.join(output_dir, "benchmark_metrics_summary_seq001.png")
+    plot_path = os.path.join(output_dir, "offpolicy_loss_convergence_seq003.png")
     plt.savefig(plot_path, dpi=300)
     plt.close()
 
@@ -90,7 +70,6 @@ def plot_hierarchical_benchmark_results(
     names = [r["model_name"] for r in results]
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
-    # 1. Final Progress Rate (%) Comparison (|A|=2000)
     progress_rates = [r["avg_progress_rate"] * 100 for r in results]
     bars1 = axes[0].bar(names, progress_rates, color=colors, alpha=0.85, edgecolor="black")
     axes[0].axhline(80, color="red", linestyle="--", label="Goal Target (80%)")
@@ -103,7 +82,6 @@ def plot_hierarchical_benchmark_results(
         yval = bar.get_height()
         axes[0].text(bar.get_x() + bar.get_width()/2.0, yval + 2, f"{yval:.1f}%", ha='center', va='bottom', fontweight='bold')
 
-    # 2. Per-step Inference Latency (ms/step) Comparison (|A|=2000)
     latencies = [r["execution_ms_per_step"] for r in results]
     bars2 = axes[1].bar(names, latencies, color=colors, alpha=0.85, edgecolor="black")
     axes[1].set_title(f"Inference Latency (ms/step) under |A| = 2000 [{run_seq}]", fontsize=11, fontweight="bold")

@@ -20,6 +20,7 @@ class EncoderParameters(NamedTuple):
     w_state: jnp.ndarray         # Shape (num_resources, d_model)
     w_history: jnp.ndarray       # Shape (hist_feat_dim, d_model)
     w_target: jnp.ndarray        # Shape (target_dim, d_model)
+    w_abstraction: jnp.ndarray   # Shape (1, d_model) - D-dimensional abstraction embedding
     channel_pos_embed: jnp.ndarray  # Shape (num_channels, d_model)
 
 
@@ -34,9 +35,8 @@ def init_channel_encoder_params(
     target_dim: int = 8,
 ) -> EncoderParameters:
     """Initialize weights for the Channel-Independent Encoder."""
-    keys = jax.random.split(rng_key, 6)
+    keys = jax.random.split(rng_key, 7)
     
-    # Glorot/Xavier uniform initialization scaling factor
     def glorot(key, in_dim, out_dim):
         limit = jnp.sqrt(6.0 / (in_dim + out_dim))
         return jax.random.uniform(key, (in_dim, out_dim), minval=-limit, maxval=limit)
@@ -46,9 +46,10 @@ def init_channel_encoder_params(
     w_state = glorot(keys[2], num_resources, d_model)
     w_history = glorot(keys[3], 1 + num_costs, d_model)  # action index embed + cost deltas
     w_target = glorot(keys[4], target_dim, d_model)
+    w_abstraction = glorot(keys[5], 1, d_model)
     
     # 4 channels: Action, State, History, Target
-    channel_pos_embed = glorot(keys[5], 4, d_model)
+    channel_pos_embed = glorot(keys[6], 4, d_model)
 
     return EncoderParameters(
         w_actions=w_actions,
@@ -56,6 +57,7 @@ def init_channel_encoder_params(
         w_state=w_state,
         w_history=w_history,
         w_target=w_target,
+        w_abstraction=w_abstraction,
         channel_pos_embed=channel_pos_embed,
     )
 
@@ -63,20 +65,18 @@ def init_channel_encoder_params(
 def encode_channel_independent(
     params: EncoderParameters,
     input_n: InputContextN,
+    use_abstraction_embed: bool = True,
 ) -> jnp.ndarray:
-    """Encode InputContextN into channel-separated token sequences for Attention.
-
-    Args:
-        params: EncoderParameters
-        input_n: InputContextN containing actions, state, history, target
-
-    Returns:
-        Token sequence array of shape (seq_len_tokens, d_model)
-        where tokens from different channels carry explicit channel position tags.
-    """
+    """Encode InputContextN into channel-separated token sequences for Attention."""
     # 1. Action Channel Tokens
-    # actions.features: (num_actions, action_feat_dim) -> (num_actions, d_model)
     act_tokens = jnp.matmul(input_n.actions.features, params.w_actions)
+    
+    # Inject D-dimensional Abstraction Vector E_abs if enabled
+    if use_abstraction_embed and input_n.actions.abstraction_scales is not None:
+        scales = input_n.actions.abstraction_scales[:, None].astype(jnp.float32)
+        e_abs = jnp.matmul(jnp.log1p(scales), params.w_abstraction)  # (num_actions, d_model)
+        act_tokens = act_tokens + e_abs
+
     act_tokens = act_tokens + params.channel_pos_embed[0]
 
     # 2. State Channel Token

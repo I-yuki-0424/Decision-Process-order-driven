@@ -1,16 +1,15 @@
 """
-Vectorized Gymnax Benchmark Harness for 5th-Idea Hierarchical Architecture (|A|=2000).
+Vectorized Gymnax Benchmark Harness for 5th-Idea Hierarchical Architecture (|A|=2000),
+Abstraction Embeddings (E_abs), and Off-Policy Learning Validation.
 
-Executes comparative evaluation between 5th-Idea Hierarchical Transformer (use_hierarchical=True),
-Flat Transformer (use_hierarchical=False), and Simplified MDP Baseline over expanded action space |A|=2000.
-Tagged with Run Sequence ID: Run-Seq: #002.
+Tagged with Run Sequence ID: Run-Seq: #003.
 """
 
 import json
 import os
 import sys
 import time
-from typing import Dict, List, NamedTuple, Any
+from typing import Dict, List, NamedTuple, Tuple, Any
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -35,8 +34,9 @@ from src.model.hierarchical_transformer import (
 from src.model.logger_utils import get_logger
 from src.pipeline.trainer import train_step
 from src.model.types import ActionHistory
+from src.pipeline.off_policy_trainer import collect_offline_experience, train_off_policy_hierarchical_model
 
-logger = get_logger("HierarchicalDecisionBenchmark")
+logger = get_logger("OffPolicyAbstractionBenchmark")
 
 
 class BenchmarkMetrics(NamedTuple):
@@ -55,8 +55,9 @@ def train_hierarchical_model_trajectory(
     params: HierarchicalModelParameters,
     rng_key: jax.random.PRNGKey,
     use_hierarchical: bool = True,
+    use_abstraction_embed: bool = True,
     num_episodes: int = 5,
-    steps_per_ep: int = 60,
+    steps_per_ep: int = 50,
 ) -> HierarchicalModelParameters:
     """Train 5th-Idea Hierarchical model over dynamic environment trajectories (|A| = 2000)."""
     optimizer = optax.chain(
@@ -76,6 +77,7 @@ def train_hierarchical_model_trajectory(
             p,
             input_n,
             use_hierarchical=use_hierarchical,
+            use_abstraction_embed=use_abstraction_embed,
             is_training=True,
         )
         policy_loss = optax.softmax_cross_entropy_with_integer_labels(
@@ -114,6 +116,7 @@ def evaluate_hierarchical_variant(
     env: DecisionProcessEnv,
     rng_key: jax.random.PRNGKey,
     use_hierarchical: bool = True,
+    use_abstraction_embed: bool = True,
     beam_width: int = 3,
     num_episodes: int = 5,
 ) -> BenchmarkMetrics:
@@ -143,6 +146,7 @@ def evaluate_hierarchical_variant(
                 actions_data,
                 obs.target,
                 use_hierarchical=use_hierarchical,
+                use_abstraction_embed=use_abstraction_embed,
                 beam_width=beam_width,
                 num_actions=env.params.num_actions,
             )
@@ -203,7 +207,6 @@ def evaluate_simplified_mdp_baseline(
             ep_key = jax.random.fold_in(keys[ep], ep_steps)
             t0 = time.perf_counter()
 
-            # Greedy MDP distance minimization
             delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
             next_r = obs.state.resource_levels[None, :] + delta_r
             dists = jnp.linalg.norm(next_r - obs.target.target_state[None, :], axis=-1)
@@ -237,12 +240,12 @@ def evaluate_simplified_mdp_baseline(
     )
 
 
-def run_hierarchical_benchmark_suite(
-    output_log_path: str = "output/logs/execution_seq002.log",
-    output_json_path: str = "output/benchmark_hierarchical_seq002.json",
-    run_seq: str = "Run-Seq: #002",
-) -> List[BenchmarkMetrics]:
-    """Run comprehensive 5th-Idea Hierarchical Benchmark Suite over expanded action space |A| = 2000."""
+def run_offpolicy_abstraction_benchmark_suite(
+    output_log_path: str = "output/logs/execution_seq003.log",
+    output_json_path: str = "output/benchmark_offpolicy_seq003.json",
+    run_seq: str = "Run-Seq: #003",
+) -> Tuple[List[BenchmarkMetrics], List[float]]:
+    """Run comprehensive 5th-Idea Off-Policy & Abstraction Embedding Benchmark Suite (|A|=2000)."""
     os.makedirs(os.path.dirname(output_log_path), exist_ok=True)
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
 
@@ -252,79 +255,94 @@ def run_hierarchical_benchmark_suite(
             log_file.write(msg + "\n")
             log_file.flush()
 
-        log_msg(f"=== Starting 5th-Idea Hierarchical Decision Transformer Benchmark [{run_seq}] ===")
+        log_msg(f"=== Starting 5th-Idea Off-Policy & Abstraction Embedding Benchmark [{run_seq}] ===")
         log_msg(f"Expanded Action Space Scale: |A| = 2000 (M=50 clusters x K=40 actions)")
-        log_msg(f"Features: Configurable Toggle (use_hierarchical), Restricted Attention (r=32), Working Memory\n")
+        log_msg(f"Features: Off-Policy Q-Learning, D-dim Abstraction Embedding E_abs, Feature Toggle\n")
 
         rng_key = jax.random.PRNGKey(2026)
-        k_init, k_train, k_eval = jax.random.split(rng_key, 3)
+        k_init, k_data, k_off_train, k_on_train, k_eval = jax.random.split(rng_key, 5)
 
         env_params = EnvParams(max_steps=100, num_actions=2000, num_macro_clusters=50, num_fine_actions=40)
         env = DecisionProcessEnv(params=env_params)
 
-        # 1. Initialize & Train 5th-Idea Model
-        log_msg("Initializing and training 5th-Idea Hierarchical Model (|A|=2000)...")
-        h_params = init_hierarchical_model_parameters(
-            k_init,
-            num_layers=4,
-            d_model=512,
-            num_heads=8,
-            num_actions=2000,
-            num_macro_clusters=50,
-            num_fine_actions=40,
-        )
-        trained_h_params = train_hierarchical_model_trajectory(env, h_params, k_train, use_hierarchical=True, num_episodes=5, steps_per_ep=50)
+        # 1. Collect Offline Dataset for Off-Policy Learning
+        log_msg("Collecting Offline Experience Replay Dataset D_off from sub-optimal behavior policies...")
+        offline_dataset = collect_offline_experience(env, k_data, num_episodes=5, steps_per_ep=30)
+        log_msg(f"Collected {len(offline_dataset)} offline transitions in D_off.\n")
 
-        # 2. Benchmark Variant 1: 5th-Idea Hierarchical Model (use_hierarchical = True)
-        log_msg("Benchmarking Variant 1: 5th-Idea Hierarchical Model (use_hierarchical=True, |A|=2000)...")
+        # 2. Variant 1: Hierarchical Model WITH Abstraction Embeddings (Off-Policy Trained)
+        log_msg("Training Variant 1: Hierarchical Model WITH Abstraction Embeddings (Off-Policy Trained)...")
+        h_params_v1 = init_hierarchical_model_parameters(k_init, num_layers=4, d_model=512, num_actions=2000)
+        trained_v1, off_loss_history = train_off_policy_hierarchical_model(
+            env, h_params_v1, offline_dataset, k_off_train, use_abstraction_embed=True, num_train_steps=60
+        )
         m1 = evaluate_hierarchical_variant(
-            model_name="5th-Idea Hierarchical (Toggle ON, |A|=2000)",
-            params=trained_h_params,
+            model_name="5th-Idea Off-Policy + Abstraction Embed (|A|=2000)",
+            params=trained_v1,
             env=env,
             rng_key=k_eval,
             use_hierarchical=True,
+            use_abstraction_embed=True,
             beam_width=3,
             num_episodes=5,
         )
 
-        # 3. Benchmark Variant 2: Flat Transformer (use_hierarchical = False)
-        log_msg("Benchmarking Variant 2: Flat Transformer Model (use_hierarchical=False, |A|=2000)...")
+        # 3. Variant 2: Hierarchical Model WITHOUT Abstraction Embeddings (Off-Policy Trained)
+        log_msg("Training Variant 2: Hierarchical Model WITHOUT Abstraction Embeddings (Off-Policy Trained)...")
+        h_params_v2 = init_hierarchical_model_parameters(k_init, num_layers=4, d_model=512, num_actions=2000)
+        trained_v2, _ = train_off_policy_hierarchical_model(
+            env, h_params_v2, offline_dataset, k_off_train, use_abstraction_embed=False, num_train_steps=60
+        )
         m2 = evaluate_hierarchical_variant(
-            model_name="Flat Transformer (Toggle OFF, |A|=2000)",
-            params=trained_h_params,
+            model_name="5th-Idea Off-Policy NO Abstraction Embed (|A|=2000)",
+            params=trained_v2,
             env=env,
             rng_key=k_eval,
-            use_hierarchical=False,
+            use_hierarchical=True,
+            use_abstraction_embed=False,
             beam_width=3,
             num_episodes=5,
         )
 
-        # 4. Benchmark Variant 3: Simplified MDP Baseline
-        log_msg("Benchmarking Variant 3: Simplified MDP Baseline (|A|=2000)...")
-        m3 = evaluate_simplified_mdp_baseline(
+        # 4. Variant 3: Hierarchical Model (On-Policy Trajectory Trained)
+        log_msg("Training Variant 3: Hierarchical Model (On-Policy Trajectory Trained)...")
+        h_params_v3 = init_hierarchical_model_parameters(k_init, num_layers=4, d_model=512, num_actions=2000)
+        trained_v3 = train_hierarchical_model_trajectory(
+            env, h_params_v3, k_on_train, use_hierarchical=True, use_abstraction_embed=True, num_episodes=3, steps_per_ep=30
+        )
+        m3 = evaluate_hierarchical_variant(
+            model_name="5th-Idea On-Policy Trajectory (|A|=2000)",
+            params=trained_v3,
             env=env,
             rng_key=k_eval,
+            use_hierarchical=True,
+            use_abstraction_embed=True,
+            beam_width=3,
             num_episodes=5,
         )
 
-        results = [m1, m2, m3]
+        # 5. Variant 4: Simplified MDP Baseline
+        log_msg("Evaluating Variant 4: Simplified MDP Baseline (|A|=2000)...")
+        m4 = evaluate_simplified_mdp_baseline(env, k_eval, num_episodes=5)
+
+        results = [m1, m2, m3, m4]
 
         log_msg(f"\n=== BENCHMARK EXECUTION SUMMARY TABLE [{run_seq}] ===")
-        log_msg(f"{'Model Architecture':<42} | {'Success Rate':<12} | {'Avg Steps':<10} | {'Progress Rate':<14} | {'Speed (ms/step)':<15}")
-        log_msg("-" * 105)
+        log_msg(f"{'Model Architecture':<48} | {'Success Rate':<12} | {'Avg Steps':<10} | {'Progress Rate':<14} | {'Speed (ms/step)':<15}")
+        log_msg("-" * 110)
         for r in results:
-            log_msg(f"{r.model_name:<42} | {r.success_rate * 100:>10.1f}% | {r.avg_steps:>9.1f} | {r.avg_progress_rate * 100:>12.1f}% | {r.execution_ms_per_step:>13.3f} ms")
+            log_msg(f"{r.model_name:<48} | {r.success_rate * 100:>10.1f}% | {r.avg_steps:>9.1f} | {r.avg_progress_rate * 100:>12.1f}% | {r.execution_ms_per_step:>13.3f} ms")
 
-        # Export JSON
+        # Export JSON dataset
         export_data = [r._asdict() for r in results]
         with open(output_json_path, "w", encoding="utf-8") as jf:
-            json.dump(export_data, jf, indent=2)
+            json.dump({"metrics": export_data, "off_policy_loss_history": off_loss_history}, jf, indent=2)
         log_msg(f"\nBenchmark dataset saved to: {output_json_path}")
 
-        return results
+        return results, off_loss_history
 
 
 if __name__ == "__main__":
-    from src.pipeline.plotter import plot_hierarchical_benchmark_results
-    res = run_hierarchical_benchmark_suite()
-    plot_hierarchical_benchmark_results(res, run_seq="Run-Seq: #002")
+    from src.pipeline.plotter import plot_offpolicy_benchmark_results
+    res, loss_hist = run_offpolicy_abstraction_benchmark_suite()
+    plot_offpolicy_benchmark_results(res, loss_hist, run_seq="Run-Seq: #003")

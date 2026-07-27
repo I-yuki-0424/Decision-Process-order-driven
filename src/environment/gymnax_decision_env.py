@@ -116,11 +116,19 @@ class DecisionProcessEnv:
         cost_variation = jax.random.uniform(k4, (self.params.num_actions, self.params.num_costs), minval=0.5, maxval=1.5)
         act_costs = act_costs * cost_variation
 
+        # Abstraction scales: 40 for macro clusters, 1 for fine actions
+        macro_scales = jnp.repeat(jnp.array([40.0]), self.params.num_macro_clusters)
+        fine_scales = jnp.repeat(jnp.array([1.0]), self.params.num_fine_actions)
+        abstraction_scales = jnp.tile(macro_scales[:self.params.num_actions // self.params.num_fine_actions], self.params.num_fine_actions)
+        if abstraction_scales.shape[0] < self.params.num_actions:
+            abstraction_scales = jnp.pad(abstraction_scales, (0, self.params.num_actions - abstraction_scales.shape[0]), constant_values=1.0)
+
         actions_data = ActionsData(
             features=act_features,
             costs=act_costs,
             preconditions=jnp.zeros((self.params.num_actions, 2), dtype=jnp.int32),
             valid_mask=jnp.ones((self.params.num_actions,), dtype=jnp.bool_),
+            abstraction_scales=abstraction_scales,
         )
 
         obs = self._get_obs(env_state, actions_data)
