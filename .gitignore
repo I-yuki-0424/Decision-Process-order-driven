@@ -7,3 +7,4 @@ kaggle.json
 output/
 tmp/
 .vscode/
+*.zip
