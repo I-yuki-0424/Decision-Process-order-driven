@@ -1,0 +1,46 @@
+[{"stream_name":"stderr","time":6.140002629,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.140076197,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.14008312,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.140087048,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.700292675,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.700321682,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.700326396,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.700330051,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":14.516352208,"data":"=== REMOTE KAGGLE EXECUTION ENVIRONMENT ===\n"}
+,{"stream_name":"stdout","time":16.663447714,"data":"JAX Backend: gpu\n"}
+,{"stream_name":"stdout","time":16.663482072,"data":"JAX Devices: [CudaDevice(id=0)]\n"}
+,{"stream_name":"stdout","time":16.870782642,"data":"=========================================================\n"}
+,{"stream_name":"stdout","time":16.870823255,"data":"      KAGGLE 1M STEP HIERARCHICAL VERIFICATION RUNNER     \n"}
+,{"stream_name":"stdout","time":16.87082816,"data":"=========================================================\n"}
+,{"stream_name":"stdout","time":16.870831497,"data":"JAX Accelerator Backend : GPU\n"}
+,{"stream_name":"stdout","time":16.870834691,"data":"Available JAX Devices   : [CudaDevice(id=0)]\n"}
+,{"stream_name":"stdout","time":22.271105064,"data":"\n"}
+,{"stream_name":"stdout","time":22.271213301,"data":"[Parallel Setup]\n"}
+,{"stream_name":"stdout","time":22.271224597,"data":"- Parallel Envs     : 12\n"}
+,{"stream_name":"stdout","time":22.271230133,"data":"- Macro Steps/Env   : 100\n"}
+,{"stream_name":"stdout","time":22.271234919,"data":"- Micro Steps/Macro : 900\n"}
+,{"stream_name":"stdout","time":22.271273817,"data":"- Total Micro Steps : 1,080,000 steps\n"}
+,{"stream_name":"stdout","time":22.503021643,"data":"\n"}
+,{"stream_name":"stdout","time":22.503065225,"data":"Starting JIT compilation \u0026 execution warm-up...\n"}
+,{"stream_name":"stdout","time":54.532676689,"data":"Compilation finished in 32.02s\n"}
+,{"stream_name":"stdout","time":54.532713899,"data":"\n"}
+,{"stream_name":"stdout","time":54.532721164,"data":"Executing 1,080,000 Step Vectorized Benchmark...\n"}
+,{"stream_name":"stdout","time":81.768744596,"data":"\n"}
+,{"stream_name":"stdout","time":81.768780285,"data":"=========================================================\n"}
+,{"stream_name":"stdout","time":81.768787767,"data":"                    VERIFICATION SUMMARY                 \n"}
+,{"stream_name":"stdout","time":81.768793948,"data":"=========================================================\n"}
+,{"stream_name":"stdout","time":81.768799296,"data":"Total Steps Executed : 1,080,000 micro steps\n"}
+,{"stream_name":"stdout","time":81.768804034,"data":"Total Elapsed Time   : 27.298 seconds\n"}
+,{"stream_name":"stdout","time":81.768808992,"data":"Step-Per-Second(SPS) : 39,564.05 steps/sec\n"}
+,{"stream_name":"stdout","time":81.768813592,"data":"Mean Macro Reward    : 0.0303\n"}
+,{"stream_name":"stdout","time":81.7688182,"data":"=========================================================\n"}
+,{"stream_name":"stdout","time":81.768834363,"data":"Status: 1M Step Hierarchical Verification Successfully Passed!\n"}
+,{"stream_name":"stderr","time":86.369793297,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":86.36984459,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":86.511954556,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":86.511980671,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":87.075910146,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":87.366811327,"data":"[NbConvertApp] Writing 87984 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":89.64366566,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":90.413199469,"data":"[NbConvertApp] Writing 368166 bytes to __results__.html\n"}
+]

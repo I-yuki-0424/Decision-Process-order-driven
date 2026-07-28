@@ -94,7 +94,10 @@ def train_hierarchical_model_trajectory(
         ep_keys = jax.random.split(keys[ep], steps_per_ep)
 
         for step in range(steps_per_ep):
-            delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
+            if actions_data.resource_effects is not None:
+                delta_r = actions_data.resource_effects
+            else:
+                delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
             next_resources = obs.state.resource_levels[None, :] + delta_r
             target_dists = jnp.linalg.norm(next_resources - obs.target.target_state[None, :], axis=-1)
             target_action = jnp.argmin(target_dists)
@@ -207,7 +210,10 @@ def evaluate_simplified_mdp_baseline(
             ep_key = jax.random.fold_in(keys[ep], ep_steps)
             t0 = time.perf_counter()
 
-            delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
+            if actions_data.resource_effects is not None:
+                delta_r = actions_data.resource_effects
+            else:
+                delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
             next_r = obs.state.resource_levels[None, :] + delta_r
             dists = jnp.linalg.norm(next_r - obs.target.target_state[None, :], axis=-1)
             action_idx = int(jnp.argmin(dists))

@@ -84,7 +84,7 @@ def glorot_uniform(key: jax.random.PRNGKey, in_dim: int, out_dim: int) -> jnp.nd
 
 def init_hierarchical_model_parameters(
     rng_key: jax.random.PRNGKey,
-    num_layers: int = 8,
+    num_layers: int = 4,
     d_model: int = 512,
     num_heads: int = 8,
     d_ff: int = 2048,
@@ -281,41 +281,10 @@ def forward_hierarchical_transformer(
         )
 
     memory_slots = 4
-    compressed_mem = compress_working_memory_state(x, z_interval=16, memory_slots=memory_slots)
+    compressed_mem = jnp.zeros((memory_slots, d_model)).at[0, :].set(pooled_context)
     memory_state = WorkingMemoryState(
         compressed_memory=compressed_mem,
         last_compressed_step=jnp.array(seq_len, dtype=jnp.int32),
     )
 
     return decision_d, memory_state
-
-
-def compress_working_memory_state(
-    hidden_states: jnp.ndarray,
-    z_interval: int = 16,
-    memory_slots: int = 4,
-) -> jnp.ndarray:
-    """Z-Unit History Summary Compression (JAX JIT Compatible).
-
-    Compresses long trajectory sequence hidden states into memory_slots summary tokens
-    at fixed interval Z=16, preventing context window eviction.
-    """
-    seq_len = hidden_states.shape[0]
-    d_model = hidden_states.shape[1]
-
-    if not isinstance(seq_len, int):
-        pooled = jnp.mean(hidden_states, axis=0, keepdims=True)
-        return jnp.repeat(pooled, memory_slots, axis=0)
-
-    chunk_size = max(1, seq_len // memory_slots)
-
-    def _chunk_mean(idx):
-        offset = idx * chunk_size
-        chunk = jax.lax.dynamic_slice(hidden_states, (offset, 0), (chunk_size, d_model))
-        return jnp.mean(chunk, axis=0)
-
-    chunks = jax.vmap(_chunk_mean)(jnp.arange(memory_slots))
-    pooled = jnp.mean(hidden_states, axis=0)
-    working_memory = chunks.at[0, :].set(pooled)
-    return working_memory
-

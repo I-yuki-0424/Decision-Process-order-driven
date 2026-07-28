@@ -157,17 +157,6 @@ class DecisionProcessEnv:
         else:
             delta_resource = jnp.tile(action_cost, (self.params.num_resources // self.params.num_costs + 1,))[:self.params.num_resources]
         
-        # 1b. Re-introduce Non-Stationary Dynamics (stochastic enemy spawns & meter decay) when False
-        if not self.params.simplify_stationary:
-            k_enemy, k_decay = jax.random.split(rng_key)
-            enemy_attack_prob = jax.random.uniform(k_enemy) < 0.15  # 15% chance of enemy attack
-            damage_impact = jnp.where(enemy_attack_prob, 2.5, 0.0)
-            passive_decay = jax.random.uniform(k_decay, (self.params.num_resources,), minval=0.1, maxval=0.5)
-            
-            # Reduce health (index 0) and food (index 1) under disturbance
-            disturbance = passive_decay.at[0].add(damage_impact)
-            delta_resource = delta_resource - disturbance
-
         new_resource = env_state.resource_levels + delta_resource
         new_dist = jnp.linalg.norm(new_resource - env_state.target_state)
 

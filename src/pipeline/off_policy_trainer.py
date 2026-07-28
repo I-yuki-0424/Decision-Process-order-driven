@@ -54,7 +54,10 @@ def collect_offline_experience(
             if float(p_rand) < 0.50:
                 act = int(jax.random.randint(k_act, (), 0, env.params.num_actions))
             else:
-                delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
+                if actions_data.resource_effects is not None:
+                    delta_r = actions_data.resource_effects
+                else:
+                    delta_r = jax.vmap(lambda c: jnp.tile(c, (num_res // num_costs + 1,))[:num_res])(actions_data.costs)
                 next_r = obs.state.resource_levels[None, :] + delta_r
                 dists = jnp.linalg.norm(next_r - obs.target.target_state[None, :], axis=-1)
                 act = int(jnp.argmin(dists))

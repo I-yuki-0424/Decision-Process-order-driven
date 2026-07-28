@@ -54,10 +54,14 @@ def compute_loss(
     # 3. Progress Rate MSE Loss
     progress_loss = (decision_d.progress_rate_pred - target_progress) ** 2
 
-    # 4. Noise Validity Binary Cross-Entropy Loss
-    target_validity = 1.0 - jnp.mean(input_n.history.noise_mask.astype(jnp.float32))
-    validity_loss = - (target_validity * jnp.log(decision_d.validity_score + 1e-6) + 
-                       (1.0 - target_validity) * jnp.log(1.0 - decision_d.validity_score + 1e-6))
+    # 4. Token-level Noise Validity Binary Cross-Entropy Loss
+    if decision_d.token_validity_logits is not None:
+        token_targets = (1.0 - input_n.history.noise_mask.astype(jnp.float32))  # 1.0 = clean/valid, 0.0 = noisy
+        validity_loss = jnp.mean(optax.sigmoid_binary_cross_entropy(decision_d.token_validity_logits, token_targets))
+    else:
+        target_validity = 1.0 - jnp.mean(input_n.history.noise_mask.astype(jnp.float32))
+        validity_loss = - (target_validity * jnp.log(decision_d.validity_score + 1e-6) + 
+                           (1.0 - target_validity) * jnp.log(1.0 - decision_d.validity_score + 1e-6))
 
     total_loss = policy_loss + 0.5 * cost_loss + 1.0 * progress_loss + 0.2 * validity_loss
 

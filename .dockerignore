@@ -1,0 +1,172 @@
+# flyctl launch added from .gitignore
+!**/ .gitignore
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/kaggle.json
+**/.ipynb_checkpoints
+**/output
+**/tmp
+**/.vscode
+**/*.zip
+
+# flyctl launch added from .venv/.gitignore
+.venv/**/*
+
+# flyctl launch added from .venv/Lib/site-packages/flaxlib_src/.gitignore
+.venv/Lib/site-packages/flaxlib_src/target
+
+# Byte-compiled / optimized / DLL files
+.venv/Lib/site-packages/flaxlib_src/**/__pycache__
+.venv/Lib/site-packages/flaxlib_src/**/.pytest_cache
+.venv/Lib/site-packages/flaxlib_src/**/*.py[cod]
+
+# C extensions
+.venv/Lib/site-packages/flaxlib_src/**/*.so
+
+# Distribution / packaging
+.venv/Lib/site-packages/flaxlib_src/**/.Python
+.venv/Lib/site-packages/flaxlib_src/**/.venv
+.venv/Lib/site-packages/flaxlib_src/**/env
+.venv/Lib/site-packages/flaxlib_src/**/bin
+.venv/Lib/site-packages/flaxlib_src/**/build
+.venv/Lib/site-packages/flaxlib_src/**/develop-eggs
+.venv/Lib/site-packages/flaxlib_src/**/dist
+.venv/Lib/site-packages/flaxlib_src/**/eggs
+.venv/Lib/site-packages/flaxlib_src/**/lib
+.venv/Lib/site-packages/flaxlib_src/**/lib64
+.venv/Lib/site-packages/flaxlib_src/**/parts
+.venv/Lib/site-packages/flaxlib_src/**/sdist
+.venv/Lib/site-packages/flaxlib_src/**/var
+.venv/Lib/site-packages/flaxlib_src/**/include
+.venv/Lib/site-packages/flaxlib_src/**/man
+.venv/Lib/site-packages/flaxlib_src/**/venv
+.venv/Lib/site-packages/flaxlib_src/**/*.egg-info
+.venv/Lib/site-packages/flaxlib_src/**/.installed.cfg
+.venv/Lib/site-packages/flaxlib_src/**/*.egg
+
+# Installer logs
+.venv/Lib/site-packages/flaxlib_src/**/pip-log.txt
+.venv/Lib/site-packages/flaxlib_src/**/pip-delete-this-directory.txt
+.venv/Lib/site-packages/flaxlib_src/**/pip-selfcheck.json
+
+# Unit test / coverage reports
+.venv/Lib/site-packages/flaxlib_src/**/htmlcov
+.venv/Lib/site-packages/flaxlib_src/**/.tox
+.venv/Lib/site-packages/flaxlib_src/**/.coverage
+.venv/Lib/site-packages/flaxlib_src/**/.cache
+.venv/Lib/site-packages/flaxlib_src/**/nosetests.xml
+.venv/Lib/site-packages/flaxlib_src/**/coverage.xml
+
+# Translations
+.venv/Lib/site-packages/flaxlib_src/**/*.mo
+
+# Mr Developer
+.venv/Lib/site-packages/flaxlib_src/**/.mr.developer.cfg
+.venv/Lib/site-packages/flaxlib_src/**/.project
+.venv/Lib/site-packages/flaxlib_src/**/.pydevproject
+
+# Rope
+.venv/Lib/site-packages/flaxlib_src/**/.ropeproject
+
+# Django stuff:
+.venv/Lib/site-packages/flaxlib_src/**/*.log
+.venv/Lib/site-packages/flaxlib_src/**/*.pot
+
+.venv/Lib/site-packages/flaxlib_src/**/.DS_Store
+
+# Sphinx documentation
+.venv/Lib/site-packages/flaxlib_src/**/docs/_build
+
+# PyCharm
+.venv/Lib/site-packages/flaxlib_src/**/.idea
+
+# VSCode
+.venv/Lib/site-packages/flaxlib_src/**/.vscode
+
+# Pyenv
+.venv/Lib/site-packages/flaxlib_src/**/.python-version
+
+# cibuildwheel
+.venv/Lib/site-packages/flaxlib_src/wheelhouse
+
+# flyctl launch added from .venv_craftax/.gitignore
+.venv_craftax/**/*
+
+# flyctl launch added from .venv_craftax/Lib/site-packages/flaxlib_src/.gitignore
+.venv_craftax/Lib/site-packages/flaxlib_src/target
+
+# Byte-compiled / optimized / DLL files
+.venv_craftax/Lib/site-packages/flaxlib_src/**/__pycache__
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.pytest_cache
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.py[cod]
+
+# C extensions
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.so
+
+# Distribution / packaging
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.Python
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.venv
+.venv_craftax/Lib/site-packages/flaxlib_src/**/env
+.venv_craftax/Lib/site-packages/flaxlib_src/**/bin
+.venv_craftax/Lib/site-packages/flaxlib_src/**/build
+.venv_craftax/Lib/site-packages/flaxlib_src/**/develop-eggs
+.venv_craftax/Lib/site-packages/flaxlib_src/**/dist
+.venv_craftax/Lib/site-packages/flaxlib_src/**/eggs
+.venv_craftax/Lib/site-packages/flaxlib_src/**/lib
+.venv_craftax/Lib/site-packages/flaxlib_src/**/lib64
+.venv_craftax/Lib/site-packages/flaxlib_src/**/parts
+.venv_craftax/Lib/site-packages/flaxlib_src/**/sdist
+.venv_craftax/Lib/site-packages/flaxlib_src/**/var
+.venv_craftax/Lib/site-packages/flaxlib_src/**/include
+.venv_craftax/Lib/site-packages/flaxlib_src/**/man
+.venv_craftax/Lib/site-packages/flaxlib_src/**/venv
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.egg-info
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.installed.cfg
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.egg
+
+# Installer logs
+.venv_craftax/Lib/site-packages/flaxlib_src/**/pip-log.txt
+.venv_craftax/Lib/site-packages/flaxlib_src/**/pip-delete-this-directory.txt
+.venv_craftax/Lib/site-packages/flaxlib_src/**/pip-selfcheck.json
+
+# Unit test / coverage reports
+.venv_craftax/Lib/site-packages/flaxlib_src/**/htmlcov
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.tox
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.coverage
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.cache
+.venv_craftax/Lib/site-packages/flaxlib_src/**/nosetests.xml
+.venv_craftax/Lib/site-packages/flaxlib_src/**/coverage.xml
+
+# Translations
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.mo
+
+# Mr Developer
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.mr.developer.cfg
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.project
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.pydevproject
+
+# Rope
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.ropeproject
+
+# Django stuff:
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.log
+.venv_craftax/Lib/site-packages/flaxlib_src/**/*.pot
+
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.DS_Store
+
+# Sphinx documentation
+.venv_craftax/Lib/site-packages/flaxlib_src/**/docs/_build
+
+# PyCharm
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.idea
+
+# VSCode
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.vscode
+
+# Pyenv
+.venv_craftax/Lib/site-packages/flaxlib_src/**/.python-version
+
+# cibuildwheel
+.venv_craftax/Lib/site-packages/flaxlib_src/wheelhouse
+fly.toml

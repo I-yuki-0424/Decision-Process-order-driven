@@ -40,8 +40,8 @@ notebook = {
       "metadata": {},
       "outputs": [],
       "source": [
-        "# Run Gymnax Decision Process Benchmark Suite\n",
-        "!python -m src.pipeline.benchmark\n"
+        "# Run 1M Step Hierarchical Macro/Micro Verification Pipeline\n",
+        "!python -m kaggle_kernel.hierarchical_kaggle_runner\n"
       ]
     }
   ],
