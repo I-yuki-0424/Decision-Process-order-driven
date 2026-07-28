@@ -116,7 +116,7 @@ def train_craftax_rl_agent(
             act_idx = int(jnp.argmax(decision_d.action_logits))
 
             next_input_n, env_state, reward, done, _ = adapter.step(
-                k_env, env_state, act_idx, actions_data, step_count=step
+                k_env, env_state, act_idx, actions_data, step_count=step, prev_history=input_n.history
             )
 
             _, grads = grad_fn(curr_params, input_n, jnp.array(act_idx, dtype=jnp.int32), reward)
@@ -170,7 +170,7 @@ def evaluate_craftax_agent(
                     beam_width=3,
                     num_actions=adapter.num_actions,
                 )
-                action_idx = int(beam_state.beams.history.action_indices[0, 0])
+                action_idx = int(beam_state.beams.history.action_indices[0, min(ep_steps, 127)])
             else:
                 action_idx = int(jax.random.randint(ep_key, (), 0, adapter.num_actions))
 
@@ -179,7 +179,7 @@ def evaluate_craftax_agent(
             total_step_counts += 1
 
             input_n, env_state, reward, done, info = adapter.step(
-                ep_key, env_state, action_idx, actions_data, step_count=ep_steps
+                ep_key, env_state, action_idx, actions_data, step_count=ep_steps, prev_history=input_n.history
             )
             ep_steps += 1
 
