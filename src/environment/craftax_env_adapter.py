@@ -73,12 +73,13 @@ class CraftaxEnvAdapter:
         action_idx: int,
         actions_data: ActionsData,
         step_count: int = 0,
+        prev_history: Any = None,
     ) -> Tuple[InputContextN, Any, jnp.ndarray, jnp.ndarray, Dict[str, Any]]:
         """Step Craftax-Classic environment."""
         obs_raw, next_env_state, reward, done, info = self.raw_env.step(
             rng_key, env_state, action_idx, self.raw_env.default_params
         )
-        input_n = self._build_input_context(obs_raw, next_env_state, actions_data, step_count=step_count + 1)
+        input_n = self._build_input_context(obs_raw, next_env_state, actions_data, step_count=step_count + 1, prev_history=prev_history, action_idx=action_idx, reward=reward)
         return input_n, next_env_state, reward, done, info
 
     def _build_actions_data(self, rng_key: jax.random.PRNGKey) -> ActionsData:
@@ -103,6 +104,9 @@ class CraftaxEnvAdapter:
         env_state: Any,
         actions_data: ActionsData,
         step_count: int = 0,
+        prev_history: Any = None,
+        action_idx: int = 0,
+        reward: float = 0.0,
     ) -> InputContextN:
         # Extract player state resources: health, food, drink, energy + inventory
         player_state = jnp.zeros((self.num_resources,))
@@ -129,13 +133,44 @@ class CraftaxEnvAdapter:
             progress_rate=progress_rate,
         )
 
-        history = ActionHistory(
-            action_indices=jnp.zeros((128,), dtype=jnp.int32),
-            rewards=jnp.zeros((128,), dtype=jnp.float32),
-            cost_changes=jnp.zeros((128, self.num_costs), dtype=jnp.float32),
-            noise_mask=jnp.zeros((128,), dtype=jnp.bool_),
-            seq_len=jnp.array(step_count, dtype=jnp.int32),
-        )
+        if prev_history is not None:
+            # Update history with sliding window if we exceed 128
+            def _update_history(hist):
+                # Roll history left by 1 and place new element at the end
+                new_act = jnp.roll(hist.action_indices, -1).at[-1].set(action_idx)
+                new_rew = jnp.roll(hist.rewards, -1).at[-1].set(reward)
+                new_cost = jnp.roll(hist.cost_changes, -1, axis=0).at[-1].set(actions_data.costs[action_idx])
+                return new_act, new_rew, new_cost, jnp.array(128, dtype=jnp.int32)
+
+            def _append_history(hist):
+                # Just place element at current step
+                new_act = hist.action_indices.at[step_count - 1].set(action_idx)
+                new_rew = hist.rewards.at[step_count - 1].set(reward)
+                new_cost = hist.cost_changes.at[step_count - 1].set(actions_data.costs[action_idx])
+                return new_act, new_rew, new_cost, jnp.array(step_count, dtype=jnp.int32)
+
+            new_action_indices, new_rewards, new_cost_changes, new_seq_len = jax.lax.cond(
+                step_count > 128,
+                _update_history,
+                _append_history,
+                prev_history
+            )
+
+            history = ActionHistory(
+                action_indices=new_action_indices,
+                rewards=new_rewards,
+                cost_changes=new_cost_changes,
+                noise_mask=prev_history.noise_mask,
+                seq_len=new_seq_len,
+            )
+        else:
+            history = ActionHistory(
+                action_indices=jnp.zeros((128,), dtype=jnp.int32),
+                rewards=jnp.zeros((128,), dtype=jnp.float32),
+                cost_changes=jnp.zeros((128, self.num_costs), dtype=jnp.float32),
+                noise_mask=jnp.zeros((128,), dtype=jnp.bool_),
+                seq_len=jnp.array(step_count, dtype=jnp.int32),
+            )
 
         target = TransitionTarget(
             target_state=jnp.array([10.0, 10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 0.0]),

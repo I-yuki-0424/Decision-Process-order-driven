@@ -65,7 +65,7 @@ def beam_search_init(
     return BeamSearchState(
         beams=beams,
         active_mask=active_mask,
-        step_count=jnp.array(0, dtype=jnp.int32),
+        step_count=initial_history.history.seq_len,
     )
 
 
@@ -126,18 +126,36 @@ def beam_search_step(
         return jax.tree_util.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
 
     new_beams_parent = _gather_parent(state.beams)
-    step_idx = jnp.minimum(state.step_count, new_beams_parent.history.action_indices.shape[1] - 1)
     
-    updated_action_indices = new_beams_parent.history.action_indices.at[:, step_idx].set(selected_action_indices)
+    def _roll_history(hist):
+        new_act = jnp.roll(hist.action_indices, -1, axis=1).at[:, -1].set(selected_action_indices)
+        new_cost = jnp.roll(hist.cost_changes, -1, axis=1).at[:, -1, :].set(selected_costs)
+        # rewards are not updated by model predictions directly in this basic beam search
+        new_rew = jnp.roll(hist.rewards, -1, axis=1)
+        return new_act, new_cost, new_rew, jnp.repeat(128, beam_width)
+
+    def _append_history(hist):
+        step_idx = state.step_count
+        new_act = hist.action_indices.at[:, step_idx].set(selected_action_indices)
+        new_cost = hist.cost_changes.at[:, step_idx, :].set(selected_costs)
+        new_rew = hist.rewards
+        return new_act, new_cost, new_rew, jnp.repeat(state.step_count + 1, beam_width)
+
     selected_costs = actions_data.costs[selected_action_indices]
-    updated_cost_changes = new_beams_parent.history.cost_changes.at[:, step_idx, :].set(selected_costs)
+
+    updated_action_indices, updated_cost_changes, updated_rewards, new_seq_len = jax.lax.cond(
+        state.step_count >= 128,
+        _roll_history,
+        _append_history,
+        new_beams_parent.history
+    )
 
     updated_history = ActionHistory(
         action_indices=updated_action_indices,
-        rewards=new_beams_parent.history.rewards,
+        rewards=updated_rewards,
         cost_changes=updated_cost_changes,
         noise_mask=new_beams_parent.history.noise_mask,
-        seq_len=jnp.repeat(state.step_count + 1, beam_width),
+        seq_len=new_seq_len,
     )
 
     updated_cum_cost = new_beams_parent.cum_cost + selected_costs
@@ -223,18 +241,36 @@ def hierarchical_beam_search_step(
         return jax.tree_util.tree_map(lambda leaf: leaf[parent_beam_indices], tree)
 
     new_beams_parent = _gather_parent(state.beams)
-    step_idx = jnp.minimum(state.step_count, new_beams_parent.history.action_indices.shape[1] - 1)
     
-    updated_action_indices = new_beams_parent.history.action_indices.at[:, step_idx].set(selected_action_indices)
+    def _roll_history(hist):
+        new_act = jnp.roll(hist.action_indices, -1, axis=1).at[:, -1].set(selected_action_indices)
+        new_cost = jnp.roll(hist.cost_changes, -1, axis=1).at[:, -1, :].set(selected_costs)
+        # rewards are not updated by model predictions directly in this basic beam search
+        new_rew = jnp.roll(hist.rewards, -1, axis=1)
+        return new_act, new_cost, new_rew, jnp.repeat(128, beam_width)
+
+    def _append_history(hist):
+        step_idx = state.step_count
+        new_act = hist.action_indices.at[:, step_idx].set(selected_action_indices)
+        new_cost = hist.cost_changes.at[:, step_idx, :].set(selected_costs)
+        new_rew = hist.rewards
+        return new_act, new_cost, new_rew, jnp.repeat(state.step_count + 1, beam_width)
+
     selected_costs = actions_data.costs[selected_action_indices]
-    updated_cost_changes = new_beams_parent.history.cost_changes.at[:, step_idx, :].set(selected_costs)
+
+    updated_action_indices, updated_cost_changes, updated_rewards, new_seq_len = jax.lax.cond(
+        state.step_count >= 128,
+        _roll_history,
+        _append_history,
+        new_beams_parent.history
+    )
 
     updated_history = ActionHistory(
         action_indices=updated_action_indices,
-        rewards=new_beams_parent.history.rewards,
+        rewards=updated_rewards,
         cost_changes=updated_cost_changes,
         noise_mask=new_beams_parent.history.noise_mask,
-        seq_len=jnp.repeat(state.step_count + 1, beam_width),
+        seq_len=new_seq_len,
     )
 
     updated_cum_cost = new_beams_parent.cum_cost + selected_costs
