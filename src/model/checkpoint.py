@@ -75,8 +75,8 @@ def inspect_pytree_parameters(params: HierarchicalModelParameters) -> Dict[str, 
     total_bytes = sum(leaf.nbytes for leaf in leaves if hasattr(leaf, 'nbytes'))
     
     layer_counts = []
-    if hasattr(params, 'transformer_layers'):
-        for i, l_params in enumerate(params.transformer_layers):
+    if hasattr(params, 'layers'):
+        for i, l_params in enumerate(params.layers):
             l_leaves = jax.tree_util.tree_leaves(l_params)
             l_count = sum(p.size for p in l_leaves if hasattr(p, 'size'))
             layer_counts.append({
@@ -86,6 +86,8 @@ def inspect_pytree_parameters(params: HierarchicalModelParameters) -> Dict[str, 
                 "memory_mb": round((l_count * 4) / (1024 * 1024), 2),
                 "num_pytree_tensors": len(l_leaves),
             })
+
+    assert len(layer_counts) > 0, "No layers found during inspection of parameters."
 
     return {
         "num_pytree_leaves": len(leaves),
