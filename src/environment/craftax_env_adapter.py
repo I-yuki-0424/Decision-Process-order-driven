@@ -23,12 +23,12 @@ from src.model.types import (
 
 
 ACHIEVEMENT_NAMES = [
-    "collect_wood", "place_table", "eat_plant", "collect_stone",
-    "place_furnace", "collect_coal", "collect_iron", "place_plant",
-    "make_wood_pickaxe", "make_stone_pickaxe", "make_iron_pickaxe",
-    "make_wood_sword", "make_stone_sword", "make_iron_sword",
-    "defeat_zombie", "defeat_skeleton", "eat_cow", "collect_drink",
-    "make_torch", "place_stone", "wake_up", "survive_day",
+    "collect_wood", "place_table", "eat_cow", "collect_sapling",
+    "collect_drink", "make_wood_pickaxe", "make_wood_sword", "place_plant",
+    "defeat_zombie", "collect_stone", "place_stone", "eat_plant",
+    "defeat_skeleton", "make_stone_pickaxe", "make_stone_sword", "wake_up",
+    "place_furnace", "collect_coal", "collect_iron", "collect_diamond",
+    "make_iron_pickaxe", "make_iron_sword",
 ]
 
 NUM_ACHIEVEMENTS = len(ACHIEVEMENT_NAMES)  # 22
