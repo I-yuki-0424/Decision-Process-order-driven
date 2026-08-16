@@ -1,86 +1,133 @@
-"""
-Kaggle Remote Execution Pipeline for 1M Step Verification.
-
-Configured for high-throughput vectorized parallel sampling across Kaggle GPU/TPU instances:
-- 12 parallel environment instances running JAX-accelerated Hierarchical Macro/Micro engine.
-- Bounded stationary dynamics for maximum Step-Per-Second (SPS) execution (>50,000 SPS).
-- Evaluates 1,000,000 (1M) primitive micro steps without launching active model parameter optimization.
-"""
-
+import json
+import os
+import sys
 import time
+import datetime
 import jax
 import jax.numpy as jnp
+import optax
+import numpy as np
 
-from src.model.hierarchical_transformer import init_hierarchical_model_parameters
-from src.pipeline.hierarchical_pipeline import HierarchicalExecutionEngine, HierarchicalConfig
+sys.path.insert(0, '.')
 
+from src.environment.craftax_env_adapter import CraftaxEnvAdapter, calculate_crafter_score
+from src.model.hierarchical_transformer import (
+    init_hierarchical_model_parameters,
+    forward_hierarchical_transformer,
+)
+
+def count_parameters(params) -> int:
+    leaves = jax.tree_util.tree_leaves(params)
+    return int(sum(x.size for x in leaves))
 
 def run_kaggle_verification():
-    print("=========================================================")
-    print("      KAGGLE 1M STEP HIERARCHICAL VERIFICATION RUNNER     ")
-    print("=========================================================")
+    print(f"[{datetime.datetime.now().isoformat()}] ===========================================================")
+    print(f"[{datetime.datetime.now().isoformat()}]   KAGGLE GPU JAX-ACCELERATED RE-TRAINING & BENCHMARKING SUITE  ")
+    print(f"[{datetime.datetime.now().isoformat()}] ===========================================================")
 
     devices = jax.devices()
-    print(f"JAX Accelerator Backend : {jax.default_backend().upper()}")
-    print(f"Available JAX Devices   : {devices}")
+    print(f"JAX Backend Accelerator : {jax.default_backend().upper()}")
+    print(f"Available Devices       : {devices}")
 
-    rng = jax.random.PRNGKey(2026)
-    
-    # 1 episode = 100 Macro Steps * 900 Micro Steps = 90,000 Micro Steps
-    # 12 parallel envs * 1 episode = 1,080,000 (~1.08M) micro steps total
-    num_envs = 12
-    config = HierarchicalConfig(
-        macro_steps=100,
-        micro_steps_per_macro=900,
-        total_micro_steps=90000,
-        target_verification_steps=1000000,
+    os.makedirs("output", exist_ok=True)
+    env = CraftaxEnvAdapter()
+    base_rng = jax.random.PRNGKey(42)
+
+    cfg = {"name": "5th-Idea Hierarchical (L=8)", "num_layers": 8, "d_model": 256, "num_heads": 4, "d_ff": 512}
+    print(f"\n[{datetime.datetime.now().isoformat()}] Model: {cfg['name']} | Config: L={cfg['num_layers']}, d_model={cfg['d_model']}")
+
+    base_rng, init_rng = jax.random.split(base_rng)
+    params = init_hierarchical_model_parameters(
+        init_rng, num_layers=cfg["num_layers"], d_model=cfg["d_model"], num_heads=cfg["num_heads"], d_ff=cfg["d_ff"], num_actions=env.num_actions
     )
+    param_count = count_parameters(params)
+    print(f"[{datetime.datetime.now().isoformat()}] Trainable Parameters: {param_count:,}")
+
+    optimizer = optax.adam(learning_rate=1e-3)
+    opt_state = optimizer.init(params)
+
+    def loss_fn(p, o):
+        dec, _ = forward_hierarchical_transformer(p, o, is_training=True)
+        return jnp.mean(jnp.square(dec.action_logits))
+
+    @jax.jit
+    def train_step(p, opt_st, o):
+        loss_val, grads = jax.value_and_grad(loss_fn)(p, o)
+        updates, new_opt_st = optimizer.update(grads, opt_st, p)
+        new_p = optax.apply_updates(p, updates)
+        return new_p, new_opt_st, loss_val
+
+    @jax.jit
+    def rollout_chunk(carry, _):
+        # carry: (params, opt_state, obs, env_state, act_data, rng)
+        p, opt_st, o, e_st, a_data, r_key = carry
+        
+        p, opt_st, loss_val = train_step(p, opt_st, o)
+        
+        r_key, step_key = jax.random.split(r_key)
+        dec, _ = forward_hierarchical_transformer(p, o, is_training=False)
+        action = jnp.argmax(dec.action_logits)
+        
+        next_o, next_e_st, reward, done, _ = env.step(step_key, e_st, action, a_data)
+        
+        # Simple auto-reset logic for continuous execution
+        r_key, reset_key = jax.random.split(r_key)
+        reset_o, reset_e_st, reset_a_data = env.reset(reset_key)
+        
+        # If done, take reset state, else take next state
+        next_o = jax.tree_util.tree_map(lambda x, y: jnp.where(done, x, y), reset_o, next_o)
+        next_e_st = jax.tree_util.tree_map(lambda x, y: jnp.where(done, x, y), reset_e_st, next_e_st)
+        a_data = jax.tree_util.tree_map(lambda x, y: jnp.where(done, x, y), reset_a_data, a_data)
+
+        return (p, opt_st, next_o, next_e_st, a_data, r_key), (loss_val, reward, done)
+
+    @jax.jit
+    def execute_chunk(carry):
+        # Run 1000 steps completely compiled in JAX
+        return jax.lax.scan(rollout_chunk, carry, None, length=1000)
+
+    # Initialize environment
+    base_rng, reset_rng = jax.random.split(base_rng)
+    obs, env_state, act_data = env.reset(reset_rng)
     
-    engine = HierarchicalExecutionEngine(config)
+    carry = (params, opt_state, obs, env_state, act_data, base_rng)
     
-    # Initialize 5th-Idea Hierarchical Model Parameters
-    h_params = init_hierarchical_model_parameters(
-        rng,
-        num_actions=2000,
-        num_macro_clusters=50,
-        num_fine_actions=40,
-        num_resources=8,
-    )
-
-    print(f"\n[Parallel Setup]")
-    print(f"- Parallel Envs     : {num_envs}")
-    print(f"- Macro Steps/Env   : {config.macro_steps}")
-    print(f"- Micro Steps/Macro : {config.micro_steps_per_macro}")
-    print(f"- Total Micro Steps : {num_envs * config.total_micro_steps:,} steps")
-
-    vmap_run = jax.vmap(lambda key: engine.run_macro_episode(h_params, key))
-    keys = jax.random.split(rng, num_envs)
-
-    print("\nStarting JIT compilation & execution warm-up...")
-    t0 = time.perf_counter()
-    # Warm-up run
-    _ = vmap_run(keys)
-    t_warmup = time.perf_counter() - t0
-    print(f"Compilation finished in {t_warmup:.2f}s")
-
-    print("\nExecuting 1,080,000 Step Vectorized Benchmark...")
+    # Active Tracking Loop
+    print(f"[{datetime.datetime.now().isoformat()}] Starting Accelerated Training (10,000 steps)...")
     t_start = time.perf_counter()
-    final_states, total_rewards, total_micro_steps = vmap_run(keys)
+    
+    total_steps = 0
+    all_rewards = []
+    
+    for epoch in range(10):  # 10 epochs * 1000 steps = 10,000 steps
+        carry, (losses, rewards, dones) = execute_chunk(carry)
+        total_steps += 1000
+        mean_loss = jnp.mean(losses)
+        mean_reward = jnp.mean(rewards)
+        all_rewards.extend(np.array(rewards).tolist())
+        print(f"[{datetime.datetime.now().isoformat()}] Epoch {epoch+1}/10 | Steps: {total_steps} | Mean Loss: {mean_loss:.4f} | Mean Step Reward: {mean_reward:.4f}")
+    
     t_elapsed = time.perf_counter() - t_start
+    sps = total_steps / max(t_elapsed, 1e-6)
+    
+    params = carry[0] # Updated parameters
+    
+    print(f"[{datetime.datetime.now().isoformat()}] Accelerated Training Complete. SPS: {sps:,.2f}")
+    
+    # Save Results
+    output_path = "output/kaggle_benchmark_results.json"
+    with open(output_path, "w") as f:
+        json.dump({
+            "timestamp": datetime.datetime.now().isoformat(),
+            "jax_backend": jax.default_backend(),
+            "model_name": cfg["name"],
+            "trainable_parameters": param_count,
+            "total_steps": total_steps,
+            "sps_throughput": float(sps),
+            "mean_reward": float(np.mean(all_rewards)),
+        }, f, indent=2)
 
-    total_steps_executed = int(jnp.sum(total_micro_steps))
-    sps = total_steps_executed / t_elapsed
-
-    print("\n=========================================================")
-    print("                    VERIFICATION SUMMARY                 ")
-    print("=========================================================")
-    print(f"Total Steps Executed : {total_steps_executed:,} micro steps")
-    print(f"Total Elapsed Time   : {t_elapsed:.3f} seconds")
-    print(f"Step-Per-Second(SPS) : {sps:,.2f} steps/sec")
-    print(f"Mean Macro Reward    : {float(jnp.mean(total_rewards)):.4f}")
-    print("=========================================================")
-    print("Status: 1M Step Hierarchical Verification Successfully Passed!")
-
+    print(f"[{datetime.datetime.now().isoformat()}] Metrics saved to: {output_path}")
 
 if __name__ == "__main__":
     run_kaggle_verification()

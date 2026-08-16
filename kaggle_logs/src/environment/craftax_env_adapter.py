@@ -2,20 +2,9 @@
 Craftax-Classic Environment Adapter wrapping CraftaxClassicSymbolicEnv into InputContextN.
 
 Adapts Craftax-Classic (JAX-native accelerated Crafter) for 5th-Idea Decision Transformer:
-1. Maps 17 discrete Craftax actions to ActionsData with semantically correct resource_effects
+1. Maps 17 discrete Craftax actions to ActionsData
 2. Maps Craftax state & 22 achievement flags to SystemState
 3. Computes exact Crafter Score: S_crafter = exp(1/N * sum(ln(1 + s_i))) - 1
-
-Resource vector layout (num_resources=8):
-  [0] health, [1] food, [2] drink, [3] energy,
-  [4] wood,   [5] stone, [6] coal, [7] iron
-
-Craftax-Classic Action Index Mapping (17 actions):
-  0=noop, 1=move_left, 2=move_right, 3=move_up, 4=move_down,
-  5=do (interact/attack), 6=sleep, 7=place_stone, 8=place_table,
-  9=place_furnace, 10=place_plant, 11=make_wood_pickaxe,
-  12=make_stone_pickaxe, 13=make_iron_pickaxe, 14=make_wood_sword,
-  15=make_stone_sword, 16=make_iron_sword
 """
 
 from typing import Dict, List, NamedTuple, Tuple, Any
@@ -59,44 +48,16 @@ def calculate_crafter_score(achievement_unlock_rates: List[float]) -> float:
     return float(score)
 
 
-# Craftax-Classic action→resource delta table.
-# Shape: (17, 8) — rows = actions, cols = [health, food, drink, energy, wood, stone, coal, iron]
-# Signs follow: positive = gain, negative = consumption.
-# Crafting actions consume resources, movement/sleep/interact are approximately neutral
-# or consume energy. Values are approximate game-balance deltas (not exact sim outputs).
-CRAFTAX_RESOURCE_EFFECTS = [
-    # health  food   drink  energy  wood  stone  coal  iron
-    [ 0.0,   0.0,   0.0,   0.0,   0.0,  0.0,  0.0,  0.0],  # 0: noop
-    [ 0.0,   0.0,   0.0,  -0.1,   0.0,  0.0,  0.0,  0.0],  # 1: move_left
-    [ 0.0,   0.0,   0.0,  -0.1,   0.0,  0.0,  0.0,  0.0],  # 2: move_right
-    [ 0.0,   0.0,   0.0,  -0.1,   0.0,  0.0,  0.0,  0.0],  # 3: move_up
-    [ 0.0,   0.0,   0.0,  -0.1,   0.0,  0.0,  0.0,  0.0],  # 4: move_down
-    [ 0.0,   0.2,   0.1,  -0.2,   1.0,  1.0,  1.0,  1.0],  # 5: do (collect/attack; net gain varies)
-    [ 0.0,   0.0,   0.0,   1.0,   0.0,  0.0,  0.0,  0.0],  # 6: sleep (restore energy)
-    [ 0.0,   0.0,   0.0,  -0.1,   0.0, -1.0,  0.0,  0.0],  # 7: place_stone (spend stone)
-    [ 0.0,   0.0,   0.0,  -0.1,  -2.0,  0.0,  0.0,  0.0],  # 8: place_table (spend wood)
-    [ 0.0,   0.0,   0.0,  -0.1,  -4.0,  0.0,  0.0,  0.0],  # 9: place_furnace (spend wood)
-    [ 0.0,   0.0,   0.0,  -0.1,   0.0,  0.0,  0.0,  0.0],  # 10: place_plant
-    [ 0.0,   0.0,   0.0,  -0.2,  -2.0,  0.0,  0.0,  0.0],  # 11: make_wood_pickaxe (spend 2 wood)
-    [ 0.0,   0.0,   0.0,  -0.2,   0.0, -2.0,  0.0,  0.0],  # 12: make_stone_pickaxe (spend 2 stone)
-    [ 0.0,   0.0,   0.0,  -0.2,   0.0,  0.0,  0.0, -2.0],  # 13: make_iron_pickaxe (spend 2 iron)
-    [ 0.0,   0.0,   0.0,  -0.2,  -2.0,  0.0,  0.0,  0.0],  # 14: make_wood_sword (spend 2 wood)
-    [ 0.0,   0.0,   0.0,  -0.2,   0.0, -2.0,  0.0,  0.0],  # 15: make_stone_sword (spend 2 stone)
-    [ 0.0,   0.0,   0.0,  -0.2,   0.0,  0.0,  0.0, -2.0],  # 16: make_iron_sword (spend 2 iron)
-]
-
-
 class CraftaxEnvAdapter:
     """Adapter wrapping CraftaxClassicSymbolicEnv into InputContextN."""
 
-    def __init__(self, max_episode_steps: int = 1000):
+    def __init__(self):
         self.raw_env = CraftaxClassicSymbolicEnv()
         self.num_actions = 17
         self.num_achievements = NUM_ACHIEVEMENTS
         self.action_feat_dim = 32
         self.num_costs = 4
         self.num_resources = 8
-        self.max_episode_steps = max_episode_steps
 
     def reset(self, rng_key: jax.random.PRNGKey) -> Tuple[InputContextN, Any, ActionsData]:
         """Reset Craftax-Classic environment."""
@@ -119,39 +80,21 @@ class CraftaxEnvAdapter:
             rng_key, env_state, action_idx, self.raw_env.default_params
         )
         
-        # Truncation = time-limit hit (episode budget exhausted without terminal state)
-        # Termination = agent genuinely reached a terminal game state (death / win)
-        truncated = jnp.logical_and(done, step_count >= self.max_episode_steps - 1)
-        terminated = jnp.logical_and(done, step_count < self.max_episode_steps - 1)
+        truncated = jnp.logical_and(done, step_count >= 99)
+        terminated = jnp.logical_and(done, step_count < 99)
         info['truncated'] = truncated
         info['terminated'] = terminated
         
-        input_n = self._build_input_context(
-            obs_raw, next_env_state, actions_data,
-            step_count=step_count + 1,
-            prev_history=prev_history,
-            action_idx=action_idx,
-            reward=reward,
-        )
+        input_n = self._build_input_context(obs_raw, next_env_state, actions_data, step_count=step_count + 1, prev_history=prev_history, action_idx=action_idx, reward=reward)
         return input_n, next_env_state, reward, done, info
 
     def _build_actions_data(self, rng_key: jax.random.PRNGKey) -> ActionsData:
-        """Build ActionsData with semantically correct resource_effects.
-
-        resource_effects[a, r] is the delta applied to resource r when action a is executed.
-        This is the f(S_t, A_t) transition function for beam search state updates.
-        No tile-hacking: costs and resource_effects are separate tensors with distinct semantics.
-        """
         k1, k2 = jax.random.split(rng_key)
         features = jax.random.normal(k1, (self.num_actions, self.action_feat_dim))
-        # Costs: abstract multi-dimensional cost vector (time, effort, risk, opportunity)
-        costs = jax.random.uniform(k2, (self.num_actions, self.num_costs), minval=0.1, maxval=1.0)
-
+        costs = jax.random.uniform(k2, (self.num_actions, self.num_costs), minval=0.5, maxval=2.0)
+        
         # Abstraction scale: 17 fine actions
         abstraction_scales = jnp.ones((self.num_actions,), dtype=jnp.float32)
-
-        # Physically grounded resource effects table — fixes the causality violation
-        resource_effects = jnp.array(CRAFTAX_RESOURCE_EFFECTS, dtype=jnp.float32)  # (17, 8)
 
         return ActionsData(
             features=features,
@@ -159,7 +102,6 @@ class CraftaxEnvAdapter:
             preconditions=jnp.zeros((self.num_actions, 2), dtype=jnp.int32),
             valid_mask=jnp.ones((self.num_actions,), dtype=jnp.bool_),
             abstraction_scales=abstraction_scales,
-            resource_effects=resource_effects,
         )
 
     def _build_input_context(
@@ -176,14 +118,12 @@ class CraftaxEnvAdapter:
         player_state = jnp.zeros((self.num_resources,))
         if hasattr(env_state, 'player_health'):
             player_state = jnp.array([
-                env_state.player_health.astype(jnp.float32),
-                env_state.player_food.astype(jnp.float32),
-                env_state.player_drink.astype(jnp.float32),
-                env_state.player_energy.astype(jnp.float32),
+                float(env_state.player_health),
+                float(env_state.player_food),
+                float(env_state.player_drink),
+                float(env_state.player_energy),
                 0.0, 0.0, 0.0, 0.0
             ])
-        else:
-            player_state = jnp.zeros(8, dtype=jnp.float32)
 
         # Achievement unlock progress (count unlocked / 22)
         achievements_unlocked = jnp.zeros((NUM_ACHIEVEMENTS,))

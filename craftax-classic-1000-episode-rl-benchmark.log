@@ -1,0 +1,49 @@
+[{"stream_name":"stderr","time":6.941126694,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.941207483,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.941211964,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.941214771,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":7.565244546,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.565277863,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.5652884700000005,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.565292177,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":10.944805734,"data":"\u001b[31mERROR: Could not find a version that satisfies the requirement craftax-classic (from versions: none)\u001b[0m\u001b[31m\r\n"}
+,{"stream_name":"stdout","time":10.944844881,"data":"\u001b[0m\u001b[31mERROR: No matching distribution found for craftax-classic\u001b[0m\u001b[31m\r\n"}
+,{"stream_name":"stdout","time":13.896099272,"data":"\u001b[0m=== REMOTE KAGGLE EXECUTION ENVIRONMENT ===\n"}
+,{"stream_name":"stdout","time":16.108429815,"data":"JAX Backend: gpu\n"}
+,{"stream_name":"stdout","time":16.109210789,"data":"JAX Devices: [CudaDevice(id=0)]\n"}
+,{"stream_name":"stderr","time":20.117569491,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":20.117625358,"data":"  File \"\u003cstring\u003e\", line 1, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":20.117633384,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 131, in execute_notebook\n"}
+,{"stream_name":"stderr","time":20.117735963,"data":"    raise_for_execution_errors(nb, output_path)\n"}
+,{"stream_name":"stderr","time":20.11775023,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 251, in raise_for_execution_errors\n"}
+,{"stream_name":"stderr","time":20.117981201,"data":"    raise error\n"}
+,{"stream_name":"stderr","time":20.118118218,"data":"papermill.exceptions.PapermillExecutionError: \n"}
+,{"stream_name":"stderr","time":20.118149182,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":20.11815562,"data":"Exception encountered at \"In [3]\":\n"}
+,{"stream_name":"stderr","time":20.118160563,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":20.118165186,"data":"ModuleNotFoundError                       Traceback (most recent call last)\n"}
+,{"stream_name":"stderr","time":20.11817024,"data":"/tmp/ipykernel_23/1259865052.py in \u003ccell line: 0\u003e()\n"}
+,{"stream_name":"stderr","time":20.118176074,"data":"     11 sys.path.insert(0, '.')\n"}
+,{"stream_name":"stderr","time":20.118180289,"data":"     12 \n"}
+,{"stream_name":"stderr","time":20.118184451,"data":"---\u003e 13 from src.environment.craftax_env_adapter import CraftaxEnvAdapter, calculate_crafter_score\n"}
+,{"stream_name":"stderr","time":20.118189778,"data":"     14 from src.model.hierarchical_transformer import (\n"}
+,{"stream_name":"stderr","time":20.118194888,"data":"     15     init_hierarchical_model_parameters,\n"}
+,{"stream_name":"stderr","time":20.118201669,"data":"\n"}
+,{"stream_name":"stderr","time":20.11821972,"data":"/kaggle/working/src/environment/craftax_env_adapter.py in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":20.118223874,"data":"     13 import numpy as np\n"}
+,{"stream_name":"stderr","time":20.118227397,"data":"     14 \n"}
+,{"stream_name":"stderr","time":20.118230891,"data":"---\u003e 15 from craftax.craftax_classic.envs.craftax_symbolic_env import CraftaxClassicSymbolicEnv\n"}
+,{"stream_name":"stderr","time":20.118234722,"data":"     16 from src.model.types import (\n"}
+,{"stream_name":"stderr","time":20.118238473,"data":"     17     ActionHistory,\n"}
+,{"stream_name":"stderr","time":20.118241843,"data":"\n"}
+,{"stream_name":"stderr","time":20.118245406,"data":"ModuleNotFoundError: No module named 'craftax'\n"}
+,{"stream_name":"stderr","time":20.118248852,"data":"\n"}
+,{"stream_name":"stderr","time":22.418486497,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":22.418523049,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":22.57199897,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":22.572041319,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":23.202501775,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":23.52897607,"data":"[NbConvertApp] Writing 201052 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":26.052703466,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":26.938377373,"data":"[NbConvertApp] Writing 506528 bytes to __results__.html\n"}
+]

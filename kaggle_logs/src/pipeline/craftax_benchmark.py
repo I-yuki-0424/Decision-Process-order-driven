@@ -82,14 +82,7 @@ def train_craftax_rl_agent(
 
     keys = jax.random.split(rng_key, num_episodes)
 
-    def rl_loss_fn(p, input_n, action_idx, reward, terminated):
-        """REINFORCE policy gradient with terminated-gated value bootstrap.
-
-        Fix 7: Value estimation respects termination vs. truncation:
-          V(s_t) = r_t + gamma * (1 - terminated_t) * V(s_{t+1})
-        terminated=True  -> episode ended by game state (death/win); no bootstrap
-        terminated=False -> episode truncated by time limit; bootstrap is valid
-        """
+    def rl_loss_fn(p, input_n, action_idx, reward):
         decision_d, _ = forward_hierarchical_transformer(
             p,
             input_n,
@@ -100,16 +93,8 @@ def train_craftax_rl_agent(
             logits=decision_d.action_logits[None, :],
             labels=action_idx[None],
         )[0]
-        # Scale policy gradient by reward; mask bootstrap by termination flag
-        # gamma=0.99 standard discount for long-horizon Craftax
-        gamma = 0.99
-        bootstrap_mask = (1.0 - terminated.astype(jnp.float32))
-        # Progress rate serves as a proxy for V(s_{t+1}) during online rollouts
-        estimated_next_value = decision_d.progress_rate_pred
-        bootstrapped_return = reward + gamma * bootstrap_mask * estimated_next_value
-        total_loss = policy_loss * (-bootstrapped_return) + 0.1 * jnp.mean(
-            (decision_d.estimated_costs - 1.0) ** 2
-        )
+        # REINFORCE policy gradient loss + cost regularizer
+        total_loss = policy_loss * (-reward) + 0.1 * jnp.mean((decision_d.estimated_costs - 1.0) ** 2)
         return total_loss
 
     grad_fn = jax.value_and_grad(rl_loss_fn, argnums=0)
@@ -134,7 +119,7 @@ def train_craftax_rl_agent(
                 k_env, env_state, act_idx, actions_data, step_count=step, prev_history=input_n.history
             )
 
-            _, grads = grad_fn(curr_params, input_n, jnp.array(act_idx, dtype=jnp.int32), reward, info.get('terminated', jnp.array(False)))
+            _, grads = grad_fn(curr_params, input_n, jnp.array(act_idx, dtype=jnp.int32), reward)
             updates, curr_opt_state = optimizer.update(grads, curr_opt_state, curr_params)
             curr_params = optax.apply_updates(curr_params, updates)
 

@@ -9,7 +9,6 @@ Implements:
   d = A(Costs) + A(conditions) + S(Can use Costs) + H(reward) + H(Cost-change) + T(conditions(H))
 """
 
-import functools
 from typing import NamedTuple, Optional, Tuple
 import jax
 import jax.numpy as jnp
@@ -273,10 +272,6 @@ def forward_layer(
     return x, new_kv_layer_cache
 
 
-@functools.partial(
-    jax.jit,
-    static_argnames=("is_training", "is_causal", "z_compression_interval"),
-)
 def forward_decision_transformer(
     params: ModelParameters,
     input_n: InputContextN,
@@ -286,12 +281,7 @@ def forward_decision_transformer(
     is_causal: bool = True,
     z_compression_interval: int = 0,
 ) -> Tuple[DecisionVectorD, Optional[KVCacheState]]:
-    """JIT-compiled forward pass through complete DecisionTransformerCore.
-
-    Static args (must be compile-time constants):
-        is_training:           toggles noise injection
-        is_causal:             selects causal vs. non-causal block mask
-        z_compression_interval: 0 = no compression; 32/64/128 = Z-step pooling
+    """Forward pass through complete DecisionTransformerCore.
 
     Returns:
         DecisionVectorD and updated KVCacheState.
@@ -329,14 +319,8 @@ def forward_decision_transformer(
         
 
     # 3. Transformer Layer Stack with Block Attention Mask
-    # num_heads derived from model dimension, not hardcoded
     d_model = params.heads.w_action.shape[0]
-    num_heads = params.encoder_params.channel_pos_embed.shape[1] // 64  # d_k = 64 per head
-    # Clamp to [8, 16] per 4th-Idea Section 5.4
-    num_heads = max(8, min(16, num_heads))
-    # Fall back to 8 if d_model is not divisible (e.g., d_model=512 → 8 heads, d_k=64)
-    while d_model % num_heads != 0 and num_heads > 1:
-        num_heads -= 1
+    num_heads = 8
     head_dim = d_model // num_heads
 
     attn_mask = build_decision_attention_mask(num_actions, num_hist, is_causal=is_causal)

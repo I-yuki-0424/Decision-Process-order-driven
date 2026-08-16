@@ -22,7 +22,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=1"
 
 
-def run_kaggle_remote_orchestration(kernel_slug: str = "bfloat16/5th-idea-jax-hierarchical-decision-transformer", poll_interval_sec: int = 15):
+def run_kaggle_remote_orchestration(kernel_slug: str = "bfloat16/craftax-classic-1000-episode-rl-benchmark", poll_interval_sec: int = 15):
     print("=================================================================")
     print("   KAGGLE HOST ORCHESTRATOR & CPU OVERLOAD PREVENTION CLIENT     ")
     print("=================================================================")

@@ -1,0 +1,14 @@
+{
+  "run_id": "phase2_005_N6_k5_Z64",
+  "n_layers": 6,
+  "beam_width": 5,
+  "z_step": 64,
+  "is_causal": true,
+  "train_steps": 1000000,
+  "eval_steps": 500,
+  "seed": 42,
+  "d_model": 512,
+  "num_heads": 8,
+  "lr": 0.0003,
+  "noise_prob": 0.15
+}

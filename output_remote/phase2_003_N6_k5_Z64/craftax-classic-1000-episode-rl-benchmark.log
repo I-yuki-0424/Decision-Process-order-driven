@@ -1,0 +1,62 @@
+[{"stream_name":"stderr","time":5.5551522129999995,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":5.555221077,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":6.284805082,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.284847768,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.28485388,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.284857921,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.837957971,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.837986217,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.8379910299999995,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.837995105,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":13.001596185,"data":"   „ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª 412.0/412.0 kB 11.9 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":13.00164571,"data":"\n"}
+,{"stream_name":"stdout","time":18.415832739,"data":"craftax import OK: \u003cclass 'craftax.craftax_classic.envs.craftax_symbolic_env.CraftaxClassicSymbolicEnv'\u003e\n"}
+,{"stream_name":"stdout","time":18.415880686,"data":"JAX Backend: gpu\n"}
+,{"stream_name":"stdout","time":18.415887086,"data":"JAX Devices: [CudaDevice(id=0)]\n"}
+,{"stream_name":"stdout","time":18.415891674,"data":"JAX version: 0.7.2\n"}
+,{"stream_name":"stdout","time":18.415896004,"data":"Run ID: phase2_003_N6_k5_Z64\n"}
+,{"stream_name":"stdout","time":18.519301976,"data":"Config written: {\n"}
+,{"stream_name":"stdout","time":18.519327493,"data":"  \"run_id\": \"phase2_003_N6_k5_Z64\",\n"}
+,{"stream_name":"stdout","time":18.519333846,"data":"  \"n_layers\": 6,\n"}
+,{"stream_name":"stdout","time":18.519339405,"data":"  \"beam_width\": 5,\n"}
+,{"stream_name":"stdout","time":18.519344236,"data":"  \"z_step\": 64,\n"}
+,{"stream_name":"stdout","time":18.519348644,"data":"  \"is_causal\": true,\n"}
+,{"stream_name":"stdout","time":18.519352966,"data":"  \"train_steps\": 1000000,\n"}
+,{"stream_name":"stdout","time":18.519357529,"data":"  \"eval_steps\": 500,\n"}
+,{"stream_name":"stdout","time":18.519362187,"data":"  \"seed\": 42,\n"}
+,{"stream_name":"stdout","time":18.519367638,"data":"  \"d_model\": 512,\n"}
+,{"stream_name":"stdout","time":18.519372236,"data":"  \"num_heads\": 8,\n"}
+,{"stream_name":"stdout","time":18.519376883,"data":"  \"lr\": 0.0003,\n"}
+,{"stream_name":"stdout","time":18.519382108,"data":"  \"noise_prob\": 0.15\n"}
+,{"stream_name":"stdout","time":18.519386548,"data":"}\n"}
+,{"stream_name":"stdout","time":18.579099328,"data":"[2026-07-30T03:40:27.323776] JAX Backend : GPU\n"}
+,{"stream_name":"stdout","time":18.579123105,"data":"[2026-07-30T03:40:27.323869] Devices     : [CudaDevice(id=0)]\n"}
+,{"stream_name":"stderr","time":21.450391581,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":21.450435803,"data":"  File \"\u003cstring\u003e\", line 1, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":21.450441976,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 131, in execute_notebook\n"}
+,{"stream_name":"stderr","time":21.450591752,"data":"    raise_for_execution_errors(nb, output_path)\n"}
+,{"stream_name":"stderr","time":21.450607435,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 251, in raise_for_execution_errors\n"}
+,{"stream_name":"stderr","time":21.450784244,"data":"    raise error\n"}
+,{"stream_name":"stderr","time":21.450892129,"data":"papermill.exceptions.PapermillExecutionError: \n"}
+,{"stream_name":"stderr","time":21.450899569,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":21.450904034,"data":"Exception encountered at \"In [4]\":\n"}
+,{"stream_name":"stderr","time":21.450907836,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":21.450936404,"data":"AttributeError                            Traceback (most recent call last)\n"}
+,{"stream_name":"stderr","time":21.450940471,"data":"/tmp/ipykernel_23/2037718012.py in \u003ccell line: 0\u003e()\n"}
+,{"stream_name":"stderr","time":21.450944249,"data":"     72 \n"}
+,{"stream_name":"stderr","time":21.450947783,"data":"     73 CFG = load_config()\n"}
+,{"stream_name":"stderr","time":21.450951168,"data":"---\u003e 74 RUN_ID      = CFG.get(\"run_id\",      \"phase2_run\")\n"}
+,{"stream_name":"stderr","time":21.450955117,"data":"     75 N_LAYERS    = int(CFG.get(\"n_layers\",    6))\n"}
+,{"stream_name":"stderr","time":21.450958661,"data":"     76 BEAM_WIDTH  = int(CFG.get(\"beam_width\",  5))\n"}
+,{"stream_name":"stderr","time":21.450962243,"data":"\n"}
+,{"stream_name":"stderr","time":21.450965452,"data":"AttributeError: 'str' object has no attribute 'get'\n"}
+,{"stream_name":"stderr","time":21.450968998,"data":"\n"}
+,{"stream_name":"stderr","time":23.470844370000002,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":23.470871476,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":23.61557062,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":23.615596184,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":24.193379003,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":24.484927667,"data":"[NbConvertApp] Writing 236410 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":26.761438375,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":27.58508227,"data":"[NbConvertApp] Writing 581021 bytes to __results__.html\n"}
+]

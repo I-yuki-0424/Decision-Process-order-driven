@@ -15,10 +15,13 @@ files_to_embed = [
     ("src/pipeline/__init__.py", read_file_bytes("src/pipeline/__init__.py")),
     ("src/model/types.py", read_file_bytes("src/model/types.py")),
     ("src/model/channel_encoder.py", read_file_bytes("src/model/channel_encoder.py")),
+    ("src/model/baseline_model.py", read_file_bytes("src/model/baseline_model.py")),
     ("src/model/transformer_decision_core.py", read_file_bytes("src/model/transformer_decision_core.py")),
     ("src/model/hierarchical_transformer.py", read_file_bytes("src/model/hierarchical_transformer.py")),
     ("src/model/beam_search.py", read_file_bytes("src/model/beam_search.py")),
+    ("src/model/checkpoint.py", read_file_bytes("src/model/checkpoint.py")),
     ("src/environment/gymnax_decision_env.py", read_file_bytes("src/environment/gymnax_decision_env.py")),
+    ("src/environment/craftax_env_adapter.py", read_file_bytes("src/environment/craftax_env_adapter.py")),
     ("src/pipeline/hierarchical_pipeline.py", read_file_bytes("src/pipeline/hierarchical_pipeline.py")),
     ("kaggle_kernel/hierarchical_kaggle_runner.py", read_file_bytes("kaggle_kernel/hierarchical_kaggle_runner.py")),
 ]
@@ -32,8 +35,8 @@ cells.append({
     "metadata": {},
     "outputs": [],
     "source": [
-        "# Kaggle Remote GPU/TPU Setup\n",
-        "!pip install -q jax jaxlib flax optax gymnax matplotlib numpy pandas\n",
+        "# Kaggle Remote GPU Setup & Package Installation\n",
+        "!pip install -q craftax craftax-classic jax jaxlib flax optax gymnax matplotlib numpy pandas\n",
         "import jax\n",
         "print('=== REMOTE KAGGLE EXECUTION ENVIRONMENT ===')\n",
         "print('JAX Backend:', jax.default_backend())\n",
@@ -57,14 +60,14 @@ cells.append({
     "source": setup_code_lines
 })
 
-# Cell 3: Execute remote 1M step verification run
+# Cell 3: Execute remote re-training and benchmarking suite
 cells.append({
     "cell_type": "code",
     "execution_count": None,
     "metadata": {},
     "outputs": [],
     "source": [
-        "# Run 1,000,000 Step Vectorized Benchmark on Kaggle Remote GPU\n",
+        "# Run Re-Training & Comprehensive Benchmarking Suite across all Model Configurations\n",
         "import sys\n",
         "sys.path.insert(0, '.')\n",
         "from kaggle_kernel.hierarchical_kaggle_runner import run_kaggle_verification\n",

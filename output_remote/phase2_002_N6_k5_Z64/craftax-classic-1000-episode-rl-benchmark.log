@@ -1,0 +1,41 @@
+[{"stream_name":"stderr","time":6.322169435,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":6.32224269,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":7.186984562,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.187017578,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.187021233,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.187024182,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":7.803973214,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":7.804023111,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":7.804029293,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":7.804032996,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":14.524632464,"data":"   „ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª 412.0/412.0 kB 7.9 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":14.524684135,"data":"\n"}
+,{"stream_name":"stderr","time":19.378733183,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":19.378768772,"data":"  File \"\u003cstring\u003e\", line 1, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":19.378787003,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 131, in execute_notebook\n"}
+,{"stream_name":"stderr","time":19.378851485,"data":"    raise_for_execution_errors(nb, output_path)\n"}
+,{"stream_name":"stderr","time":19.378868829,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 251, in raise_for_execution_errors\n"}
+,{"stream_name":"stderr","time":19.379067937,"data":"    raise error\n"}
+,{"stream_name":"stderr","time":19.379177679,"data":"papermill.exceptions.PapermillExecutionError: \n"}
+,{"stream_name":"stderr","time":19.379184119,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":19.379187704,"data":"Exception encountered at \"In [1]\":\n"}
+,{"stream_name":"stderr","time":19.379191183,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":19.379194741,"data":"AttributeError                            Traceback (most recent call last)\n"}
+,{"stream_name":"stderr","time":19.379198149,"data":"/tmp/ipykernel_22/3019833375.py in \u003ccell line: 0\u003e()\n"}
+,{"stream_name":"stderr","time":19.379201861,"data":"     10 # Verify critical imports before doing anything else\n"}
+,{"stream_name":"stderr","time":19.379205797,"data":"     11 import jax, jaxlib, optax\n"}
+,{"stream_name":"stderr","time":19.3792097,"data":"---\u003e 12 import craftax; print('craftax version:', craftax.__version__)\n"}
+,{"stream_name":"stderr","time":19.379213622,"data":"     13 print('JAX Backend:', jax.default_backend())\n"}
+,{"stream_name":"stderr","time":19.379230254,"data":"     14 print('JAX Devices:', jax.devices())\n"}
+,{"stream_name":"stderr","time":19.379234003,"data":"\n"}
+,{"stream_name":"stderr","time":19.379237333,"data":"AttributeError: module 'craftax' has no attribute '__version__'\n"}
+,{"stream_name":"stderr","time":19.379240806,"data":"\n"}
+,{"stream_name":"stderr","time":21.644275757,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":21.644306089,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":21.805706417,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":21.805735568,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":22.418433267,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":22.72480853,"data":"[NbConvertApp] Writing 234281 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":25.116731452,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":26.00089212,"data":"[NbConvertApp] Writing 579604 bytes to __results__.html\n"}
+]

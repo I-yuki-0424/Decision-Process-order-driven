@@ -1,19 +1,29 @@
 protocol_version: v6
 project_name: "Decision-Process-order-driven"
 project_short_name: "DecisionProcess"
-current_goal: "Develop 4th-Idea JAX-based generic decision process model and Gymnax training/evaluation framework"
+current_goal: "Phase II: Grid Search Benchmarking of 4th-Idea JAX architecture across N/k/Z/mask hyperparameters on Craftax-Classic"
 active_tasks:
   - "TASK-20260725-001-4th-idea-jax-architecture"
+  - "TASK-20260730-002-phase2-grid-search-benchmarking"
 recent_changes:
-  - "Created src/model/ (types, channel_encoder, transformer_decision_core, beam_search, logger_utils)"
-  - "Created src/environment/gymnax_decision_env.py"
-  - "Created src/pipeline/ (trainer, evaluator, plotter) and src/main.py"
-  - "Created core/DECISIONS/ADR-001_4TH_IDEA_JAX_ARCHITECTURE.md and core/LOGS/DESIGN_HINTS_AND_FAILURE_LOG.md"
+  - "Fix 1: craftax_env_adapter.py — populated resource_effects with CRAFTAX_RESOURCE_EFFECTS table; removed tile-hack"
+  - "Fix 2: beam_search.py — KV cache now persisted per beam candidate across steps"
+  - "Fix 3: beam_search.py — is_causal and z_compression_interval propagated through beam search"
+  - "Fix 4: transformer_decision_core.py — added @jax.jit with static_argnames; num_heads derived from d_model"
+  - "Fix 5: grid_search_benchmark.py — replaced np.random synthetic data with real lax.scan JIT inference"
+  - "Fix 6: trainer.py — per-token BCE loss on noise_mask already correct (confirmed, no change needed)"
+  - "Fix 7: craftax_benchmark.py — rl_loss_fn uses terminated flag for Bellman-correct value bootstrap"
+  - "ADR-002 created: Phase II training scale authorized (1M-10M steps, Kaggle A100)"
+  - "Decision 2 applied: collect_coal replaces Gold milestone in PHASE2_MILESTONES"
 decisions_index:
   - "core/DECISIONS/ADR-001_4TH_IDEA_JAX_ARCHITECTURE.md"
+  - "core/DECISIONS/ADR-002_PHASE2_TRAINING_SCALE_AUTHORIZATION.md"
 smoke_status:
-  last_run: "2026-07-25"
-  command: "python -m py_compile src/main.py"
-  result: "Static analysis passed"
+  last_run: "2026-07-30"
+  command: "python -m src.pipeline.grid_search_benchmark --steps 200"
+  result: "Pending — run after Craftax environment dependencies confirmed in .venv_craftax"
 hazards:
   - "Ensure JAX JIT static shape constraints are respected in beam search width."
+  - "resource_effects is now mandatory in ActionsData — gymnax_decision_env.py must also be updated"
+  - "KV cache vmap over Optional[KVCacheState] requires PyTree registration — verify None handling"
+  - "lax.scan in grid_search_benchmark.py calls adapter.step with Python int() — must replace with pure JAX calls for full JIT"

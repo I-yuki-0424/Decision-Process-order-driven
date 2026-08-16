@@ -1,0 +1,51 @@
+[{"stream_name":"stderr","time":4.869091028,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":4.869154122,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":5.58683417,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":5.586863383,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":5.586868127,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":5.586871819,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.140451687,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.140487643,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.140491642,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.140494305,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":12.935869566000001,"data":"   „ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª 412.0/412.0 kB 11.3 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":12.935926489,"data":"\n"}
+,{"stream_name":"stdout","time":18.529715138,"data":"craftax import OK: \u003cclass 'craftax.craftax_classic.envs.craftax_symbolic_env.CraftaxClassicSymbolicEnv'\u003e\n"}
+,{"stream_name":"stdout","time":18.529743644,"data":"JAX Backend: gpu\n"}
+,{"stream_name":"stdout","time":18.529748957,"data":"JAX Devices: [CudaDevice(id=0)]\n"}
+,{"stream_name":"stdout","time":18.529753973,"data":"JAX version: 0.7.2\n"}
+,{"stream_name":"stdout","time":18.52975838,"data":"Run ID: phase2_005_N6_k5_Z64\n"}
+,{"stream_name":"stdout","time":18.635967754,"data":"Config written: {'run_id': 'phase2_005_N6_k5_Z64', 'n_layers': 6, 'beam_width': 5, 'z_step': 64, 'is_causal': True, 'train_steps': 1000000, 'eval_steps': 500, 'seed': 42, 'd_model': 512, 'num_heads': 8, 'lr': 0.0003, 'noise_prob': 0.15}\n"}
+,{"stream_name":"stdout","time":18.730675536,"data":"[2026-07-30T12:44:33.911484] JAX Backend : GPU\n"}
+,{"stream_name":"stdout","time":18.730707999,"data":"[2026-07-30T12:44:33.911593] Devices     : [CudaDevice(id=0)]\n"}
+,{"stream_name":"stdout","time":18.730718046,"data":"\n"}
+,{"stream_name":"stdout","time":18.730721584,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":18.730724744,"data":"  Phase II Run: phase2_005_N6_k5_Z64\n"}
+,{"stream_name":"stdout","time":18.730727831,"data":"  N=6, k=5, Z=64, causal=True\n"}
+,{"stream_name":"stdout","time":18.730730917,"data":"  train_steps=1,000,000, eval_steps=500\n"}
+,{"stream_name":"stdout","time":18.730734024,"data":"  d_model=512, num_heads=8, lr=0.0003\n"}
+,{"stream_name":"stdout","time":18.730736979,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":18.730740085,"data":"\n"}
+,{"stream_name":"stdout","time":23.141084727,"data":"Trainable Parameters: 18,950,176\n"}
+,{"stream_name":"stdout","time":23.721445865,"data":"[2026-07-30T12:44:38.702519] Compiling jit_train_step + jit_action_select...\n"}
+,{"stream_name":"stdout","time":31.67818243,"data":"[2026-07-30T12:44:46.684791] Starting training for 1,000,000 steps...\n"}
+,{"stream_name":"stdout","time":2124.375743049,"data":"[2026-07-30T13:19:39.403433] step=  10,000 | loss=0.0012 | policy=0.0000 | sps=5\n"}
+,{"stream_name":"stdout","time":4313.826170946,"data":"[2026-07-30T13:56:08.852395] step=  20,000 | loss=0.0008 | policy=0.0000 | sps=5\n"}
+,{"stream_name":"stdout","time":6564.850975009,"data":"[2026-07-30T14:33:39.878999] step=  30,000 | loss=0.0016 | policy=0.0000 | sps=5\n"}
+,{"stream_name":"stdout","time":8856.611635005,"data":"[2026-07-30T15:11:51.638166] step=  40,000 | loss=0.1069 | policy=0.0000 | sps=5\n"}
+,{"stream_name":"stdout","time":11187.382620004,"data":"[2026-07-30T15:50:42.410105] step=  50,000 | loss=0.0032 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":13494.737664266,"data":"[2026-07-30T16:29:09.765028] step=  60,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":15836.266154344,"data":"[2026-07-30T17:08:11.294672] step=  70,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":18132.783877674,"data":"[2026-07-30T17:46:27.811393] step=  80,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":20431.961289186,"data":"[2026-07-30T18:24:46.989294] step=  90,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":22727.605474786,"data":"[2026-07-30T19:03:02.595667] step= 100,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":22727.605533902,"data":"  [Checkpoint] output/checkpoints/phase2_005_N6_k5_Z64_step100000.pkl\n"}
+,{"stream_name":"stdout","time":25090.124182836,"data":"[2026-07-30T19:42:25.152340] step= 110,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":27489.584216597,"data":"[2026-07-30T20:22:24.608826] step= 120,000 | loss=0.0032 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":29879.926258718,"data":"[2026-07-30T21:02:14.951964] step= 130,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":32203.263314029,"data":"[2026-07-30T21:40:58.290734] step= 140,000 | loss=0.0021 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":34481.332094885,"data":"[2026-07-30T22:18:56.357304] step= 150,000 | loss=0.0001 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":36755.163581597,"data":"[2026-07-30T22:56:50.190860] step= 160,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":39046.366901958,"data":"[2026-07-30T23:35:01.391355] step= 170,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+,{"stream_name":"stdout","time":41375.047442281,"data":"[2026-07-31T00:13:50.074715] step= 180,000 | loss=0.0000 | policy=0.0000 | sps=4\n"}
+]
