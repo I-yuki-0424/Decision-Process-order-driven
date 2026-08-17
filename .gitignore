@@ -4,7 +4,6 @@ __pycache__/
 *.pyo
 kaggle.json
 .ipynb_checkpoints/
-output/
 tmp/
 .vscode/
 *.zip
