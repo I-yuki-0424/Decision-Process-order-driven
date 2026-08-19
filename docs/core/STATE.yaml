@@ -1,0 +1,12 @@
+tasks:
+  - id: "<TASK-YYYYMMDD-###-slug>"                # Example
+    created_at: "<ISO 8601 timestamp>"             # Example
+    status: "queued"                               # queued | in_progress | blocked | done
+    description: "<one-sentence objective>"        # Example
+    spec_ref: null                                 # optional path/URL to an external spec
+    validation_commands: []                        # commands supplied by the operator
+    result: null                                   # pass/fail plus a one-line summary
+    blockers: []                                   # unresolved issues, or empty
+
+hazards:
+  - "<condition to watch for>: <what breaks if it's ignored>"  # Example

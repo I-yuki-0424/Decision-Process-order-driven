@@ -1,3 +1,4 @@
+# When this file open, move to docs/core/STALE.xml and after, remove this Old state file.
 protocol_version: v6
 project_name: "Decision-Process-order-driven"
 project_short_name: "DecisionProcess"
