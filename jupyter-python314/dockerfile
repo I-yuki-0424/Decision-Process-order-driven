@@ -1,0 +1,15 @@
+FROM python:3.14
+
+WORKDIR /work
+
+# pipとJupyterLabのインストール
+RUN pip install --no-cache-dir jupyterlab \
+    jax \
+    flax \
+    matplotlib 
+
+# ポートの公開
+EXPOSE 9999
+
+# JupyterLabサーバーの起動コマンド
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=9999", "--allow-root", "--IdentityProvider.token='0424'"]
