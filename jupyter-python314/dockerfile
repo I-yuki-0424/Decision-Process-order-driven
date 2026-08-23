@@ -6,7 +6,8 @@ WORKDIR /work
 RUN pip install --no-cache-dir jupyterlab \
     jax \
     flax \
-    matplotlib 
+    matplotlib \
+    seaborn
 
 # ポートの公開
 EXPOSE 9999
