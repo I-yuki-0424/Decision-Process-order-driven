@@ -1,7 +1,9 @@
-services:
-  jupyter:
-    build: .
+  jupyter-lab:
+    image: osaka-docker.pkg.dev/colab-images/public/runtime
     ports:
-      - "9999:9999"
-    volumes:
-      - ./work:/work
+      - "0.0.0.1:9000:9999"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
