@@ -1,0 +1,11 @@
+jax
+flax
+optax
+gymnax
+craftax
+crafter
+matplotlib
+numpy
+pandas
+jupyterlab
+kaggle
