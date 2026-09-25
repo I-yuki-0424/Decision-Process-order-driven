@@ -209,6 +209,26 @@ tasks:
         end on real GPU hardware with real numbers, not that these
         candidates already solve Craftax achievements.
 
+  - id: "TASK-20260925-003-candidate-convergence"
+    created_at: "2026-09-25T11:00:00Z"
+    status: "done"
+    description: >
+      Train/test the merged DPOD candidates in parallel on local WSL2 Docker (RTX 3060 Ti)
+      and Kaggle GPU at small scale (2,000 episodes each, <50,000 cap); consolidate results.
+    spec_ref: "docs/experiments/2026-09-25_candidate_convergence/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE, EFFECTIVENESS NOT DEMONSTRATED. 8 runs + 3 normlogits A/B runs; no trained candidate beats
+      the uniform-random policy (return 1.46). MDP-search candidates output degenerate logits (NaN entropy).
+      Details in docs/experiments/2026-09-25_candidate_convergence/03_findings.md; data in
+      output/experiments/2026-09-25_convergence/. Dependency-impact check (scip-neo4j) not run: no existing symbol modified
+      (new files only).
+    blockers:
+      - "variant_5_1 / variant_5_4 NaN entropy persists after logit normalisation; source undiagnosed."
+      - "Single seed; no variance estimate."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
