@@ -179,12 +179,12 @@ def evaluate(rollout_batch, params, key, n_eps: int, batch: int, greedy: bool, r
 def run_experiment(name: str, out_dir: str, updates: int = 200, batch: int = 8, T: int = 200,
                    d_model: int = 32, lr: float = 1e-3, ent_coef: float = 0.01, mode: str = "reinforce",
                    eval_every: int = 25, eval_eps: int = 32, seed: int = 2026, tag: Optional[str] = None,
-                   ckpt_every_updates: int = 25, log_fn=print) -> Dict[str, Any]:
+                   ckpt_every_updates: int = 25, adapter=None, log_fn=print) -> Dict[str, Any]:
     """Trains one candidate for updates*batch episodes (must stay < 50,000)."""
     assert updates * batch < 50000, "episode cap per proposal is 50,000"
     tag = tag or f"{name}__{mode}"
     os.makedirs(out_dir, exist_ok=True)
-    adapter = CraftaxEnvAdapter(max_episode_steps=T)
+    adapter = adapter or CraftaxEnvAdapter(max_episode_steps=T)
     spec, rollout_batch, update, opt = build_fns(name, adapter, d_model, T, lr, ent_coef, mode)
     key = jax.random.PRNGKey(seed)
     k_init, k_train, k_eval = jax.random.split(key, 3)

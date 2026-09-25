@@ -7,6 +7,7 @@ poll/fetch helpers by re-pointing its module-level kernel constants.
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,10 +25,19 @@ sm.KERNEL_DIR = KDIR
 
 def build(args):
     src_lines = bk.build_src_decode_cell()
-    script = Path("scripts/run_candidate_experiment.py").read_text(encoding="utf-8")
-    cli = ["--out", "/kaggle/working/exp", "--candidates", *args.candidates, "--modes", *args.modes,
-           "--updates", str(args.updates), "--batch", str(args.batch), "--T", str(args.T),
-           "--d-model", str(args.d_model), "--eval-every", str(args.eval_every), "--seed", str(args.seed)]
+    script_path = args.script
+    script = Path(script_path).read_text(encoding="utf-8")
+    if args.script_args:  # generic mode: pass CLI through verbatim (Idea-6 policy study)
+        cli = list(args.script_args)
+    else:
+        cli = ["--out", "/kaggle/working/exp", "--candidates", *args.candidates, "--modes", *args.modes,
+               "--updates", str(args.updates), "--batch", str(args.batch), "--T", str(args.T),
+               "--d-model", str(args.d_model), "--eval-every", str(args.eval_every), "--seed", str(args.seed)]
+    import base64
+    extra = ["import base64, os\n"]
+    for fp in args.extra_files:
+        extra.append(f"os.makedirs({os.path.dirname(fp)!r}, exist_ok=True)\n")
+        extra.append(f"open({fp!r},'wb').write(base64.b64decode({base64.b64encode(Path(fp).read_bytes()).decode()!r}))\n")
     cells = [
         {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": [
             "import subprocess, sys\n",
@@ -37,8 +47,9 @@ def build(args):
         {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": src_lines},
         {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": [
             "import os\nos.makedirs('scripts', exist_ok=True)\n",
-            f"open('scripts/run_candidate_experiment.py','w',encoding='utf-8').write({script!r})\n",
-            f"r = subprocess.run([sys.executable, '-u', 'scripts/run_candidate_experiment.py'] + {cli!r})\n",
+            *extra,
+            f"open({script_path!r},'w',encoding='utf-8').write({script!r})\n",
+            f"r = subprocess.run([sys.executable, '-u', {script_path!r}] + {cli!r})\n",
             "print('exit', r.returncode)\n"]},
     ]
     nb = {"cells": cells, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}},
@@ -49,7 +60,10 @@ def build(args):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--run-id", required=True)
-    p.add_argument("--candidates", nargs="+", required=True)
+    p.add_argument("--candidates", nargs="+", default=["transformer_branch"])
+    p.add_argument("--script", default="scripts/run_candidate_experiment.py")
+    p.add_argument("--script-args", nargs=argparse.REMAINDER, default=[])
+    p.add_argument("--extra-files", nargs="*", default=[])
     p.add_argument("--modes", nargs="+", default=["reinforce"])
     p.add_argument("--updates", type=int, default=150)
     p.add_argument("--batch", type=int, default=8)
