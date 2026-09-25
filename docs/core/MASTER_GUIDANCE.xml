@@ -74,12 +74,36 @@
     <rule>Default to INFO-level, low-noise output. Use verbose/debug output only when actively debugging.</rule>
   </logging>
 
-  <dependency_impact status="placeholder">
+  <dependency_impact status="active">
     <rule>
-      A dependency-mapping MCP tool is planned: given an intended change, it will summarize
-      dependencies and return the scope of impact. Not yet available; this section will be filled
-      in once the tool is ready.
+      Dependency and impact data comes from the scip-neo4j MCP server. Use it before changing
+      any existing symbol (function, class, method). symbol_id is the SCIP symbol string.
     </rule>
+    <tool name="check_symbol_constraints">
+      Call first on every symbol you intend to modify.
+      STATUS: ALLOWED means go ahead.
+      STATUS: LOCKED_CORE_THEORY means the symbol is an immutable core formula. Do not edit it.
+      Follow the diagnostic_feedback and look for the cause in its callers instead.
+    </tool>
+    <tool name="analyze_change_impact">
+      Before changing a symbol's signature or behavior, list every transitive dependent
+      (file_path, name). Review or update each one as part of the same task.
+    </tool>
+    <tool name="get_symbol_dependencies">
+      Use to understand call structure while debugging or planning
+      (direction: upstream | downstream | both; max_depth defaults to 2).
+    </tool>
+    <freshness>
+      The graph reflects the last ingestion run, not the working tree. Symbols added or changed
+      since then may be missing or stale. If a result looks wrong or empty, treat it as
+      incomplete and fall back to reading the code. Do not assume the symbol is safe to change.
+    </freshness>
+    <unavailable>
+      If the MCP server can't be reached, write that down as a blocker in the task's STATE.yaml
+      entry. Continue only when you can confirm the change's scope by reading the code, and
+      never modify code believed to be core theory without checking it.
+    </unavailable>
+    <record>Add a one-line impact summary (dependents checked, any locked symbols found) to the task's result field.</record>
   </dependency_impact>
 
 </master_guidance>
