@@ -7,3 +7,9 @@ kaggle.json
 tmp/
 .vscode/
 *.zip
+
+# Local Kaggle-fetch cache (raw src/ snapshots + checkpoint pickles). Not
+# covered by .gitattributes' output/** LFS filter, so it must never be
+# committed as plain blobs; curate what's worth keeping into output/ instead.
+output_remote/
+kaggle_logs/
