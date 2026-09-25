@@ -12,6 +12,10 @@ from typing import List, Dict, Any
 import matplotlib.pyplot as plt
 import numpy as np
 
+# ACHIEVEMENT_NAMES lives in src/environment/craftax_env_adapter.py; imported
+# lazily inside plot_candidate_achievement_breakdown to avoid a hard
+# dependency on `craftax` for callers who only use the other plot functions.
+
 
 def plot_craftax_benchmark_results(
     results: List[dict],
@@ -96,6 +100,92 @@ def plot_offpolicy_benchmark_results(
 
     plt.tight_layout()
     plot_path = os.path.join(output_dir, "offpolicy_loss_convergence_seq003.png")
+    plt.savefig(plot_path, dpi=300)
+    plt.close()
+
+
+def plot_predicted_transition_distribution(
+    transitions_by_model: Dict[str, List[np.ndarray]],
+    output_dir: str = "output/plots",
+    run_seq: str = "Candidate-Suite",
+):
+    """Distribution of the real per-step predicted transition effect
+    (DecisionVectorD.predicted_next_state) each candidate produced during a
+    real evaluation run (src/pipeline/candidate_benchmark.py's
+    evaluate_candidate_agent). Craftax has no ground-truth W_res (the
+    synthetic DecisionProcessEnv's resource_effects matrix -- see
+    src/environment/gymnax_decision_env.py around line 120 -- has no Craftax
+    equivalent), so this plots what each candidate actually predicted the
+    resource-effect vector to be, one histogram per candidate, flattened
+    across resource dimensions and steps.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    names = [n for n, t in transitions_by_model.items() if len(t) > 0]
+    if not names:
+        return
+
+    fig, axes = plt.subplots(1, len(names), figsize=(5 * len(names), 5), squeeze=False)
+    axes = axes[0]
+    colors = plt.cm.tab10(np.linspace(0, 1, len(names)))
+
+    for ax, name, color in zip(axes, names, colors):
+        values = np.concatenate([np.ravel(np.asarray(v)) for v in transitions_by_model[name]])
+        ax.hist(values, bins=40, color=color, alpha=0.85, edgecolor="black")
+        ax.set_title(f"{name}\nPredicted Transition W", fontsize=10, fontweight="bold")
+        ax.set_xlabel("Predicted resource-effect value", fontsize=9)
+        ax.set_ylabel("Count", fontsize=9)
+        ax.grid(True, linestyle=":", alpha=0.6)
+
+    fig.suptitle(f"Predicted Next-State Transition Distribution (W) [{run_seq}]", fontsize=12, fontweight="bold")
+    plt.tight_layout()
+    plot_path = os.path.join(output_dir, "candidate_predicted_transition_distribution.png")
+    plt.savefig(plot_path, dpi=300)
+    plt.close()
+
+
+def plot_candidate_achievement_breakdown(
+    results: List[dict],
+    output_dir: str = "output/plots",
+    run_seq: str = "Candidate-Suite",
+):
+    """Per-achievement unlock-rate breakdown (all 22 Craftax achievements),
+    one grouped horizontal bar chart per model, from real evaluation results
+    (results[i]["achievement_unlock_rates"], computed in
+    src/pipeline/craftax_benchmark.py / src/pipeline/candidate_benchmark.py's
+    evaluate_*_agent). Complements plot_craftax_benchmark_results, which only
+    plots the aggregated Crafter score and average unlocked count.
+    """
+    from src.environment.craftax_env_adapter import ACHIEVEMENT_NAMES
+
+    os.makedirs(output_dir, exist_ok=True)
+    if not results:
+        return
+
+    names = [r["model_name"] for r in results]
+    num_achievements = len(ACHIEVEMENT_NAMES)
+    y_pos = np.arange(num_achievements)
+    colors = plt.cm.tab10(np.linspace(0, 1, len(results)))
+
+    fig, ax = plt.subplots(figsize=(10, max(6, num_achievements * 0.35)))
+    bar_height = 0.8 / max(1, len(results))
+
+    for i, (r, color) in enumerate(zip(results, colors)):
+        rates = r["achievement_unlock_rates"]
+        offsets = y_pos + i * bar_height - 0.4 + bar_height / 2
+        ax.barh(offsets, rates, height=bar_height, color=color, alpha=0.85, edgecolor="black", label=r["model_name"])
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(ACHIEVEMENT_NAMES, fontsize=8)
+    ax.set_xlabel("Unlock Rate (%)", fontsize=10)
+    ax.set_xlim(0, 100)
+    ax.set_title(f"Per-Achievement Unlock Rate Breakdown (22 Achievements) [{run_seq}]", fontsize=11, fontweight="bold")
+    ax.grid(True, axis="x", linestyle=":", alpha=0.6)
+    ax.legend(fontsize=8, loc="lower right")
+    ax.invert_yaxis()
+
+    plt.tight_layout()
+    plot_path = os.path.join(output_dir, "candidate_per_achievement_breakdown.png")
     plt.savefig(plot_path, dpi=300)
     plt.close()
 

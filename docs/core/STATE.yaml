@@ -8,5 +8,119 @@ tasks:
     result: null                                   # pass/fail plus a one-line summary
     blockers: []                                   # unresolved issues, or empty
 
+  - id: "TASK-20260925-001-dpod-candidates"
+    created_at: "2026-09-25T00:00:00Z"
+    status: "done"
+    description: >
+      Port each docs/DPOD.ipynb architecture candidate (Variant5_1Bace,
+      Variant5_2, Variant5_3, Variant5_4, MDPBranch, TransformerBranch,
+      WorldModel/Idea 6) into src/model/candidates/ following the existing
+      init_*/forward_* PyTree convention, build one shared pluggable Craftax
+      training/eval driver (src/pipeline/candidate_benchmark.py), add real-data
+      W-distribution and per-achievement plots, and generalize
+      src/model/checkpoint.py to async, periodic, resumable checkpointing for
+      any PyTree.
+    spec_ref: "docs/DPOD.ipynb"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+      - "python -c \"from src.pipeline.candidate_benchmark import run_candidate_benchmark_suite; run_candidate_benchmark_suite(candidate_names=['transformer_branch','variant_5_1'], train_episodes=2, eval_episodes=2, max_steps_per_ep=5, d_model=32, output_json_path='output/benchmark_candidates_smoketest.json', checkpoint_root='output/checkpoints_smoketest')\""
+    result: >
+      PASS. All 6 wired candidates (variant_5_1..5_4, mdp_branch,
+      transformer_branch) run real forward passes over InputContextN and were
+      smoke-tested end to end against the real CraftaxEnvAdapter (2 train + 2
+      eval episodes, 5 steps/ep, d_model=32): training, REINFORCE-style
+      gradient updates, periodic async checkpointing (step_3/6/9/10.pkl
+      written, verified resumable via AsyncCheckpointManager.resume()), real
+      Crafter-score/achievement-rate evaluation, and both new plots
+      (plot_predicted_transition_distribution,
+      plot_candidate_achievement_breakdown) all completed without error.
+      scripts/pre_commit_ban_check.py and
+      tests.test_architecture_fixes (5 tests) both pass. No GPU used; a
+      full-scale (1000-episode) run is deferred pending separate operator
+      authorization per ADR-002. WorldModel (src/model/candidates/world_model.py)
+      is implemented but deliberately NOT wired into the training pipeline --
+      see blockers.
+      Dependency-impact check: scip-neo4j MCP server was reachable.
+      check_symbol_constraints on src.model.checkpoint.save_model_checkpoint
+      returned ALLOWED (not LOCKED_CORE_THEORY). analyze_change_impact on
+      both save_model_checkpoint and load_model_checkpoint returned zero
+      dependents, confirmed by grep (only src/model/checkpoint.py itself
+      references them) -- so both were left with unchanged signatures and the
+      new generic functionality was added alongside them
+      (save_pytree_checkpoint / load_pytree_checkpoint / AsyncCheckpointManager)
+      rather than modifying them. plotter.py and craftax_benchmark.py were
+      extended (new functions / new module) without touching any existing
+      function body, so no impact check was needed for those.
+    blockers:
+      - >
+        Critical-review objection 1 (mean-pool discretization defect):
+        docs/DPOD.ipynb's TensorOps.embeddings_to_scalar_id mean-pools a
+        (N,d) embedding block to one scalar per row; the notebook's own
+        docstring says this makes MDPSolver's top_actions come out identical
+        across every row/batch element -- nothing is distinguished/learned
+        through that path. Every candidate that uses it (Variant5_1Bace's
+        mdp_array, Variant5_4, MDPBranch) inherits this. Fix applied: replaced
+        with shared_stages.discretize_embeddings_to_ids, a small learned
+        linear classifier head trained jointly via the action loss. This is
+        an explicit placeholder for an open design question, NOT a validated
+        final discretization scheme -- it only guarantees real per-candidate
+        distinctions reach the MDP solver instead of a collapsed constant.
+        Gradients do not flow through the argmax in this head from the
+        action-selection loss (a known, documented limitation of the
+        placeholder), only from anywhere else it's used.
+      - >
+        Critical-review objection 2 (Variant5_1Bace shape bug): the notebook
+        column_stacks d-dimensional embedding blocks into what
+        MDPSolver._solve_single expects to be 6 single scalar columns (S, S_1,
+        A, P, R, G via array_to_action[:,0] etc). Fixed in the port: uses the
+        discretization-fix ids (objection 1) plus the same
+        build_mdp_transition_array used by MDPBranch/Variant5_4, not the raw
+        column_stack.
+      - >
+        Critical-review objection 3 (WorldModel / Idea 6 oracle-leakage +
+        missing-encoder risk): deferred, NOT wired into the Craftax
+        training/action-selection pipeline. Implemented standalone in
+        src/model/candidates/world_model.py because it is structurally sound
+        Hamiltonian-NN code on its own terms. Reasons for non-wiring: (a) it
+        needs canonical (q,p) coordinates that no existing A/S/H/T encoder
+        produces; (b) if its FormulaPresets were copied from the Craftax
+        simulator instead of being independent textbook physics, the model
+        would just reproduce the environment (oracle leakage) -- the presets
+        shipped are generic Newtonian mechanics (gravity/drag/buoyancy/ground
+        contact), not fit to Craftax, but that independence must be
+        maintained by whoever wires this in; (c) no specified connection to
+        action selection (MDPSolver / the candidate branches) exists in the
+        source material; (d) event jumps / state-dimension changes are not
+        implemented.
+      - >
+        Critical-review objection 4 (dead code, not ported): AuxiliaryActionOps
+        (cell 16, two standalone functions never called by anything else in
+        the notebook, including its own test cell) and the generate_action
+        dispatcher stub (cell 26, whose inner closures call e.g.
+        MDPSolver.solve() with zero arguments against a signature requiring at
+        least two, and is never invoked anywhere) were both left unported per
+        the operator's explicit no-bloat instruction. Neither is dead in the
+        sense of "unused but load-bearing" -- both were already non-functional
+        stubs in the source notebook.
+      - >
+        Full-scale (1000-episode, GPU) Craftax training for the candidates is
+        deferred pending separate operator authorization -- ADR-002 covers
+        Phase II runs of the existing hierarchical/flat models, not these new
+        candidates, and this task only validated short CPU-feasible smoke
+        runs (see validation_commands / result above).
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
+  - >
+    src/model/candidates/*.py's MDP-search candidates (variant_5_1,
+    variant_5_4, mdp_branch) route action selection through
+    discretize_embeddings_to_ids's jnp.argmax, which blocks gradient flow
+    from the action-selection loss into that head. Training these three
+    candidates end to end will visibly improve estimated_costs /
+    predicted_next_state / progress / validity (whose heads DO get gradient)
+    but the discretization head itself will not learn from the policy loss
+    alone -- do not report improved action_logits accuracy for these three
+    without checking whether it's coming from somewhere else (e.g. the
+    encoder shifting via the other heads' gradients) rather than a learned
+    discretization.
