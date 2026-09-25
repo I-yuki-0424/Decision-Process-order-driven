@@ -160,10 +160,19 @@ def build_mdp_transition_array(
     state = state_ids.astype(jnp.float32)
     next_state = next_ids.astype(jnp.float32)
     actions = action_ids.astype(jnp.float32)
-    eps = jnp.asarray(1e-8, dtype=jnp.float32)
+    # eps is deliberately not tiny (1e-3, not 1e-8): state/next_state are small
+    # integer discretization ids (0..num_actions-1), so a 1e-8 floor let
+    # `gradient` reach ~1e11 whenever next_state discretized to 0, which
+    # overflowed float32 to +/-inf during solve_bellman_topk's value iteration
+    # and produced `inf - inf = NaN` Q-values -- observed as a 100%-NaN
+    # predicted_next_state on real Kaggle GPU verification (task
+    # TASK-20260925-002-candidates-smoke-verify, mdp_branch). Clipping the
+    # gradient bounds P/R/G to a finite, still-large-relative-to-normal range
+    # without changing behavior when next_state is not near zero.
+    eps = jnp.asarray(1e-3, dtype=jnp.float32)
     sign = jnp.where(next_state >= 0, 1.0, -1.0)
     safe_next_state = jnp.where(jnp.abs(next_state) < eps, sign * eps, next_state)
-    gradient = state / safe_next_state * 100.0
+    gradient = jnp.clip(state / safe_next_state * 100.0, -1e4, 1e4)
     P = p_coe * gradient
     R = r_coe * gradient
     G = gamma_coe * gradient

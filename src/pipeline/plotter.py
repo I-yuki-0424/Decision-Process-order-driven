@@ -131,7 +131,17 @@ def plot_predicted_transition_distribution(
 
     for ax, name, color in zip(axes, names, colors):
         values = np.concatenate([np.ravel(np.asarray(v)) for v in transitions_by_model[name]])
-        ax.hist(values, bins=40, color=color, alpha=0.85, edgecolor="black")
+        # A candidate whose real predicted_next_state came back all-NaN/inf
+        # (e.g. a numerically unstable head) must not crash the whole plot for
+        # every other candidate -- np.histogram raises on a non-finite range.
+        # This only guards the plot call; it does not hide the NaN from the
+        # metrics/results JSON, which still records the real (broken) output.
+        finite_values = values[np.isfinite(values)]
+        if finite_values.size == 0:
+            ax.text(0.5, 0.5, "All values non-finite\n(NaN/inf) -- see logs",
+                     ha="center", va="center", transform=ax.transAxes, fontsize=9, color="red")
+        else:
+            ax.hist(finite_values, bins=40, color=color, alpha=0.85, edgecolor="black")
         ax.set_title(f"{name}\nPredicted Transition W", fontsize=10, fontweight="bold")
         ax.set_xlabel("Predicted resource-effect value", fontsize=9)
         ax.set_ylabel("Count", fontsize=9)

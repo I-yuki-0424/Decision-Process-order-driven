@@ -1,0 +1,13 @@
+{
+  "candidates": [
+    "transformer_branch",
+    "variant_5_1",
+    "mdp_branch"
+  ],
+  "train_episodes": 15,
+  "eval_episodes": 5,
+  "max_steps_per_ep": 15,
+  "d_model": 32,
+  "checkpoint_every": 20,
+  "seed": 2026
+}

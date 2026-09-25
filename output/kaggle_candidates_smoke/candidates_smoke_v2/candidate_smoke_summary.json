@@ -1,0 +1,116 @@
+{
+  "run_type": "candidate_smoke_verify",
+  "timestamp": "2026-09-25T09:57:09.990527",
+  "config": {
+    "candidates": [
+      "transformer_branch",
+      "variant_5_1",
+      "mdp_branch"
+    ],
+    "train_episodes": 15,
+    "eval_episodes": 5,
+    "max_steps_per_ep": 15,
+    "d_model": 32,
+    "checkpoint_every": 20,
+    "seed": 2026
+  },
+  "hardware": {
+    "jax_backend": "gpu",
+    "devices": "[CudaDevice(id=0), CudaDevice(id=1)]"
+  },
+  "results": [
+    {
+      "model_name": "transformer_branch",
+      "crafter_score": 0.0,
+      "achievement_unlock_rates": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "avg_unlocked_count": 0.0,
+      "avg_steps": 15.0,
+      "execution_ms_per_step": 24.329622520000765
+    },
+    {
+      "model_name": "variant_5_1",
+      "crafter_score": 0.0,
+      "achievement_unlock_rates": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "avg_unlocked_count": 0.0,
+      "avg_steps": 15.0,
+      "execution_ms_per_step": 475.9270386000011
+    },
+    {
+      "model_name": "mdp_branch",
+      "crafter_score": 0.0,
+      "achievement_unlock_rates": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "avg_unlocked_count": 0.0,
+      "avg_steps": 15.0,
+      "execution_ms_per_step": 298.31124174667514
+    }
+  ]
+}

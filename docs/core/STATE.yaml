@@ -110,6 +110,105 @@ tasks:
         candidates, and this task only validated short CPU-feasible smoke
         runs (see validation_commands / result above).
 
+  - id: "TASK-20260925-002-candidates-smoke-verify"
+    created_at: "2026-09-25T09:00:00Z"
+    status: "done"
+    description: >
+      Small-scale, real Kaggle-GPU end-to-end verification of the DPOD
+      candidate pipeline added in TASK-20260925-001 (training, real Craftax
+      eval, AsyncCheckpointManager, and the new
+      plot_predicted_transition_distribution /
+      plot_candidate_achievement_breakdown plots). NOT an ADR-002 Phase II
+      run: order-of-hundreds training steps per candidate, ~15-17 minutes of
+      GPU wall-clock, on a new, separate kernel
+      (bfloat16/dpod-candidates-smoke-verify) so the existing production
+      kernels were never touched.
+    spec_ref: "kaggle_kernel_candidates_smoke/kernel-metadata.json"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+      - "python scripts/kaggle_run_candidates_smoke.py --candidates transformer_branch variant_5_1 mdp_branch --train-episodes 15 --eval-episodes 5 --max-steps-per-ep 15 --d-model 32 --checkpoint-every 20 --seed 2026 --run-id candidates_smoke_v2"
+    result: >
+      PASS on the 2nd push (kernel version 2), after fixing a real bug found
+      by the 1st push (kernel version 1, see blockers). All 3 candidates
+      (transformer_branch, variant_5_1, mdp_branch) trained for real
+      (15 episodes x 15 steps/ep = 225 REINFORCE-style gradient-update steps
+      each) and evaluated for real (5 episodes x 15 steps/ep) against the
+      real CraftaxEnvAdapter on an actual Kaggle GPU
+      (jax.default_backend()=='gpu', 2x CudaDevice, JAX 0.7.2), confirmed via
+      the notebook's own printed "JAX Backend: gpu" / "JAX Devices" lines in
+      the fetched log. Observed real per-candidate metrics: crafter_score=0.0,
+      avg_unlocked_count=0.0, avg_steps=15.0 for all three (no Craftax
+      achievement unlocks in a 15-step episode is expected/sane -- Craftax
+      achievements typically need tens of steps of real navigation/gathering,
+      and this run's purpose was pipeline verification, not a scored
+      benchmark); execution_ms_per_step: transformer_branch=24.3,
+      variant_5_1=475.9, mdp_branch=298.3 (all real wall-clock GPU timings).
+      AsyncCheckpointManager wrote and the run fetched real
+      step_20.pkl..step_225.pkl checkpoints for all 3 candidates. All three
+      new plots (candidate_per_achievement_breakdown.png,
+      candidate_predicted_transition_distribution.png,
+      craftax_crafter_score_summary_seq005.png) were generated with real,
+      non-placeholder content (248KB/238KB/195KB PNGs, verified openable with
+      correct pixel dimensions) and are committed under
+      output/kaggle_candidates_smoke/candidates_smoke_v2/. Full run log at
+      output/kaggle_candidates_smoke/candidates_smoke_v2/kaggle_run.log.
+      Total GPU wall-clock: ~17.2 min for the successful run (well under the
+      45-min guardrail). scripts/pre_commit_ban_check.py and
+      tests.test_architecture_fixes (5 tests) both pass locally after the fix.
+      Dependency-impact check: scip-neo4j MCP server was reachable.
+      check_symbol_constraints on shared_stages.build_mdp_transition_array
+      and plotter.plot_predicted_transition_distribution both returned
+      ALLOWED (not LOCKED_CORE_THEORY). analyze_change_impact returned an
+      empty dependent list for build_mdp_transition_array (treated as
+      incomplete per protocol, not as "safe"); confirmed by grep that its
+      only callers are mdp_branch.py, variant_5_1_shared_attention.py, and
+      variant_5_4_single_shot.py, all read and considered -- the fix is a
+      numerical clip, not a behavior change for any input that wasn't already
+      overflowing, so none needed further changes.
+    blockers:
+      - >
+        Kernel version 1 (run candidates_smoke_v1) FAILED with a real error:
+        papermill/ValueError "autodetected range of [nan, nan] is not
+        finite" from plot_predicted_transition_distribution's np.histogram
+        call. Root-caused (reproduced locally, not just on Kaggle) to
+        src/model/candidates/shared_stages.py's
+        build_mdp_transition_array: state/next_state are small integer
+        discretization ids (0..num_actions-1); whenever the discretized
+        next_id was 0, the function's 1e-8 epsilon floor let
+        `gradient = state/safe_next_state*100` reach ~1e11, overflowing
+        float32 to +/-inf inside solve_bellman_topk's Bellman value
+        iteration, producing `inf - inf = NaN` Q-values that propagated into
+        mdp_branch's predicted_next_state (100% NaN, reproduced with
+        train_episodes=15 on CPU too -- not GPU-specific, not a
+        training-length artifact). This is a genuine numerical-stability bug
+        in existing (not newly written) candidate code, independent of this
+        verification task's own new files. Fixed by raising eps to 1e-3 and
+        clipping `gradient` to [-1e4, 1e4] (src/model/candidates/shared_stages.py,
+        build_mdp_transition_array) -- re-verified NaN-free locally and on
+        the Kaggle GPU re-run (kernel version 2, PASS). Also hardened
+        plot_predicted_transition_distribution (src/pipeline/plotter.py) to
+        skip non-finite values per-candidate with a visible in-plot notice
+        instead of crashing the whole multi-candidate figure, as defense in
+        depth -- this does not hide the underlying metric, which is still
+        recorded as-is in the results JSON.
+      - >
+        variant_5_1 also calls build_mdp_transition_array but did not
+        produce NaN in either kernel run -- the instability is real but
+        random-seed/discretization-dependent (triggers only when the
+        discretize head's argmax lands on id 0 for next_state), not
+        guaranteed to reproduce on every run. The fix removes the overflow
+        path structurally (bounded gradient) rather than relying on avoiding
+        the trigger condition.
+      - >
+        All-zero achievement unlock rates / 0.0 crafter_score across all
+        three candidates in this run are expected given the run's small
+        scale (15 steps/episode, mostly-untrained ~225-step REINFORCE
+        policies) and should not be read as a negative signal about model
+        quality -- this task verified the pipeline runs correctly end to
+        end on real GPU hardware with real numbers, not that these
+        candidates already solve Craftax achievements.
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
