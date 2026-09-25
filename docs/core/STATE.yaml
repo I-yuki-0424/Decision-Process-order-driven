@@ -229,6 +229,26 @@ tasks:
       - "variant_5_1 / variant_5_4 NaN entropy persists after logit normalisation; source undiagnosed."
       - "Single seed; no variance estimate."
 
+  - id: "TASK-20260925-004-idea6-worldmodel"
+    created_at: "2026-09-25T13:00:00Z"
+    status: "done"
+    description: >
+      Verify Idea 6 (WorldModel/HNN) per operator spec: passive (noop) world model first, then the action Transformer with
+      the frozen WM; local Docker GPU + Kaggle in parallel; <50,000 episodes; mid-scale model.
+    spec_ref: "docs/experiments/2026-09-25_idea6_worldmodel/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE. Stage A: HN and MLP world models beat persistence by ~58%/55% at 8 steps (held-out episodes).
+      Stage B (transformer_branch d_model=512, 875K params, 4,800 eps/run, 2 seeds x 4 arms): no benefit from WM features
+      (returns 2.9-3.2; untrained-WM control equals trained). The large gain over random is due to the new
+      CraftaxObsAdapter (old adapter hid the observation). No LLM baseline exists, so the cost-parity claim is untested.
+      Impact check: only new files plus an optional `adapter` parameter on run_experiment; scip-neo4j not queried.
+    blockers:
+      - "TASK-003 candidate conclusions were measured on the observation-blind adapter and should be re-run on CraftaxObsAdapter."
+      - "Only 2 seeds per arm; a small WM benefit cannot be excluded, but no signal was seen."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
