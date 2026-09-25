@@ -249,6 +249,25 @@ tasks:
       - "TASK-003 candidate conclusions were measured on the observation-blind adapter and should be re-run on CraftaxObsAdapter."
       - "Only 2 seeds per arm; a small WM benefit cannot be excluded, but no signal was seen."
 
+  - id: "TASK-20260926-005-physics-benchmark"
+    created_at: "2026-09-26T09:00:00Z"
+    status: "done"
+    description: >
+      Verify the Idea-6 world-model family on closed-form physics (Kepler two-body, falling body with drag, noisy sine)
+      against generic MLP dynamics, per operator request; data efficiency, OOD initial conditions, noise, invariant drift.
+    spec_ref: "docs/experiments/2026-09-26_physics_benchmark/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE (324 runs, 3 seeds). Hamiltonian prior clearly wins on conservative systems (Kepler mean nRMSE 0.075 vs MLP 0.66;
+      energy drift 0.6% vs 44%; OOD 0.26 vs 1.08) and does not help on dissipative quadratic drag (MLP better OOD). The WorldModel class
+      as implemented (idea6_full) does not realise the gain (Kepler 1.27 ID, 12.0 OOD). oracle_port arm is an intentional upper bound with true potential given.
+      Impact check: new script files only; no existing symbol modified; scip-neo4j not queried.
+    blockers:
+      - "idea6_full underperformance not isolated (integrator vs gate vs residual)."
+      - "Single network size, 3 seeds, untuned hyper-parameters; sine end-point metric degenerate (documented)."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
