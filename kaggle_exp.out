@@ -1,0 +1,277 @@
+
+[PUSH] Pushing kernel: bfloat16/dpod-candidates-convergence
+[PUSH] Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/bfloat16/dpod-candidates-convergence
+
+[POLL] Monitoring kernel: bfloat16/dpod-candidates-convergence
+       Log sync every 60s | Status check every 30s
+       Max wait: 4.0h
+
+[POLL] 20:38:15 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=1.6min
+[POLL] 20:40:23 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=3.8min
+[POLL] 20:42:32 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=5.9min
+[POLL] 20:44:41 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=8.1min
+[POLL] 20:46:49 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=10.2min
+[POLL] 20:48:58 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=12.3min
+[POLL] 20:51:07 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=14.5min
+[POLL] 20:53:17 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=16.6min
+[POLL] 20:55:25 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=18.8min
+[POLL] 20:57:35 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=21.0min
+[     7.3s] [ERR] 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+[     7.9s] [ERR] 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+[    14.5s]    �������������������������������������������������������������������������������� 412.0/412.0 kB 17.3 MB/s eta 0:00:00
+[    19.8s] JAX Backend: gpu [CudaDevice(id=0), CudaDevice(id=1)] 0.7.2
+[    23.2s] JAX backend: gpu [CudaDevice(id=0), CudaDevice(id=1)]
+[    23.4s] JAX backend: gpu [CudaDevice(id=0), CudaDevice(id=1)]
+[    26.7s] [variant_5_1__reinforce] params=8223 backend=gpu updates=250 batch=8 T=200
+[    26.9s] [variant_5_1__reinforce] params=8223 backend=gpu updates=250 batch=8 T=200
+[   129.7s] [variant_5_1__reinforce] upd 25/250 ep=200 train_ret=-0.550 eval_ret=-0.597 unlocked=0.00 crafter=0.000 H=nan t=100s
+[   129.9s] [variant_5_1__reinforce] upd 25/250 ep=200 train_ret=-0.550 eval_ret=-0.597 unlocked=0.00 crafter=0.000 H=nan t=100s
+[   192.9s] [variant_5_1__reinforce] upd 50/250 ep=400 train_ret=-0.063 eval_ret=-0.472 unlocked=0.12 crafter=0.245 H=nan t=163s
+[   193.1s] [variant_5_1__reinforce] upd 50/250 ep=400 train_ret=-0.063 eval_ret=-0.472 unlocked=0.12 crafter=0.245 H=nan t=163s
+[   255.5s] [variant_5_1__reinforce] upd 75/250 ep=600 train_ret=-0.438 eval_ret=-0.369 unlocked=0.12 crafter=0.197 H=nan t=225s
+[   255.7s] [variant_5_1__reinforce] upd 75/250 ep=600 train_ret=-0.438 eval_ret=-0.369 unlocked=0.12 crafter=0.197 H=nan t=225s
+[   318.3s] [variant_5_1__reinforce] upd 100/250 ep=800 train_ret=-0.238 eval_ret=-0.431 unlocked=0.16 crafter=0.327 H=nan t=288s
+[   318.5s] [variant_5_1__reinforce] upd 100/250 ep=800 train_ret=-0.238 eval_ret=-0.431 unlocked=0.16 crafter=0.327 H=nan t=288s
+[   381.3s] [variant_5_1__reinforce] upd 125/250 ep=1000 train_ret=-0.562 eval_ret=-0.447 unlocked=0.16 crafter=0.327 H=nan t=351s
+[   381.5s] [variant_5_1__reinforce] upd 125/250 ep=1000 train_ret=-0.562 eval_ret=-0.447 unlocked=0.16 crafter=0.327 H=nan t=351s
+[   444.4s] [variant_5_1__reinforce] upd 150/250 ep=1200 train_ret=-0.688 eval_ret=-0.416 unlocked=0.19 crafter=0.362 H=nan t=414s
+[   444.7s] [variant_5_1__reinforce] upd 150/250 ep=1200 train_ret=-0.688 eval_ret=-0.416 unlocked=0.19 crafter=0.362 H=nan t=414s
+[   507.4s] [variant_5_1__reinforce] upd 175/250 ep=1400 train_ret=-0.387 eval_ret=-0.475 unlocked=0.09 crafter=0.167 H=nan t=477s
+[   507.7s] [variant_5_1__reinforce] upd 175/250 ep=1400 train_ret=-0.387 eval_ret=-0.475 unlocked=0.09 crafter=0.167 H=nan t=477s
+[   570.5s] [variant_5_1__reinforce] upd 200/250 ep=1600 train_ret=-0.488 eval_ret=-0.475 unlocked=0.09 crafter=0.167 H=nan t=540s
+[   570.7s] [variant_5_1__reinforce] upd 200/250 ep=1600 train_ret=-0.488 eval_ret=-0.475 unlocked=0.09 crafter=0.167 H=nan t=540s
+[   633.5s] [variant_5_1__reinforce] upd 225/250 ep=1800 train_ret=-0.550 eval_ret=-0.494 unlocked=0.03 crafter=0.067 H=nan t=603s
+[   633.7s] [variant_5_1__reinforce] upd 225/250 ep=1800 train_ret=-0.550 eval_ret=-0.494 unlocked=0.03 crafter=0.067 H=nan t=603s
+[   696.4s] [variant_5_1__reinforce] upd 250/250 ep=2000 train_ret=-0.312 eval_ret=-0.406 unlocked=0.03 crafter=0.067 H=nan t=666s
+[   696.6s] [variant_5_1__reinforce] upd 250/250 ep=2000 train_ret=-0.312 eval_ret=-0.406 unlocked=0.03 crafter=0.067 H=nan t=666s
+[   724.5s] [variant_5_1__reinforce] DONE wall=698s final sampled ret=-0.498 vs random 1.461 vs untrained -0.320
+[   724.7s] [variant_5_4__reinforce] params=7231 backend=gpu updates=250 batch=8 T=200
+[   724.7s] [variant_5_1__reinforce] DONE wall=698s final sampled ret=-0.498 vs random 1.461 vs untrained -0.320
+[   724.7s] [variant_5_4__reinforce] params=7231 backend=gpu updates=250 batch=8 T=200
+[   779.3s] [variant_5_4__reinforce] upd 25/250 ep=200 train_ret=-0.550 eval_ret=-0.378 unlocked=0.09 crafter=0.112 H=0.66 t=52s
+[   779.5s] [variant_5_4__reinforce] upd 25/250 ep=200 train_ret=-0.550 eval_ret=-0.378 unlocked=0.09 crafter=0.112 H=0.66 t=52s
+[   801.1s] [variant_5_4__reinforce] upd 50/250 ep=400 train_ret=-0.763 eval_ret=-0.378 unlocked=0.06 crafter=0.094 H=nan t=74s
+[   801.3s] [variant_5_4__reinforce] upd 50/250 ep=400 train_ret=-0.763 eval_ret=-0.378 unlocked=0.06 crafter=0.094 H=nan t=74s
+[   826.3s] [variant_5_4__reinforce] upd 75/250 ep=600 train_ret=-0.338 eval_ret=-0.459 unlocked=0.03 crafter=0.067 H=nan t=99s
+[   826.6s] [variant_5_4__reinforce] upd 75/250 ep=600 train_ret=-0.338 eval_ret=-0.459 unlocked=0.03 crafter=0.067 H=nan t=99s
+[   851.5s] [variant_5_4__reinforce] upd 100/250 ep=800 train_ret=-0.313 eval_ret=-0.463 unlocked=0.03 crafter=0.067 H=nan t=124s
+[   851.7s] [variant_5_4__reinforce] upd 100/250 ep=800 train_ret=-0.313 eval_ret=-0.463 unlocked=0.03 crafter=0.067 H=nan t=124s
+[   876.6s] [variant_5_4__reinforce] upd 125/250 ep=1000 train_ret=-0.663 eval_ret=-0.469 unlocked=0.03 crafter=0.067 H=nan t=149s
+[   876.8s] [variant_5_4__reinforce] upd 125/250 ep=1000 train_ret=-0.663 eval_ret=-0.469 unlocked=0.03 crafter=0.067 H=nan t=149s
+[   901.8s] [variant_5_4__reinforce] upd 150/250 ep=1200 train_ret=-0.688 eval_ret=-0.453 unlocked=0.06 crafter=0.094 H=nan t=175s
+[   902.0s] [variant_5_4__reinforce] upd 150/250 ep=1200 train_ret=-0.688 eval_ret=-0.453 unlocked=0.06 crafter=0.094 H=nan t=175s
+[   926.8s] [variant_5_4__reinforce] upd 175/250 ep=1400 train_ret=-0.613 eval_ret=-0.422 unlocked=0.09 crafter=0.112 H=nan t=200s
+[   927.0s] [variant_5_4__reinforce] upd 175/250 ep=1400 train_ret=-0.613 eval_ret=-0.422 unlocked=0.09 crafter=0.112 H=nan t=200s
+[   951.7s] [variant_5_4__reinforce] upd 200/250 ep=1600 train_ret=-0.650 eval_ret=-0.366 unlocked=0.09 crafter=0.112 H=nan t=225s
+[   951.9s] [variant_5_4__reinforce] upd 200/250 ep=1600 train_ret=-0.650 eval_ret=-0.366 unlocked=0.09 crafter=0.112 H=nan t=225s
+[   976.9s] [variant_5_4__reinforce] upd 225/250 ep=1800 train_ret=-0.638 eval_ret=-0.438 unlocked=0.12 crafter=0.245 H=nan t=250s
+[   977.1s] [variant_5_4__reinforce] upd 225/250 ep=1800 train_ret=-0.638 eval_ret=-0.438 unlocked=0.12 crafter=0.245 H=nan t=250s
+[  1001.7s] [variant_5_4__reinforce] upd 250/250 ep=2000 train_ret=-0.463 eval_ret=-0.447 unlocked=0.09 crafter=0.112 H=nan t=275s
+[  1001.9s] [variant_5_4__reinforce] upd 250/250 ep=2000 train_ret=-0.463 eval_ret=-0.447 unlocked=0.09 crafter=0.112 H=nan t=275s
+[  1020.4s] [variant_5_4__reinforce] DONE wall=296s final sampled ret=-0.536 vs random 1.461 vs untrained -0.519
+[  1020.6s] [variant_5_4__reinforce] DONE wall=296s final sampled ret=-0.536 vs random 1.461 vs untrained -0.519
+[  1020.7s] [mdp_branch__reinforce] params=6175 backend=gpu updates=250 batch=8 T=200
+[  1020.9s] [mdp_branch__reinforce] params=6175 backend=gpu updates=250 batch=8 T=200
+[  1076.7s] [mdp_branch__reinforce] upd 25/250 ep=200 train_ret=0.075 eval_ret=0.050 unlocked=0.50 crafter=0.196 H=0.04 t=54s
+[  1077.0s] [mdp_branch__reinforce] upd 25/250 ep=200 train_ret=0.075 eval_ret=0.050 unlocked=0.50 crafter=0.196 H=0.04 t=54s
+[  1095.4s] [mdp_branch__reinforce] upd 50/250 ep=400 train_ret=-0.237 eval_ret=-0.069 unlocked=0.41 crafter=0.185 H=nan t=72s
+[  1095.6s] [mdp_branch__reinforce] upd 50/250 ep=400 train_ret=-0.237 eval_ret=-0.069 unlocked=0.41 crafter=0.185 H=nan t=72s
+[  1114.0s] [mdp_branch__reinforce] upd 75/250 ep=600 train_ret=0.050 eval_ret=-0.106 unlocked=0.38 crafter=0.181 H=0.21 t=91s
+[  1114.2s] [mdp_branch__reinforce] upd 75/250 ep=600 train_ret=0.050 eval_ret=-0.106 unlocked=0.38 crafter=0.181 H=0.21 t=91s
+[  1132.8s] [mdp_branch__reinforce] upd 100/250 ep=800 train_ret=-0.163 eval_ret=-0.194 unlocked=0.31 crafter=0.171 H=nan t=110s
+[  1133.0s] [mdp_branch__reinforce] upd 100/250 ep=800 train_ret=-0.163 eval_ret=-0.194 unlocked=0.31 crafter=0.171 H=nan t=110s
+[  1151.8s] [mdp_branch__reinforce] upd 125/250 ep=1000 train_ret=0.138 eval_ret=-0.131 unlocked=0.34 crafter=0.249 H=nan t=129s
+[  1152.0s] [mdp_branch__reinforce] upd 125/250 ep=1000 train_ret=0.138 eval_ret=-0.131 unlocked=0.34 crafter=0.249 H=nan t=129s
+[  1170.5s] [mdp_branch__reinforce] upd 150/250 ep=1200 train_ret=-0.062 eval_ret=-0.144 unlocked=0.31 crafter=0.243 H=0.17 t=148s
+[  1170.7s] [mdp_branch__reinforce] upd 150/250 ep=1200 train_ret=-0.062 eval_ret=-0.144 unlocked=0.31 crafter=0.243 H=0.17 t=148s
+[  1189.3s] [mdp_branch__reinforce] upd 175/250 ep=1400 train_ret=-0.050 eval_ret=-0.225 unlocked=0.31 crafter=0.319 H=0.14 t=166s
+[  1189.5s] [mdp_branch__reinforce] upd 175/250 ep=1400 train_ret=-0.050 eval_ret=-0.225 unlocked=0.31 crafter=0.319 H=0.14 t=166s
+[  1208.2s] [mdp_branch__reinforce] upd 200/250 ep=1600 train_ret=-0.300 eval_ret=-0.016 unlocked=0.50 crafter=0.488 H=nan t=185s
+[  1208.4s] [mdp_branch__reinforce] upd 200/250 ep=1600 train_ret=-0.300 eval_ret=-0.016 unlocked=0.50 crafter=0.488 H=nan t=185s
+[  1226.7s] [mdp_branch__reinforce] upd 225/250 ep=1800 train_ret=-0.162 eval_ret=-0.091 unlocked=0.47 crafter=0.481 H=nan t=204s
+[  1227.0s] [mdp_branch__reinforce] upd 225/250 ep=1800 train_ret=-0.162 eval_ret=-0.091 unlocked=0.47 crafter=0.481 H=nan t=204s
+[  1245.7s] [mdp_branch__reinforce] upd 250/250 ep=2000 train_ret=0.012 eval_ret=-0.003 unlocked=0.50 crafter=0.488 H=nan t=223s
+[  1245.9s] [mdp_branch__reinforce] upd 250/250 ep=2000 train_ret=0.012 eval_ret=-0.003 unlocked=0.50 crafter=0.488 H=nan t=223s
+[  1263.6s] [mdp_branch__reinforce] DONE wall=243s final sampled ret=-0.100 vs random 1.461 vs untrained 0.072
+[  1263.8s] [mdp_branch__reinforce] DONE wall=243s final sampled ret=-0.100 vs random 1.461 vs untrained 0.072
+[  1266.3s] exit 0
+[  1269.2s] [ERR] /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+[  1269.3s] [ERR] /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+
+[POLL] COMPLETE in 22.7 min.
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_100.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_125.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_150.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_175.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_200.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_225.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_25.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_250.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_50.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/mdp_branch__reinforce/step_75.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_100.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_125.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_150.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_175.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_200.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_225.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_25.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_250.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_50.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_1__reinforce/step_75.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_100.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_125.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_150.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_175.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_200.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_225.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_25.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_250.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_50.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/checkpoints/variant_5_4__reinforce/step_75.pkl
+Output file downloaded to output_remote\kaggle_convergence\exp/mdp_branch__reinforce.result.json
+Output file downloaded to output_remote\kaggle_convergence\exp/mdp_branch__reinforce.train_log.jsonl
+Output file downloaded to output_remote\kaggle_convergence\exp/variant_5_1__reinforce.result.json
+Output file downloaded to output_remote\kaggle_convergence\exp/variant_5_1__reinforce.train_log.jsonl
+Output file downloaded to output_remote\kaggle_convergence\exp/variant_5_4__reinforce.result.json
+Output file downloaded to output_remote\kaggle_convergence\exp/variant_5_4__reinforce.train_log.jsonl
+Output file downloaded to output_remote\kaggle_convergence\scripts/run_candidate_experiment.py
+Output file downloaded to output_remote\kaggle_convergence\src/__init__.py
+Output file downloaded to output_remote\kaggle_convergence\src/__pycache__/__init__.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/environment/__pycache__/craftax_env_adapter.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/environment/craftax_env_adapter.py
+Output file downloaded to output_remote\kaggle_convergence\src/environment/gymnax_decision_env.py
+Output file downloaded to output_remote\kaggle_convergence\src/main.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/__pycache__/channel_encoder.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/__pycache__/checkpoint.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/__pycache__/hierarchical_transformer.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/__pycache__/logger_utils.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/__pycache__/types.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/baseline_model.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/beam_search.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__init__.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/__init__.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/mdp_branch.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/shared_stages.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/transformer_branch.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/variant_5_1_shared_attention.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/variant_5_2_channel_split.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/variant_5_3_channel_split_v2.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/__pycache__/variant_5_4_single_shot.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/mdp_branch.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/shared_stages.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/transformer_branch.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/variant_5_1_shared_attention.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/variant_5_2_channel_split.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/variant_5_3_channel_split_v2.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/variant_5_4_single_shot.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/candidates/world_model.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/channel_encoder.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/checkpoint.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/hierarchical_transformer.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/logger_utils.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/transformer_decision_core.py
+Output file downloaded to output_remote\kaggle_convergence\src/model/types.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/__pycache__/candidate_benchmark.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/__pycache__/candidate_experiment.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/benchmark.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/candidate_benchmark.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/candidate_experiment.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/craftax_benchmark.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/evaluator.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/grid_search_benchmark.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/hierarchical_pipeline.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/off_policy_trainer.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/plotter.py
+Output file downloaded to output_remote\kaggle_convergence\src/pipeline/trainer.py
+Kernel log downloaded to output_remote\kaggle_convergence\dpod-candidates-convergence.log 
+[RUN] kernel ok
+
+[FETCH] Downloading outputs -> output_remote\kaggle_convergence/
+[FETCH] Retrieved 86 files:
+        dpod-candidates-convergence.log  (15.3 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_100.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_125.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_150.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_175.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_200.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_225.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_25.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_250.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_50.pkl  (25.1 KB)
+        exp\checkpoints\mdp_branch__reinforce\step_75.pkl  (25.1 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_100.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_125.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_150.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_175.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_200.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_225.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_25.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_250.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_50.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_1__reinforce\step_75.pkl  (33.2 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_100.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_125.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_150.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_175.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_200.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_225.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_25.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_250.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_50.pkl  (29.3 KB)
+        exp\checkpoints\variant_5_4__reinforce\step_75.pkl  (29.3 KB)
+        exp\mdp_branch__reinforce.result.json  (7.8 KB)
+        exp\mdp_branch__reinforce.train_log.jsonl  (53.8 KB)
+        exp\variant_5_1__reinforce.result.json  (7.8 KB)
+        exp\variant_5_1__reinforce.train_log.jsonl  (51.8 KB)
+        exp\variant_5_4__reinforce.result.json  (7.7 KB)
+        exp\variant_5_4__reinforce.train_log.jsonl  (52.2 KB)
+        scripts\run_candidate_experiment.py  (1.8 KB)
+        src\__init__.py  (0.0 KB)
+        src\__pycache__\__init__.cpython-312.pyc  (0.1 KB)
+        src\environment\__pycache__\craftax_env_adapter.cpython-312.pyc  (12.5 KB)
+        src\environment\craftax_env_adapter.py  (11.3 KB)
+        src\environment\gymnax_decision_env.py  (9.4 KB)
+        src\main.py  (4.2 KB)
+        src\model\__pycache__\channel_encoder.cpython-312.pyc  (5.1 KB)
+        src\model\__pycache__\checkpoint.cpython-312.pyc  (13.6 KB)
+        src\model\__pycache__\hierarchical_transformer.cpython-312.pyc  (16.6 KB)
+        src\model\__pycache__\logger_utils.cpython-312.pyc  (3.9 KB)
+        src\model\__pycache__\types.cpython-312.pyc  (7.2 KB)
+        src\model\baseline_model.py  (5.8 KB)
+        src\model\beam_search.py  (13.2 KB)
+        src\model\candidates\__init__.py  (0.7 KB)
+        src\model\candidates\__pycache__\__init__.cpython-312.pyc  (0.9 KB)
+        src\model\candidates\__pycache__\mdp_branch.cpython-312.pyc  (6.4 KB)
+        src\model\candidates\__pycache__\shared_stages.cpython-312.pyc  (20.0 KB)
+        src\model\candidates\__pycache__\transformer_branch.cpython-312.pyc  (5.5 KB)
+        src\model\candidates\__pycache__\variant_5_1_shared_attention.cpython-312.pyc  (7.0 KB)
+        src\model\candidates\__pycache__\variant_5_2_channel_split.cpython-312.pyc  (7.1 KB)
+        src\model\candidates\__pycache__\variant_5_3_channel_split_v2.cpython-312.pyc  (6.8 KB)
+        src\model\candidates\__pycache__\variant_5_4_single_shot.cpython-312.pyc  (7.3 KB)
+        src\model\candidates\mdp_branch.py  (5.2 KB)
+        src\model\candidates\shared_stages.py  (13.7 KB)
+        src\model\candidates\transformer_branch.py  (4.8 KB)
+        src\model\candidates\variant_5_1_shared_attention.py  (5.2 KB)
+        src\model\candidates\variant_5_2_channel_split.py  (5.0 KB)
+        src\model\candidates\variant_5_3_channel_split_v2.py  (4.5 KB)
+        src\model\candidates\variant_5_4_single_shot.py  (5.6 KB)
+        src\model\candidates\world_model.py  (12.3 KB)
+        src\model\channel_encoder.py  (4.3 KB)
+        src\model\checkpoint.py  (9.3 KB)
+        src\model\hierarchical_transformer.py  (12.5 KB)
+        src\model\logger_utils.py  (2.5 KB)
+        src\model\transformer_decision_core.py  (15.0 KB)
+        src\model\types.py  (4.5 KB)
+        src\pipeline\__pycache__\candidate_benchmark.cpython-312.pyc  (17.6 KB)
+        src\pipeline\__pycache__\candidate_experiment.cpython-312.pyc  (18.9 KB)
+        src\pipeline\benchmark.py  (14.2 KB)
+        src\pipeline\candidate_benchmark.py  (14.4 KB)
+        src\pipeline\candidate_experiment.py  (11.9 KB)
+        src\pipeline\craftax_benchmark.py  (13.5 KB)
+        src\pipeline\evaluator.py  (5.1 KB)
+        src\pipeline\grid_search_benchmark.py  (15.1 KB)
+        src\pipeline\hierarchical_pipeline.py  (5.8 KB)
+        src\pipeline\off_policy_trainer.py  (5.7 KB)
+        src\pipeline\plotter.py  (10.9 KB)
+        src\pipeline\trainer.py  (3.3 KB)
