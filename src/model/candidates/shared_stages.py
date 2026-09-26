@@ -152,7 +152,7 @@ def discretize_embeddings_to_ids(x: jnp.ndarray, w_discretize: jnp.ndarray, b_di
 
 def build_mdp_transition_array(
     state_ids: jnp.ndarray, next_ids: jnp.ndarray, action_ids: jnp.ndarray,
-    p_coe: float, r_coe: float, gamma_coe: float,
+    p_coe: float, r_coe: float, gamma_coe: float, stable: bool = False,
 ) -> jnp.ndarray:
     """MDPSolver._build_transition_array_single (cell 8), unchanged, operating
     on already-discretized integer-valued ids (see discretize_embeddings_to_ids)
@@ -176,10 +176,17 @@ def build_mdp_transition_array(
     P = p_coe * gradient
     R = r_coe * gradient
     G = gamma_coe * gradient
+    if stable:
+        # Root-cause fix for NaN (see docs/experiments/2026-09-26_rerun_verification): P*G multiplies Q every
+        # value-iteration step; with G ~ gamma*gradient (up to 9e3) the recursion is not a contraction and Q
+        # overflows float32 -> inf -> NaN. Make it a genuine discounted MDP: P in [0,1] (row-normalised in
+        # solve_bellman_topk), discount G in [0, gamma_coe].
+        P = jnp.clip(P, 0.0, 1.0)
+        G = jnp.clip(G, 0.0, gamma_coe)
     return jnp.column_stack([state, next_state, actions, P, R, G])
 
 
-def solve_bellman_topk(array_to_action: jnp.ndarray, k: int, n: int) -> Tuple[jnp.ndarray, jnp.ndarray]:
+def solve_bellman_topk(array_to_action: jnp.ndarray, k: int, n: int, stable: bool = False) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """MDPSolver._solve_single (cell 8), unchanged Bellman-optimality value
     iteration:
         Q*(s,a) = sum_s' P(s'|s,a) [R(s,a,s') + gamma max_a' Q*(s',a')]
@@ -194,6 +201,9 @@ def solve_bellman_topk(array_to_action: jnp.ndarray, k: int, n: int) -> Tuple[jn
     G = array_to_action[:, 5]
 
     state_action_id = S * n + A
+    if stable:  # normalise P per (s,a) so the backup is a convex combination (contraction with G<=gamma<1)
+        mass = jax.ops.segment_sum(P, state_action_id, num_segments=n * n)
+        P = P / jnp.maximum(mass[state_action_id], 1.0)
     Q0 = jnp.zeros((n, n), dtype=array_to_action.dtype)
 
     def cond_fn(carry):

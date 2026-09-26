@@ -76,7 +76,7 @@ def forward_mdp_branch(
     k_mdp: int = 3,
     p_coe: float = 0.1,
     r_coe: float = 0.5,
-    gamma_coe: float = 0.9,
+    gamma_coe: float = 0.9, stable_mdp: bool = False,
 ) -> Tuple[DecisionVectorD, jnp.ndarray]:
     """history_buffer: (n_hist, d_model) running compressed-history buffer
     (stage 6 output of a previous step, or an initial zero buffer).
@@ -105,8 +105,8 @@ def forward_mdp_branch(
     next_ids = discretize_embeddings_to_ids(next_goal_rep, params.shared.w_discretize, params.shared.b_discretize)
     action_ids = discretize_embeddings_to_ids(filtered_candidates, params.shared.w_discretize, params.shared.b_discretize)
 
-    mdp_array = build_mdp_transition_array(state_ids, next_ids, action_ids, p_coe, r_coe, gamma_coe)
-    top_actions, top_values = solve_bellman_topk(mdp_array, k_mdp, n=num_actions)
+    mdp_array = build_mdp_transition_array(state_ids, next_ids, action_ids, p_coe, r_coe, gamma_coe, stable=stable_mdp)
+    top_actions, top_values = solve_bellman_topk(mdp_array, k_mdp, n=num_actions, stable=stable_mdp)
     action_logits = mdp_topk_to_action_logits(top_actions, top_values, num_actions)
     action_logits = jnp.where(candidate_survives, action_logits, -1e9)
 

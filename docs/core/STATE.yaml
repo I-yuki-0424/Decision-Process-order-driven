@@ -289,6 +289,29 @@ tasks:
       - "3-5 seeds, ~5K-parameter models, toy physics tasks; no transfer claim to Craftax or other non-physical domains."
       - "Learned partial-observation filter used simulator momentum labels."
 
+  - id: "TASK-20260926-007-rerun-verification"
+    created_at: "2026-09-26T14:00:00Z"
+    status: "done"
+    description: >
+      Re-run verifications invalidated by the old Craftax adapter / unresolved bugs: variant_5_1..5_4 and mdp_branch on CraftaxObsAdapter, isolate NaN entropy,
+      ablate idea6_full (integrator/gate/residual), minimal per-arm lr tuning, Dreamer-lite fidelity. Local Docker GPU + Kaggle in parallel.
+    spec_ref: "docs/experiments/2026-09-26_rerun_verification/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      NaN root cause = non-contractive value iteration (G up to 9e3) overflowing float32; fixed opt-in via stable=True (default unchanged), 0 NaN afterwards.
+      Fixed adapter: transformer_branch/variant_5_2/5_3 reach 2.6-3.25 vs random 1.47; MDP-search candidates (5_1, 5_4, mdp_branch) still do not beat random or
+      their untrained init even with NaN fixed (argmax hazard, not NaN, is the limiter). idea6_full: dissipation matrix R, init scale, and residual explain the gap on
+      conservative Kepler (0.10-0.12 vs 1.7 after removing them, = hn_sep); gate irrelevant at K=1; R needed for dissipative systems; WorldModel class not modified.
+      Dreamer-lite: larger/more faithful RSSM 6x better on kepler_pert but still ~6x worse than the Hamiltonian model; not full DreamerV3.
+      Impact check: check_symbol_constraints ALLOWED for solve_bellman_topk and build_mdp_transition_array; analyze_change_impact not run, callers checked by grep
+      (3 candidates, all updated; new kwarg defaults to old behaviour).
+    blockers:
+      - "Single seed and 2,000 episodes per Craftax config; MDP-candidate seed replication not done (abandoned)."
+      - "Full DreamerV3 still not implemented."
+      - "idea6_full WorldModel not modified: a mode/dissipation-aware redesign is an open design decision."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >

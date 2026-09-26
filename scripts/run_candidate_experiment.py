@@ -23,15 +23,26 @@ def main():
     p.add_argument("--T", type=int, default=200)
     p.add_argument("--d-model", type=int, default=32)
     p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--lrs", type=float, nargs="+", default=None, help="lr sweep (overrides --lr)")
     p.add_argument("--eval-every", type=int, default=25)
     p.add_argument("--seed", type=int, default=2026)
+    p.add_argument("--seeds", type=int, nargs="+", default=None, help="overrides --seed; one run per seed")
+    p.add_argument("--ent-coef", type=float, default=0.01)
+    p.add_argument("--adapter", choices=["legacy", "obs"], default="legacy",
+                   help="obs = CraftaxObsAdapter (fixed: exposes the observation, stable action features)")
+    p.add_argument("--eval-eps", type=int, default=32)
+    p.add_argument("--tag-suffix", default="")
     a = p.parse_args()
     print("JAX backend:", jax.default_backend(), jax.devices(), flush=True)
-    for name in a.candidates:
-        for mode in a.modes:
+    from src.environment.craftax_obs_adapter import CraftaxObsAdapter
+    for name, mode, seed, lr in [(n, m, s, l) for n in a.candidates for m in a.modes for s in (a.seeds or [a.seed]) for l in (a.lrs or [a.lr])]:
+        if True:
             try:
+                adapter = CraftaxObsAdapter(a.T, None, 8) if a.adapter == "obs" else None
+                tag = f"{name}__{mode}__{a.adapter}{a.tag_suffix}__lr{lr:g}__s{seed}"
                 run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
-                               lr=a.lr, mode=mode, eval_every=a.eval_every, seed=a.seed)
+                               lr=lr, ent_coef=a.ent_coef, mode=mode, eval_every=a.eval_every, eval_eps=a.eval_eps,
+                               seed=seed, adapter=adapter, tag=tag)
             except Exception as e:  # keep going so one failing candidate doesn't lose the others
                 import traceback, json, os
                 traceback.print_exc()

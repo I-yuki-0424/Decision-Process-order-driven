@@ -80,8 +80,20 @@ def mlp2(key, i, o, last=1.0, h=None):
     return [dense(k[0], i, h), dense(k[1], h, h), dense(k[2], h, o, last)]
 
 
+V3 = False  # DreamerV3-style blocks (--v3): parameter-free LayerNorm + SiLU in MLPs/GRU, symlog on RSSM decoder inputs
+
+
+def _ln(x): return (x - x.mean()) / jnp.sqrt(x.var() + 1e-5)
+
+
+def _act(x): return jax.nn.silu(_ln(x)) if V3 else jnp.tanh(x)
+
+
+def symlog(x): return jnp.sign(x) * jnp.log1p(jnp.abs(x))
+
+
 def mlp2f(p, x):
-    return lin(p[2], jnp.tanh(lin(p[1], jnp.tanh(lin(p[0], x)))))
+    return lin(p[2], _act(lin(p[1], _act(lin(p[0], x)))))
 
 
 def init_params(arm, task, key):
@@ -113,8 +125,9 @@ def init_params(arm, task, key):
 
 def gru(p, h, z):
     xz = jnp.concatenate([h, z])
-    u = jax.nn.sigmoid(lin(p["wz"], xz)); r = jax.nn.sigmoid(lin(p["wr"], xz))
-    c = jnp.tanh(lin(p["wh"], jnp.concatenate([r * h, z])))
+    f = _ln if V3 else (lambda a: a)
+    u = jax.nn.sigmoid(f(lin(p["wz"], xz))); r = jax.nn.sigmoid(f(lin(p["wr"], xz)))
+    c = jnp.tanh(f(lin(p["wh"], jnp.concatenate([r * h, z]))))
     return (1 - u) * h + u * c
 
 
@@ -165,7 +178,7 @@ def make_model(arm, task):
     def res_field(P, x, ctx):
         if arm == "hyb_force_mlp": return jnp.concatenate([jnp.zeros(n), mlp2f(P["res"], x)[n:]])  # unmodelled FORCE only; dq/dt = p kinematics kept
         if arm in ("mlp", "hyb_sum_mlp", "hyb_gate_mlp"): return mlp2f(P["res"], x)
-        h, z = ctx; return mlp2f(P["rssm"]["dec"], jnp.concatenate([h, z, x]))
+        h, z = ctx; return mlp2f(P["rssm"]["dec"], jnp.concatenate([h, z, symlog(x) if V3 else x]))
 
     def tf_fuse(P, x, fp, fh, r):
         T = P["tf"]; toks = jnp.stack([lin(T["emb"][i], jnp.concatenate([f, x])) for i, f in enumerate((fp, fh, r))]) + T["pos"]
@@ -287,9 +300,10 @@ def main():
     ap.add_argument("--lam-res", type=float, default=0.0)
     ap.add_argument("--hid", type=int, default=64); ap.add_argument("--dh", type=int, default=32)
     ap.add_argument("--tag", default="")
+    ap.add_argument("--v3", action="store_true"); ap.add_argument("--ng", type=int, default=4); ap.add_argument("--nc", type=int, default=8)
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
-    global HID, DH
-    HID, DH = a.hid, a.dh
+    global HID, DH, V3, NG, NC, ZD
+    HID, DH, V3, NG, NC = a.hid, a.dh, a.v3, a.ng, a.nc; ZD = NG * NC
     print("backend", jax.default_backend(), flush=True)
     res = []; t0 = time.time()
     for tn in a.tasks:
@@ -310,7 +324,7 @@ def main():
                             r = run_one(task, arm, n_traj, noise, seed, a.steps, test, a.lam_res)
                         except Exception as e:
                             import traceback; traceback.print_exc(); r = dict(error=repr(e))
-                        r.update(task=tn, arm=arm, n_traj=n_traj, noise=noise, seed=seed, lam_res=a.lam_res, hid=a.hid, dh=a.dh); res.append(r)
+                        r.update(task=tn, arm=arm, n_traj=n_traj, noise=noise, seed=seed, lam_res=a.lam_res, hid=a.hid, dh=a.dh, v3=a.v3, ng=a.ng, nc=a.nc, steps=a.steps); res.append(r)
                         if "error" not in r:
                             print(f"{tn:14s} {arm:13s} N={n_traj:4d} nz={noise:.2f} s={seed} par={r['params']:6d} "
                                   f"ID mean={r['id']['rmse_mean']:.3f} end={r['id']['rmse_end']:.3f} | OOD mean={r['ood']['rmse_mean']:.3f} "

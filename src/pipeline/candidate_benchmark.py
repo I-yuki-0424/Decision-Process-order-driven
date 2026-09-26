@@ -119,6 +119,21 @@ CANDIDATE_REGISTRY: Dict[str, CandidateSpec] = {
         _stateful_step(mdpb.forward_mdp_branch, num_heads=8, k_mdp=3),
         stateful=True,
     ),
+    "variant_5_1_stable": CandidateSpec(
+        v51.init_variant_5_1_parameters,
+        _flat_step(v51.forward_variant_5_1, num_l=2, num_heads=8, k_mdp=3, stable_mdp=True),
+        stateful=False,
+    ),
+    "variant_5_4_stable": CandidateSpec(
+        v54.init_variant_5_4_parameters,
+        _flat_step(v54.forward_variant_5_4, num_heads=8, k_mdp=3, stable_mdp=True),
+        stateful=False,
+    ),
+    "mdp_branch_stable": CandidateSpec(
+        mdpb.init_mdp_branch_parameters,
+        _stateful_step(mdpb.forward_mdp_branch, num_heads=8, k_mdp=3, stable_mdp=True),
+        stateful=True,
+    ),
     "transformer_branch": CandidateSpec(
         tfb.init_transformer_branch_parameters,
         _stateful_step(tfb.forward_transformer_branch, num_heads=8),

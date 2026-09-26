@@ -89,7 +89,7 @@ def forward_variant_5_1(
     k_mdp: int = 3,
     p_coe: float = 0.1,
     r_coe: float = 0.5,
-    gamma_coe: float = 0.9,
+    gamma_coe: float = 0.9, stable_mdp: bool = False,
 ) -> DecisionVectorD:
     """num_l, num_heads, k_mdp must be concrete Python ints when jitted
     (jax.lax.scan length and jax.lax.top_k both require static values)."""
@@ -115,8 +115,8 @@ def forward_variant_5_1(
     )
     action_ids = discretize_embeddings_to_ids(actions_tok, params.shared.w_discretize, params.shared.b_discretize)
 
-    mdp_array = build_mdp_transition_array(state_ids, goal_ids, action_ids, p_coe, r_coe, gamma_coe)
-    top_actions, top_values = solve_bellman_topk(mdp_array, k_mdp, n=num_actions)
+    mdp_array = build_mdp_transition_array(state_ids, goal_ids, action_ids, p_coe, r_coe, gamma_coe, stable=stable_mdp)
+    top_actions, top_values = solve_bellman_topk(mdp_array, k_mdp, n=num_actions, stable=stable_mdp)
     action_logits = mdp_topk_to_action_logits(top_actions, top_values, num_actions)
 
     pooled = jnp.mean(y, axis=0)

@@ -113,8 +113,14 @@ def build(arm, task, key):
             R = HamiltonianOps.dissipation_matrix(P["L"]) if use_R else 0.0
             return (J - R) @ g
         return P, f
-    if arm == "idea6_full":
+    if arm == "idea6_full" or arm.startswith("i6_"):
         P = WorldModel.init_parameters(k1, n, 1, 1, 1, HID)
+        if "hninit" in arm:  # HNN MLP init scaled like the other arms (1/sqrt(fan_in)) instead of 0.1 constant
+            kk = jax.random.split(k2, 2)
+            P["hnn"]["w1"] = jax.random.normal(kk[0], P["hnn"]["w1"].shape) / jnp.sqrt(n)
+            P["hnn"]["w2"] = jax.random.normal(kk[1], P["hnn"]["w2"].shape) / jnp.sqrt(HID)
+        if "rbig" in arm:  # dissipation matrix init as in port_sep (0.01 already) -> larger, 0.1
+            P["R_L"] = P["R_L"] * 10.0
         return P, None
     raise ValueError(arm)
 
@@ -127,6 +133,36 @@ def make_rollout(arm, task, f):
         def step(P, x):
             for _ in range(8):
                 x, _ = WorldModel.step(P, x, jnp.zeros(1), jnp.zeros(1), ETA, mask, dt / 8)
+            return x
+    elif arm.startswith("i6_"):
+        # Ablations of WorldModel (component isolation). Flags in the arm name:
+        #   nores : residual MLP r_theta removed (res_w2/res_b2 forced to 0, no gradient)
+        #   rk4   : RK4 on the identical vector field instead of semi-implicit Euler x8 substeps
+        #   nogate: mode vector fixed to [1.] (K=1, so gate is provably a no-op; checks gate plumbing/gradients)
+        #   noR   : learned PSD dissipation matrix removed (J-only)
+        #   hninit/rbig: init variants (see build)
+        flags = arm[3:].split("_")
+        mask = jnp.zeros((1, FormulaPresets.N_POT + FormulaPresets.N_FORCE), dtype=bool)
+        z1 = jnp.zeros(1)
+
+        def field(P, x):
+            if "nores" in flags:
+                P = {**P, "res_w2": jax.lax.stop_gradient(P["res_w2"]) * 0.0, "res_b2": jax.lax.stop_gradient(P["res_b2"]) * 0.0}
+            if "noR" in flags:  # remove learned dissipation R (conservative J-only, as hn_sep)
+                P = {**P, "R_L": jax.lax.stop_gradient(P["R_L"]) * 0.0}
+            m = jnp.ones(1) if "nogate" in flags else WorldModel.mode_vector(P, x, z1)[0]
+            return WorldModel._vector_field(P, x, z1, z1, ETA, mask, m)
+
+        def step(P, x):
+            if "rk4" in flags:
+                k1 = field(P, x); k2 = field(P, x + dt / 2 * k1); k3 = field(P, x + dt / 2 * k2); k4 = field(P, x + dt * k3)
+                return x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+            nn = x.shape[0] // 2
+            for _ in range(8):
+                h = dt / 8
+                dx = field(P, x); p_new = x[nn:] + h * dx[nn:]
+                dq = field(P, jnp.concatenate([x[:nn], p_new]))[:nn]
+                x = jnp.concatenate([x[:nn] + h * dq, p_new])
             return x
     else:
         def step(P, x):
