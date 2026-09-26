@@ -1,0 +1,253 @@
+
+[PUSH] Pushing kernel: bfloat16/dpod-candidates-convergence
+[PUSH] Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/bfloat16/dpod-candidates-convergence
+
+[POLL] Monitoring kernel: bfloat16/dpod-candidates-convergence
+       Log sync every 60s | Status check every 30s
+       Max wait: 4.0h
+
+[POLL] 22:36:14 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=1.6min
+[POLL] 22:38:24 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=3.8min
+[POLL] 22:40:34 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=5.9min
+[POLL] 22:42:44 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=8.1min
+[POLL] 22:44:53 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=10.3min
+[POLL] 22:47:02 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=12.4min
+[POLL] 22:49:10 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=14.6min
+[POLL] 22:51:18 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=16.7min
+[POLL] 22:53:28 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=18.9min
+[POLL] 22:55:39 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=21.0min
+[POLL] 22:57:48 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=23.2min
+[POLL] 22:59:58 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=25.4min
+[     7.6s] [ERR] 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+[     8.2s] [ERR] 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+[    15.0s]    �������������������������������������������������������������������������������� 412.0/412.0 kB 15.6 MB/s eta 0:00:00
+[    20.4s] JAX Backend: gpu [CudaDevice(id=0), CudaDevice(id=1)] 0.7.2
+[    24.1s] backend gpu
+[    24.3s] backend gpu
+[    28.1s] [transformer_branch__wm_mlp__s0] params=875590 backend=gpu updates=300 batch=16 T=250
+[    28.3s] [transformer_branch__wm_mlp__s0] params=875590 backend=gpu updates=300 batch=16 T=250
+[   126.0s] [transformer_branch__wm_mlp__s0] upd 50/300 ep=800 train_ret=2.831 eval_ret=2.762 unlocked=4.59 crafter=3.190 H=2.62 t=96s
+[   126.2s] [transformer_branch__wm_mlp__s0] upd 50/300 ep=800 train_ret=2.831 eval_ret=2.762 unlocked=4.59 crafter=3.190 H=2.62 t=96s
+[   175.5s] [transformer_branch__wm_mlp__s0] upd 100/300 ep=1600 train_ret=2.975 eval_ret=3.094 unlocked=4.88 crafter=3.320 H=2.56 t=146s
+[   175.7s] [transformer_branch__wm_mlp__s0] upd 100/300 ep=1600 train_ret=2.975 eval_ret=3.094 unlocked=4.88 crafter=3.320 H=2.56 t=146s
+[   224.8s] [transformer_branch__wm_mlp__s0] upd 150/300 ep=2400 train_ret=2.156 eval_ret=2.475 unlocked=4.38 crafter=2.907 H=2.76 t=195s
+[   225.0s] [transformer_branch__wm_mlp__s0] upd 150/300 ep=2400 train_ret=2.156 eval_ret=2.475 unlocked=4.38 crafter=2.907 H=2.76 t=195s
+[   274.4s] [transformer_branch__wm_mlp__s0] upd 200/300 ep=3200 train_ret=3.525 eval_ret=2.862 unlocked=5.09 crafter=4.267 H=2.18 t=245s
+[   274.6s] [transformer_branch__wm_mlp__s0] upd 200/300 ep=3200 train_ret=3.525 eval_ret=2.862 unlocked=5.09 crafter=4.267 H=2.18 t=245s
+[   323.6s] [transformer_branch__wm_mlp__s0] upd 250/300 ep=4000 train_ret=3.381 eval_ret=2.978 unlocked=4.84 crafter=3.835 H=2.48 t=294s
+[   323.9s] [transformer_branch__wm_mlp__s0] upd 250/300 ep=4000 train_ret=3.381 eval_ret=2.978 unlocked=4.84 crafter=3.835 H=2.48 t=294s
+[   373.0s] [transformer_branch__wm_mlp__s0] upd 300/300 ep=4800 train_ret=3.100 eval_ret=3.244 unlocked=4.91 crafter=3.631 H=2.38 t=343s
+[   373.2s] [transformer_branch__wm_mlp__s0] upd 300/300 ep=4800 train_ret=3.100 eval_ret=3.244 unlocked=4.91 crafter=3.631 H=2.38 t=343s
+[   386.0s] [transformer_branch__wm_mlp__s0] DONE wall=358s final sampled ret=3.170 vs random 1.492 vs untrained 1.356
+[   386.3s] [transformer_branch__wm_mlp__s0] DONE wall=358s final sampled ret=3.170 vs random 1.492 vs untrained 1.356
+[   390.4s] [transformer_branch__wm_hn_untrained__s0] params=875590 backend=gpu updates=300 batch=16 T=250
+[   390.6s] [transformer_branch__wm_hn_untrained__s0] params=875590 backend=gpu updates=300 batch=16 T=250
+[   493.6s] [transformer_branch__wm_hn_untrained__s0] upd 50/300 ep=800 train_ret=2.875 eval_ret=2.887 unlocked=4.62 crafter=3.231 H=2.53 t=101s
+[   493.8s] [transformer_branch__wm_hn_untrained__s0] upd 50/300 ep=800 train_ret=2.875 eval_ret=2.887 unlocked=4.62 crafter=3.231 H=2.53 t=101s
+[   549.0s] [transformer_branch__wm_hn_untrained__s0] upd 100/300 ep=1600 train_ret=2.869 eval_ret=3.022 unlocked=4.69 crafter=3.424 H=2.43 t=157s
+[   549.2s] [transformer_branch__wm_hn_untrained__s0] upd 100/300 ep=1600 train_ret=2.869 eval_ret=3.022 unlocked=4.69 crafter=3.424 H=2.43 t=157s
+[   604.8s] [transformer_branch__wm_hn_untrained__s0] upd 150/300 ep=2400 train_ret=3.662 eval_ret=3.084 unlocked=5.00 crafter=3.527 H=2.34 t=213s
+[   605.0s] [transformer_branch__wm_hn_untrained__s0] upd 150/300 ep=2400 train_ret=3.662 eval_ret=3.084 unlocked=5.00 crafter=3.527 H=2.34 t=213s
+[   660.5s] [transformer_branch__wm_hn_untrained__s0] upd 200/300 ep=3200 train_ret=3.125 eval_ret=2.744 unlocked=4.62 crafter=2.663 H=2.64 t=268s
+[   660.7s] [transformer_branch__wm_hn_untrained__s0] upd 200/300 ep=3200 train_ret=3.125 eval_ret=2.744 unlocked=4.62 crafter=2.663 H=2.64 t=268s
+[   716.8s] [transformer_branch__wm_hn_untrained__s0] upd 250/300 ep=4000 train_ret=3.338 eval_ret=3.031 unlocked=4.88 crafter=3.257 H=2.63 t=325s
+[   717.0s] [transformer_branch__wm_hn_untrained__s0] upd 250/300 ep=4000 train_ret=3.338 eval_ret=3.031 unlocked=4.88 crafter=3.257 H=2.63 t=325s
+[   773.0s] [transformer_branch__wm_hn_untrained__s0] upd 300/300 ep=4800 train_ret=2.900 eval_ret=2.859 unlocked=5.00 crafter=3.321 H=2.45 t=381s
+[   773.2s] [transformer_branch__wm_hn_untrained__s0] upd 300/300 ep=4800 train_ret=2.900 eval_ret=2.859 unlocked=5.00 crafter=3.321 H=2.45 t=381s
+[   788.0s] [transformer_branch__wm_hn_untrained__s0] DONE wall=398s final sampled ret=2.952 vs random 1.492 vs untrained 1.356
+[   788.2s] [transformer_branch__wm_hn_untrained__s0] DONE wall=398s final sampled ret=2.952 vs random 1.492 vs untrained 1.356
+[   788.3s] [transformer_branch__wm_mlp__s1] params=875590 backend=gpu updates=300 batch=16 T=250
+[   788.5s] [transformer_branch__wm_mlp__s1] params=875590 backend=gpu updates=300 batch=16 T=250
+[   883.6s] [transformer_branch__wm_mlp__s1] upd 50/300 ep=800 train_ret=3.713 eval_ret=2.612 unlocked=4.88 crafter=3.722 H=2.40 t=94s
+[   883.8s] [transformer_branch__wm_mlp__s1] upd 50/300 ep=800 train_ret=3.713 eval_ret=2.612 unlocked=4.88 crafter=3.722 H=2.40 t=94s
+[   932.9s] [transformer_branch__wm_mlp__s1] upd 100/300 ep=1600 train_ret=3.031 eval_ret=2.612 unlocked=4.84 crafter=3.716 H=2.53 t=143s
+[   933.1s] [transformer_branch__wm_mlp__s1] upd 100/300 ep=1600 train_ret=3.031 eval_ret=2.612 unlocked=4.84 crafter=3.716 H=2.53 t=143s
+[   982.3s] [transformer_branch__wm_mlp__s1] upd 150/300 ep=2400 train_ret=3.550 eval_ret=2.756 unlocked=4.72 crafter=3.272 H=2.36 t=192s
+[   982.5s] [transformer_branch__wm_mlp__s1] upd 150/300 ep=2400 train_ret=3.550 eval_ret=2.756 unlocked=4.72 crafter=3.272 H=2.36 t=192s
+[  1031.3s] [transformer_branch__wm_mlp__s1] upd 200/300 ep=3200 train_ret=2.644 eval_ret=2.688 unlocked=4.66 crafter=3.286 H=2.49 t=241s
+[  1031.5s] [transformer_branch__wm_mlp__s1] upd 200/300 ep=3200 train_ret=2.644 eval_ret=2.688 unlocked=4.66 crafter=3.286 H=2.49 t=241s
+[  1080.6s] [transformer_branch__wm_mlp__s1] upd 250/300 ep=4000 train_ret=2.906 eval_ret=2.569 unlocked=4.47 crafter=2.538 H=2.53 t=291s
+[  1080.8s] [transformer_branch__wm_mlp__s1] upd 250/300 ep=4000 train_ret=2.906 eval_ret=2.569 unlocked=4.47 crafter=2.538 H=2.53 t=291s
+[  1129.8s] [transformer_branch__wm_mlp__s1] upd 300/300 ep=4800 train_ret=4.113 eval_ret=3.194 unlocked=5.25 crafter=3.627 H=2.00 t=340s
+[  1130.0s] [transformer_branch__wm_mlp__s1] upd 300/300 ep=4800 train_ret=4.113 eval_ret=3.194 unlocked=5.25 crafter=3.627 H=2.00 t=340s
+[  1142.8s] [transformer_branch__wm_mlp__s1] DONE wall=355s final sampled ret=3.288 vs random 1.458 vs untrained 1.419
+[  1143.1s] [transformer_branch__wm_mlp__s1] DONE wall=355s final sampled ret=3.288 vs random 1.458 vs untrained 1.419
+[  1143.1s] [transformer_branch__wm_hn_untrained__s1] params=875590 backend=gpu updates=300 batch=16 T=250
+[  1143.3s] [transformer_branch__wm_hn_untrained__s1] params=875590 backend=gpu updates=300 batch=16 T=250
+[  1244.8s] [transformer_branch__wm_hn_untrained__s1] upd 50/300 ep=800 train_ret=3.431 eval_ret=2.381 unlocked=4.69 crafter=3.319 H=2.51 t=100s
+[  1245.0s] [transformer_branch__wm_hn_untrained__s1] upd 50/300 ep=800 train_ret=3.431 eval_ret=2.381 unlocked=4.69 crafter=3.319 H=2.51 t=100s
+[  1300.6s] [transformer_branch__wm_hn_untrained__s1] upd 100/300 ep=1600 train_ret=2.637 eval_ret=2.278 unlocked=4.34 crafter=3.049 H=2.74 t=156s
+[  1300.8s] [transformer_branch__wm_hn_untrained__s1] upd 100/300 ep=1600 train_ret=2.637 eval_ret=2.278 unlocked=4.34 crafter=3.049 H=2.74 t=156s
+[  1356.4s] [transformer_branch__wm_hn_untrained__s1] upd 150/300 ep=2400 train_ret=2.969 eval_ret=2.256 unlocked=4.72 crafter=3.166 H=2.66 t=211s
+[  1356.6s] [transformer_branch__wm_hn_untrained__s1] upd 150/300 ep=2400 train_ret=2.969 eval_ret=2.256 unlocked=4.72 crafter=3.166 H=2.66 t=211s
+[  1412.4s] [transformer_branch__wm_hn_untrained__s1] upd 200/300 ep=3200 train_ret=2.662 eval_ret=2.412 unlocked=4.31 crafter=2.885 H=2.69 t=267s
+[  1412.6s] [transformer_branch__wm_hn_untrained__s1] upd 200/300 ep=3200 train_ret=2.662 eval_ret=2.412 unlocked=4.31 crafter=2.885 H=2.69 t=267s
+[  1468.1s] [transformer_branch__wm_hn_untrained__s1] upd 250/300 ep=4000 train_ret=2.644 eval_ret=2.528 unlocked=4.53 crafter=3.005 H=2.57 t=323s
+[  1468.4s] [transformer_branch__wm_hn_untrained__s1] upd 250/300 ep=4000 train_ret=2.644 eval_ret=2.528 unlocked=4.53 crafter=3.005 H=2.57 t=323s
+[  1524.0s] [transformer_branch__wm_hn_untrained__s1] upd 300/300 ep=4800 train_ret=3.719 eval_ret=2.859 unlocked=4.44 crafter=2.891 H=2.14 t=379s
+[  1524.3s] [transformer_branch__wm_hn_untrained__s1] upd 300/300 ep=4800 train_ret=3.719 eval_ret=2.859 unlocked=4.44 crafter=2.891 H=2.14 t=379s
+[  1538.9s] [transformer_branch__wm_hn_untrained__s1] DONE wall=396s final sampled ret=3.322 vs random 1.458 vs untrained 1.403
+[  1539.1s] [transformer_branch__wm_hn_untrained__s1] DONE wall=396s final sampled ret=3.322 vs random 1.458 vs untrained 1.403
+[  1541.9s] exit 0
+[  1545.0s] [ERR] /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+[  1545.1s] [ERR] /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+
+[POLL] COMPLETE in 27.3 min.
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_hn_untrained__s0/step_100.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_hn_untrained__s0/step_200.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_hn_untrained__s0/step_300.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_hn_untrained__s1/step_100.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_hn_untrained__s1/step_200.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_hn_untrained__s1/step_300.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_mlp__s0/step_100.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_mlp__s0/step_200.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_mlp__s0/step_300.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_mlp__s1/step_100.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_mlp__s1/step_200.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/checkpoints/transformer_branch__wm_mlp__s1/step_300.pkl
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_hn_untrained__s0.result.json
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_hn_untrained__s0.train_log.jsonl
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_hn_untrained__s1.result.json
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_hn_untrained__s1.train_log.jsonl
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_mlp__s0.result.json
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_mlp__s0.train_log.jsonl
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_mlp__s1.result.json
+Output file downloaded to output_remote\kaggle_idea6\idea6/transformer_branch__wm_mlp__s1.train_log.jsonl
+Output file downloaded to output_remote\kaggle_idea6\output/experiments/2026-09-25_idea6/stageA/wm_hn.pkl
+Output file downloaded to output_remote\kaggle_idea6\output/experiments/2026-09-25_idea6/stageA/wm_mlp.pkl
+Output file downloaded to output_remote\kaggle_idea6\scripts/run_idea6_policy.py
+Output file downloaded to output_remote\kaggle_idea6\src/__init__.py
+Output file downloaded to output_remote\kaggle_idea6\src/__pycache__/__init__.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/environment/__pycache__/craftax_env_adapter.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/environment/__pycache__/craftax_obs_adapter.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/environment/craftax_env_adapter.py
+Output file downloaded to output_remote\kaggle_idea6\src/environment/craftax_obs_adapter.py
+Output file downloaded to output_remote\kaggle_idea6\src/environment/gymnax_decision_env.py
+Output file downloaded to output_remote\kaggle_idea6\src/main.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/__pycache__/channel_encoder.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/__pycache__/checkpoint.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/__pycache__/hierarchical_transformer.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/__pycache__/logger_utils.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/__pycache__/types.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/baseline_model.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/beam_search.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__init__.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/__init__.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/mdp_branch.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/passive_world_model.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/shared_stages.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/transformer_branch.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/variant_5_1_shared_attention.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/variant_5_2_channel_split.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/variant_5_3_channel_split_v2.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/variant_5_4_single_shot.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/__pycache__/world_model.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/mdp_branch.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/passive_world_model.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/shared_stages.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/transformer_branch.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/variant_5_1_shared_attention.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/variant_5_2_channel_split.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/variant_5_3_channel_split_v2.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/variant_5_4_single_shot.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/candidates/world_model.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/channel_encoder.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/checkpoint.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/hierarchical_transformer.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/logger_utils.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/transformer_decision_core.py
+Output file downloaded to output_remote\kaggle_idea6\src/model/types.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/__pycache__/candidate_benchmark.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/__pycache__/candidate_experiment.cpython-312.pyc
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/benchmark.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/candidate_benchmark.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/candidate_experiment.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/craftax_benchmark.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/evaluator.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/grid_search_benchmark.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/hierarchical_pipeline.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/off_policy_trainer.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/plotter.py
+Output file downloaded to output_remote\kaggle_idea6\src/pipeline/trainer.py
+Kernel log downloaded to output_remote\kaggle_idea6\dpod-candidates-convergence.log 
+[RUN] kernel ok
+
+[FETCH] Downloading outputs -> output_remote\kaggle_idea6/
+[FETCH] Retrieved 77 files:
+        dpod-candidates-convergence.log  (14.5 KB)
+        idea6\checkpoints\transformer_branch__wm_hn_untrained__s0\step_100.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_hn_untrained__s0\step_200.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_hn_untrained__s0\step_300.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_hn_untrained__s1\step_100.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_hn_untrained__s1\step_200.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_hn_untrained__s1\step_300.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_mlp__s0\step_100.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_mlp__s0\step_200.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_mlp__s0\step_300.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_mlp__s1\step_100.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_mlp__s1\step_200.pkl  (3421.4 KB)
+        idea6\checkpoints\transformer_branch__wm_mlp__s1\step_300.pkl  (3421.4 KB)
+        idea6\transformer_branch__wm_hn_untrained__s0.result.json  (5.8 KB)
+        idea6\transformer_branch__wm_hn_untrained__s0.train_log.jsonl  (66.4 KB)
+        idea6\transformer_branch__wm_hn_untrained__s1.result.json  (5.8 KB)
+        idea6\transformer_branch__wm_hn_untrained__s1.train_log.jsonl  (66.4 KB)
+        idea6\transformer_branch__wm_mlp__s0.result.json  (5.8 KB)
+        idea6\transformer_branch__wm_mlp__s0.train_log.jsonl  (66.4 KB)
+        idea6\transformer_branch__wm_mlp__s1.result.json  (5.8 KB)
+        idea6\transformer_branch__wm_mlp__s1.train_log.jsonl  (66.4 KB)
+        output\experiments\2026-09-25_idea6\stageA\wm_hn.pkl  (65.4 KB)
+        output\experiments\2026-09-25_idea6\stageA\wm_mlp.pkl  (33.5 KB)
+        scripts\run_idea6_policy.py  (2.4 KB)
+        src\__init__.py  (0.0 KB)
+        src\__pycache__\__init__.cpython-312.pyc  (0.1 KB)
+        src\environment\__pycache__\craftax_env_adapter.cpython-312.pyc  (12.5 KB)
+        src\environment\__pycache__\craftax_obs_adapter.cpython-312.pyc  (5.0 KB)
+        src\environment\craftax_env_adapter.py  (11.3 KB)
+        src\environment\craftax_obs_adapter.py  (3.0 KB)
+        src\environment\gymnax_decision_env.py  (9.4 KB)
+        src\main.py  (4.2 KB)
+        src\model\__pycache__\channel_encoder.cpython-312.pyc  (5.1 KB)
+        src\model\__pycache__\checkpoint.cpython-312.pyc  (13.6 KB)
+        src\model\__pycache__\hierarchical_transformer.cpython-312.pyc  (16.6 KB)
+        src\model\__pycache__\logger_utils.cpython-312.pyc  (3.9 KB)
+        src\model\__pycache__\types.cpython-312.pyc  (7.2 KB)
+        src\model\baseline_model.py  (5.8 KB)
+        src\model\beam_search.py  (13.2 KB)
+        src\model\candidates\__init__.py  (0.7 KB)
+        src\model\candidates\__pycache__\__init__.cpython-312.pyc  (0.9 KB)
+        src\model\candidates\__pycache__\mdp_branch.cpython-312.pyc  (6.4 KB)
+        src\model\candidates\__pycache__\passive_world_model.cpython-312.pyc  (6.5 KB)
+        src\model\candidates\__pycache__\shared_stages.cpython-312.pyc  (20.0 KB)
+        src\model\candidates\__pycache__\transformer_branch.cpython-312.pyc  (5.5 KB)
+        src\model\candidates\__pycache__\variant_5_1_shared_attention.cpython-312.pyc  (7.0 KB)
+        src\model\candidates\__pycache__\variant_5_2_channel_split.cpython-312.pyc  (7.1 KB)
+        src\model\candidates\__pycache__\variant_5_3_channel_split_v2.cpython-312.pyc  (6.8 KB)
+        src\model\candidates\__pycache__\variant_5_4_single_shot.cpython-312.pyc  (7.3 KB)
+        src\model\candidates\__pycache__\world_model.cpython-312.pyc  (20.8 KB)
+        src\model\candidates\mdp_branch.py  (5.2 KB)
+        src\model\candidates\passive_world_model.py  (3.8 KB)
+        src\model\candidates\shared_stages.py  (13.7 KB)
+        src\model\candidates\transformer_branch.py  (4.8 KB)
+        src\model\candidates\variant_5_1_shared_attention.py  (5.2 KB)
+        src\model\candidates\variant_5_2_channel_split.py  (5.0 KB)
+        src\model\candidates\variant_5_3_channel_split_v2.py  (4.5 KB)
+        src\model\candidates\variant_5_4_single_shot.py  (5.6 KB)
+        src\model\candidates\world_model.py  (12.3 KB)
+        src\model\channel_encoder.py  (4.3 KB)
+        src\model\checkpoint.py  (9.3 KB)
+        src\model\hierarchical_transformer.py  (12.5 KB)
+        src\model\logger_utils.py  (2.5 KB)
+        src\model\transformer_decision_core.py  (15.0 KB)
+        src\model\types.py  (4.5 KB)
+        src\pipeline\__pycache__\candidate_benchmark.cpython-312.pyc  (17.6 KB)
+        src\pipeline\__pycache__\candidate_experiment.cpython-312.pyc  (20.1 KB)
+        src\pipeline\benchmark.py  (14.2 KB)
+        src\pipeline\candidate_benchmark.py  (14.4 KB)
+        src\pipeline\candidate_experiment.py  (12.6 KB)
+        src\pipeline\craftax_benchmark.py  (13.5 KB)
+        src\pipeline\evaluator.py  (5.1 KB)
+        src\pipeline\grid_search_benchmark.py  (15.1 KB)
+        src\pipeline\hierarchical_pipeline.py  (5.8 KB)
+        src\pipeline\off_policy_trainer.py  (5.7 KB)
+        src\pipeline\plotter.py  (10.9 KB)
+        src\pipeline\trainer.py  (3.3 KB)
