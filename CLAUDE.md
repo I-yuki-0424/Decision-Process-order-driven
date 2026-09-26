@@ -63,7 +63,7 @@ Dependencies (see `docker/Dockerfile`): `jax[cuda12]`, `flax`, `optax`, `gymnax`
 Heavy training runs on Kaggle, on kernel `bfloat16/craftax-classic-1000-episode-rl-benchmark`.
 - `build_kaggle_kernel.py` base64-embeds the whole local `src/` tree into `kaggle_kernel/decision_process_benchmark.ipynb`, together with a `config.json`. The notebook then runs `kaggle_kernel/phase2_runner.py`. A `src/` change only reaches Kaggle after you rebuild the notebook.
 - `scripts/kaggle_run.py` is the end-to-end orchestrator: build, push, poll with live logs, fetch into `output_remote/<run-id>/`, analyze, and plot. It supports `--sweep`, `--fetch-only`, and `--plot-only`.
-- `output_remote/*/src` and `kaggle_logs/src` are **snapshots** of `src/` that ran remotely. Do not edit them. Edit `src/`.
+- `output_remote/*/src` and the local `kaggle_logs/` cache (untracked) are **snapshots** of `src/` that ran remotely. Do not edit them. Edit `src/`.
 
 ## Architecture (`src/`)
 
@@ -79,6 +79,13 @@ All data structures are `NamedTuple` PyTrees, defined in `src/model/types.py`. M
 - **`pipeline/`:** training and eval drivers. `trainer.py` handles the synthetic env. `craftax_benchmark.py` handles the Craftax RL suite. `off_policy_trainer.py` and `benchmark.py` handle the off-policy/abstraction benchmarks. `hierarchical_pipeline.py` runs the macro/micro engine with `lax.scan`. `grid_search_benchmark.py` covers grid search. `plotter.py` writes to `output/plots/`.
 
 JAX constraints: keep shapes static inside JIT (fixed beam width, KV cache pre-allocated to N_max=1524), and never call `int()` on tracers.
+
+## Repo layout
+
+- Root: entry points only (`run_standalone.py`, `build_kaggle_kernel*.py`), `CLAUDE.md`, config.
+- `src/` code; `tests/` unit tests; `scripts/` runnable tools (flat: they import each other as siblings); `scripts/adhoc/` throwaway checks.
+- `docs/` specs (`core/`, `DECISIONS/`, `JP-ideas/`, `LOGS/`, `experiments/`, `archive/`); `logs/` old run logs; `docker/` incl. `jupyter-python314/`.
+- `kaggle_kernel*/` generated notebooks; `output/`, `output_remote/` results (LFS / snapshots, do not edit).
 
 ## Repo notes
 
