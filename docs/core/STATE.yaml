@@ -209,6 +209,86 @@ tasks:
         end on real GPU hardware with real numbers, not that these
         candidates already solve Craftax achievements.
 
+  - id: "TASK-20260925-003-candidate-convergence"
+    created_at: "2026-09-25T11:00:00Z"
+    status: "done"
+    description: >
+      Train/test the merged DPOD candidates in parallel on local WSL2 Docker (RTX 3060 Ti)
+      and Kaggle GPU at small scale (2,000 episodes each, <50,000 cap); consolidate results.
+    spec_ref: "docs/experiments/2026-09-25_candidate_convergence/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE, EFFECTIVENESS NOT DEMONSTRATED. 8 runs + 3 normlogits A/B runs; no trained candidate beats
+      the uniform-random policy (return 1.46). MDP-search candidates output degenerate logits (NaN entropy).
+      Details in docs/experiments/2026-09-25_candidate_convergence/03_findings.md; data in
+      output/experiments/2026-09-25_convergence/. Dependency-impact check (scip-neo4j) not run: no existing symbol modified
+      (new files only).
+    blockers:
+      - "variant_5_1 / variant_5_4 NaN entropy persists after logit normalisation; source undiagnosed."
+      - "Single seed; no variance estimate."
+
+  - id: "TASK-20260925-004-idea6-worldmodel"
+    created_at: "2026-09-25T13:00:00Z"
+    status: "done"
+    description: >
+      Verify Idea 6 (WorldModel/HNN) per operator spec: passive (noop) world model first, then the action Transformer with
+      the frozen WM; local Docker GPU + Kaggle in parallel; <50,000 episodes; mid-scale model.
+    spec_ref: "docs/experiments/2026-09-25_idea6_worldmodel/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE. Stage A: HN and MLP world models beat persistence by ~58%/55% at 8 steps (held-out episodes).
+      Stage B (transformer_branch d_model=512, 875K params, 4,800 eps/run, 2 seeds x 4 arms): no benefit from WM features
+      (returns 2.9-3.2; untrained-WM control equals trained). The large gain over random is due to the new
+      CraftaxObsAdapter (old adapter hid the observation). No LLM baseline exists, so the cost-parity claim is untested.
+      Impact check: only new files plus an optional `adapter` parameter on run_experiment; scip-neo4j not queried.
+    blockers:
+      - "TASK-003 candidate conclusions were measured on the observation-blind adapter and should be re-run on CraftaxObsAdapter."
+      - "Only 2 seeds per arm; a small WM benefit cannot be excluded, but no signal was seen."
+
+  - id: "TASK-20260926-005-physics-benchmark"
+    created_at: "2026-09-26T09:00:00Z"
+    status: "done"
+    description: >
+      Verify the Idea-6 world-model family on closed-form physics (Kepler two-body, falling body with drag, noisy sine)
+      against generic MLP dynamics, per operator request; data efficiency, OOD initial conditions, noise, invariant drift.
+    spec_ref: "docs/experiments/2026-09-26_physics_benchmark/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE (324 runs, 3 seeds). Hamiltonian prior clearly wins on conservative systems (Kepler mean nRMSE 0.075 vs MLP 0.66;
+      energy drift 0.6% vs 44%; OOD 0.26 vs 1.08) and does not help on dissipative quadratic drag (MLP better OOD). The WorldModel class
+      as implemented (idea6_full) does not realise the gain (Kepler 1.27 ID, 12.0 OOD). oracle_port arm is an intentional upper bound with true potential given.
+      Impact check: new script files only; no existing symbol modified; scip-neo4j not queried.
+    blockers:
+      - "idea6_full underperformance not isolated (integrator vs gate vs residual)."
+      - "Single network size, 3 seeds, untuned hyper-parameters; sine end-point metric degenerate (documented)."
+
+  - id: "TASK-20260926-006-hybrid-worldmodel"
+    created_at: "2026-09-26T07:39:00Z"
+    status: "done"
+    description: >
+      Operator proposal: unified world model = DreamerV3-style layer + Hamiltonian layers + known-physics layers, fused (Transformer/sum).
+      Authorised ~5 h of autonomous evaluation and iteration (used ~2 h 45 min). Local Docker GPU only (Kaggle not needed).
+    spec_ref: "docs/experiments/2026-09-26_hybrid_worldmodel/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE. The proposal as stated did not beat a plain structured Hamiltonian model; Dreamer-lite (reduced RSSM, not full DreamerV3) was unstable on long rollouts and 6-90x larger;
+      Transformer fusion ~ sum fusion. Robust finding: give the known equation to the learned potential as an input FEATURE (optionally plus a learned-scale skip) instead of a hard term:
+      pendulum swing-up planning return -204..-207 vs -480..-530 for a wrong hard preset (ceiling -196) with N=8 trajectories. Parameter count did not matter for structured models (325 vs 66K params same error).
+      Two invalid intermediate results (attractive Kepler perturbation; unsolvable first planning task) were found, documented and replaced.
+      Impact check: new script files only; run_experiment/others untouched here; scip-neo4j not queried.
+    blockers:
+      - "Full DreamerV3 not implemented; only a reduced RSSM. Conclusions about DreamerV3 proper are untested."
+      - "3-5 seeds, ~5K-parameter models, toy physics tasks; no transfer claim to Craftax or other non-physical domains."
+      - "Learned partial-observation filter used simulator momentum labels."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
