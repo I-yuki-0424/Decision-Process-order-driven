@@ -1,5 +1,5 @@
 """
-Generate Empirical Benchmark Plots from output/kaggle_benchmark_results.json.
+Generate Empirical Benchmark Plots from output/benchmarks/kaggle_benchmark_results.json.
 
 Creates visualizations for:
 1. Throughput Speed (SPS) vs. Model Parameter Scale & Depth
@@ -14,7 +14,7 @@ import numpy as np
 
 
 def generate_plots():
-    json_path = "output/kaggle_benchmark_results.json"
+    json_path = "output/benchmarks/kaggle_benchmark_results.json"
     if not os.path.exists(json_path):
         print(f"Error: {json_path} does not exist!")
         return

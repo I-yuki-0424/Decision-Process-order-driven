@@ -63,7 +63,7 @@ Dependencies (see `docker/Dockerfile`): `jax[cuda12]`, `flax`, `optax`, `gymnax`
 Heavy training runs on Kaggle, on kernel `bfloat16/craftax-classic-1000-episode-rl-benchmark`.
 - `build_kaggle_kernel.py` base64-embeds the whole local `src/` tree into `kaggle_kernel/decision_process_benchmark.ipynb`, together with a `config.json`. The notebook then runs `kaggle_kernel/phase2_runner.py`. A `src/` change only reaches Kaggle after you rebuild the notebook.
 - `scripts/kaggle_run.py` is the end-to-end orchestrator: build, push, poll with live logs, fetch into `output_remote/<run-id>/`, analyze, and plot. It supports `--sweep`, `--fetch-only`, and `--plot-only`.
-- `output_remote/*/src` and the local `kaggle_logs/` cache (untracked) are **snapshots** of `src/` that ran remotely. Do not edit them. Edit `src/`.
+- `output_remote/*/src` (untracked) are **snapshots** of `src/` that ran remotely. Do not edit them. Edit `src/`.
 
 ## Architecture (`src/`)
 
@@ -83,9 +83,9 @@ JAX constraints: keep shapes static inside JIT (fixed beam width, KV cache pre-a
 ## Repo layout
 
 - Root: entry points only (`run_standalone.py`, `build_kaggle_kernel*.py`), `CLAUDE.md`, config.
-- `src/` code; `tests/` unit tests; `scripts/` runnable tools (flat: they import each other as siblings); `scripts/adhoc/` throwaway checks.
+- `src/` code; `tests/` unit tests; `scripts/` runnable tools, indexed in `scripts/README.md` (flat: they import each other as siblings); `scripts/adhoc/` throwaway checks.
 - `docs/` specs (`core/`, `DECISIONS/`, `JP-ideas/`, `LOGS/`, `experiments/`, `archive/`); `logs/` old run logs; `docker/` incl. `jupyter-python314/`.
-- `kaggle_kernel*/` generated notebooks; `output/`, `output_remote/` results (LFS / snapshots, do not edit).
+- `kaggle_kernel*/` generated notebooks; `output/` results, all in LFS, indexed in `output/README.md`; `output_remote/` is the untracked raw Kaggle-fetch cache (snapshots, do not edit). Kaggle dirs stay at root because kernel paths are hardcoded.
 
 ## Repo notes
 
