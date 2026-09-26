@@ -28,7 +28,7 @@
 </goal>
 
   <context>
-    <core_file>docs/core/STATE.yaml is the only file under docs/core/. Read it at session start.</core_file>
+    <core_file>docs/core/STATE.yaml is the only file under docs/core/. At session start, read only the document metadata and the task entry or entries relevant to the current task. Do not load, parse, or summarize unrelated task entries unless required to resolve a dependency, status conflict, or explicitly requested audit.</core_file>
     <report_rule>Quote STATE.yaml fields directly. Do not invent values for missing fields; report them as missing.</report_rule>
   </context>
 
