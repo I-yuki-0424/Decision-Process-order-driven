@@ -1,0 +1,1109 @@
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.2.2
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+JAX backend: gpu [CudaDevice(id=0)]
+[transformer_branch__reinforce__obs__lr0.0003__s0] params=8710 backend=gpu updates=250 batch=8 T=200
+[transformer_branch__reinforce__obs__lr0.0003__s0] upd 50/250 ep=400 train_ret=1.462 eval_ret=1.881 unlocked=3.28 crafter=2.470 H=2.79 t=199s
+[transformer_branch__reinforce__obs__lr0.0003__s0] upd 100/250 ep=800 train_ret=2.825 eval_ret=2.350 unlocked=3.78 crafter=2.455 H=2.70 t=390s
+[transformer_branch__reinforce__obs__lr0.0003__s0] upd 150/250 ep=1200 train_ret=1.225 eval_ret=2.278 unlocked=3.59 crafter=2.360 H=2.72 t=548s
+[transformer_branch__reinforce__obs__lr0.0003__s0] upd 200/250 ep=1600 train_ret=3.088 eval_ret=2.484 unlocked=4.03 crafter=2.080 H=2.65 t=724s
+[transformer_branch__reinforce__obs__lr0.0003__s0] upd 250/250 ep=2000 train_ret=3.287 eval_ret=2.653 unlocked=4.66 crafter=2.755 H=2.53 t=911s
+[transformer_branch__reinforce__obs__lr0.0003__s0] DONE wall=1014s final sampled ret=2.644 vs random 1.469 vs untrained 1.067
+[transformer_branch__reinforce__obs__lr0.001__s0] params=8710 backend=gpu updates=250 batch=8 T=200
+[transformer_branch__reinforce__obs__lr0.001__s0] upd 50/250 ep=400 train_ret=1.950 eval_ret=2.225 unlocked=3.78 crafter=2.205 H=2.73 t=195s
+[transformer_branch__reinforce__obs__lr0.001__s0] upd 100/250 ep=800 train_ret=3.100 eval_ret=3.009 unlocked=4.84 crafter=2.899 H=2.24 t=387s
+[transformer_branch__reinforce__obs__lr0.001__s0] upd 150/250 ep=1200 train_ret=2.712 eval_ret=2.972 unlocked=4.31 crafter=2.755 H=2.21 t=553s
+[transformer_branch__reinforce__obs__lr0.001__s0] upd 200/250 ep=1600 train_ret=3.087 eval_ret=3.094 unlocked=4.66 crafter=3.104 H=2.24 t=677s
+[transformer_branch__reinforce__obs__lr0.001__s0] upd 250/250 ep=2000 train_ret=2.587 eval_ret=2.762 unlocked=4.31 crafter=2.625 H=2.55 t=843s
+[transformer_branch__reinforce__obs__lr0.001__s0] DONE wall=981s final sampled ret=2.684 vs random 1.469 vs untrained 1.067
+[transformer_branch__reinforce__obs__lr0.003__s0] params=8710 backend=gpu updates=250 batch=8 T=200
+[transformer_branch__reinforce__obs__lr0.003__s0] upd 50/250 ep=400 train_ret=2.575 eval_ret=2.828 unlocked=4.47 crafter=2.720 H=2.36 t=196s
+[transformer_branch__reinforce__obs__lr0.003__s0] upd 100/250 ep=800 train_ret=3.350 eval_ret=3.259 unlocked=4.81 crafter=2.973 H=2.07 t=372s
+[transformer_branch__reinforce__obs__lr0.003__s0] upd 150/250 ep=1200 train_ret=2.750 eval_ret=2.900 unlocked=4.56 crafter=2.740 H=2.47 t=549s
+[transformer_branch__reinforce__obs__lr0.003__s0] upd 200/250 ep=1600 train_ret=3.188 eval_ret=2.656 unlocked=4.38 crafter=3.471 H=2.53 t=734s
+[transformer_branch__reinforce__obs__lr0.003__s0] upd 250/250 ep=2000 train_ret=2.588 eval_ret=2.713 unlocked=4.38 crafter=2.662 H=2.69 t=933s
+[transformer_branch__reinforce__obs__lr0.003__s0] DONE wall=1047s final sampled ret=2.805 vs random 1.469 vs untrained 1.067
+[variant_5_2__reinforce__obs__lr0.0003__s0] params=8118 backend=gpu updates=250 batch=8 T=200
+Traceback (most recent call last):
+  File "/workspace/scripts/run_candidate_experiment.py", line 43, in main
+    run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
+  File "/workspace/src/pipeline/candidate_experiment.py", line 209, in run_experiment
+    train_return=float(traj["reward"].sum(1).mean()),
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/array.py", line 300, in __float__
+    return self._value.__float__()
+           ^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/profiler.py", line 420, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/array.py", line 623, in _value
+    npy_value, did_copy = self._single_device_array_to_np_array_did_copy()
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Failed to launch CUDA kernel: input_reduce_fusion; block dims: 32x1x1; grid dims: 8x1x1; shared memory size: 0: CUDA_ERROR_OUT_OF_MEMORY: out of memory [executable_name='jit__mean']
+E0926 06:04:08.173531       1 cuda_executor.cc:278] [0] failed to unload module 0x41cbc1c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.219710       1 cuda_executor.cc:278] [0] failed to unload module 0x2309dc60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.220947       1 cuda_executor.cc:278] [0] failed to unload module 0x1e73fa00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.222564       1 cuda_executor.cc:278] [0] failed to unload module 0x25fdc570; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.224057       1 cuda_executor.cc:278] [0] failed to unload module 0x1e0d2a50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.225404       1 cuda_executor.cc:278] [0] failed to unload module 0x57fc0670; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.226717       1 cuda_executor.cc:278] [0] failed to unload module 0x2634d7d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.228139       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c00400: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.229655       1 cuda_executor.cc:278] [0] failed to unload module 0x3d0dd180; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231314       1 cuda_executor.cc:278] [0] failed to unload module 0x37c13870; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231331       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c00600: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231338       1 cuda_executor.cc:278] [0] failed to unload module 0x1db2b4b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231349       1 cuda_executor.cc:278] [0] failed to unload module 0x3f23c240; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231359       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c00800: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231399       1 cuda_executor.cc:278] [0] failed to unload module 0x1e2ebd10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231416       1 cuda_executor.cc:278] [0] failed to unload module 0x421659a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231451       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c00a00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231465       1 cuda_executor.cc:278] [0] failed to unload module 0x284da4e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231487       1 cuda_executor.cc:278] [0] failed to unload module 0x3509a580; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231501       1 cuda_executor.cc:278] [0] failed to unload module 0x216589f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231530       1 cuda_executor.cc:278] [0] failed to unload module 0x302a7d10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231542       1 cuda_executor.cc:278] [0] failed to unload module 0x44e694e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231552       1 cuda_executor.cc:278] [0] failed to unload module 0x1df8bd50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231562       1 cuda_executor.cc:278] [0] failed to unload module 0x2721d690; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231580       1 cuda_executor.cc:278] [0] failed to unload module 0x202b6e20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231656       1 cuda_executor.cc:278] [0] failed to unload module 0x2add5440; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231676       1 cuda_executor.cc:278] [0] failed to unload module 0x3d7b4200; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231889       1 cuda_executor.cc:278] [0] failed to unload module 0x3a065cc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231932       1 cuda_executor.cc:278] [0] failed to unload module 0x20695850; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231946       1 cuda_executor.cc:278] [0] failed to unload module 0x3edce170; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.231956       1 cuda_executor.cc:278] [0] failed to unload module 0x2a70da50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232005       1 cuda_executor.cc:278] [0] failed to unload module 0x2a158720; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232085       1 cuda_executor.cc:278] [0] failed to unload module 0x2474dfe0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232132       1 cuda_executor.cc:278] [0] failed to unload module 0x2e203dc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232154       1 cuda_executor.cc:278] [0] failed to unload module 0x443b8020; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232174       1 cuda_executor.cc:278] [0] failed to unload module 0x20f6c3a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232190       1 cuda_executor.cc:278] [0] failed to unload module 0x3d3ad0f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232202       1 cuda_executor.cc:278] [0] failed to unload module 0x347ceee0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232213       1 cuda_executor.cc:278] [0] failed to unload module 0x3b3a7d20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232224       1 cuda_executor.cc:278] [0] failed to unload module 0x4d943930; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232234       1 cuda_executor.cc:278] [0] failed to unload module 0x245286b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232245       1 cuda_executor.cc:278] [0] failed to unload module 0x28e9de80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232257       1 cuda_executor.cc:278] [0] failed to unload module 0x31d45800; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232295       1 cuda_executor.cc:278] [0] failed to unload module 0x49edec70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232315       1 cuda_executor.cc:278] [0] failed to unload module 0x38d816e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232381       1 cuda_executor.cc:278] [0] failed to unload module 0x30142fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232443       1 cuda_executor.cc:278] [0] failed to unload module 0x34726290; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232486       1 cuda_executor.cc:278] [0] failed to unload module 0x3faccd40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232528       1 cuda_executor.cc:278] [0] failed to unload module 0x38340c50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232548       1 cuda_executor.cc:278] [0] failed to unload module 0x1ef8aaa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232607       1 cuda_executor.cc:278] [0] failed to unload module 0x4e1f9700; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232649       1 cuda_executor.cc:278] [0] failed to unload module 0x3ecef540; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232717       1 cuda_executor.cc:278] [0] failed to unload module 0x34839540; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232758       1 cuda_executor.cc:278] [0] failed to unload module 0x438e2e20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232777       1 cuda_executor.cc:278] [0] failed to unload module 0x2d77ba20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232828       1 cuda_executor.cc:278] [0] failed to unload module 0x3aa373f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232873       1 cuda_executor.cc:278] [0] failed to unload module 0x30c73bb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232888       1 cuda_executor.cc:278] [0] failed to unload module 0x2399f220; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232930       1 cuda_executor.cc:278] [0] failed to unload module 0x415b8bd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.232972       1 cuda_executor.cc:278] [0] failed to unload module 0x5b687280; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233012       1 cuda_executor.cc:278] [0] failed to unload module 0x2212d750; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233029       1 cuda_executor.cc:278] [0] failed to unload module 0x42f90840; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233041       1 cuda_executor.cc:278] [0] failed to unload module 0x236401d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233052       1 cuda_executor.cc:278] [0] failed to unload module 0x24c8bbd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233064       1 cuda_executor.cc:278] [0] failed to unload module 0x4b02d740; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233076       1 cuda_executor.cc:278] [0] failed to unload module 0x2eb11320; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233115       1 cuda_executor.cc:278] [0] failed to unload module 0x283d3770; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233157       1 cuda_executor.cc:278] [0] failed to unload module 0x47415970; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233195       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c00c00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233238       1 cuda_executor.cc:278] [0] failed to unload module 0x47fbd7b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233275       1 cuda_executor.cc:278] [0] failed to unload module 0x38ad9d70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233295       1 cuda_executor.cc:278] [0] failed to unload module 0x3840cf80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233309       1 cuda_executor.cc:278] [0] failed to unload module 0x4bd74ff0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233329       1 cuda_executor.cc:278] [0] failed to unload module 0x2d4202f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233480       1 cuda_executor.cc:278] [0] failed to unload module 0x225e9d20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233498       1 cuda_executor.cc:278] [0] failed to unload module 0x41f20fb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233516       1 cuda_executor.cc:278] [0] failed to unload module 0x314bfb40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233530       1 cuda_executor.cc:278] [0] failed to unload module 0x3195e260; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233569       1 cuda_executor.cc:278] [0] failed to unload module 0x417febd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233592       1 cuda_executor.cc:278] [0] failed to unload module 0x4d30ab10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233633       1 cuda_executor.cc:278] [0] failed to unload module 0x5b3021c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233653       1 cuda_executor.cc:278] [0] failed to unload module 0x445fd1b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233668       1 cuda_executor.cc:278] [0] failed to unload module 0x3cf152e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233705       1 cuda_executor.cc:278] [0] failed to unload module 0x49eb7de0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233724       1 cuda_executor.cc:278] [0] failed to unload module 0x2a2af760; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233763       1 cuda_executor.cc:278] [0] failed to unload module 0x3c3dde00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233782       1 cuda_executor.cc:278] [0] failed to unload module 0x43e01ae0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233794       1 cuda_executor.cc:278] [0] failed to unload module 0x3eda5aa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233805       1 cuda_executor.cc:278] [0] failed to unload module 0x35da7a80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233817       1 cuda_executor.cc:278] [0] failed to unload module 0x2df3b280; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233827       1 cuda_executor.cc:278] [0] failed to unload module 0x24d2bef0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233841       1 cuda_executor.cc:278] [0] failed to unload module 0x38a90e30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233853       1 cuda_executor.cc:278] [0] failed to unload module 0x368375a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233888       1 cuda_executor.cc:278] [0] failed to unload module 0x4d529f40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233929       1 cuda_executor.cc:278] [0] failed to unload module 0x44208750; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233968       1 cuda_executor.cc:278] [0] failed to unload module 0x28fc69a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233983       1 cuda_executor.cc:278] [0] failed to unload module 0x301c9b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.233995       1 cuda_executor.cc:278] [0] failed to unload module 0x23c394c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234048       1 cuda_executor.cc:278] [0] failed to unload module 0x3dab7780; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234089       1 cuda_executor.cc:278] [0] failed to unload module 0x23232bb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234104       1 cuda_executor.cc:278] [0] failed to unload module 0x231914b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234115       1 cuda_executor.cc:278] [0] failed to unload module 0x24e31dc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234126       1 cuda_executor.cc:278] [0] failed to unload module 0x26b1de40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234160       1 cuda_executor.cc:278] [0] failed to unload module 0x29365060; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234173       1 cuda_executor.cc:278] [0] failed to unload module 0x44dbf1c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234228       1 cuda_executor.cc:278] [0] failed to unload module 0x39734570; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234297       1 cuda_executor.cc:278] [0] failed to unload module 0x2b96bf20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234316       1 cuda_executor.cc:278] [0] failed to unload module 0x25b37f20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234354       1 cuda_executor.cc:278] [0] failed to unload module 0x22a73040; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234371       1 cuda_executor.cc:278] [0] failed to unload module 0x230c6fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234407       1 cuda_executor.cc:278] [0] failed to unload module 0x41fe11a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234447       1 cuda_executor.cc:278] [0] failed to unload module 0x1dd8e560; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234484       1 cuda_executor.cc:278] [0] failed to unload module 0x4ce1add0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234499       1 cuda_executor.cc:278] [0] failed to unload module 0x5468efb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234510       1 cuda_executor.cc:278] [0] failed to unload module 0x5b464fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234521       1 cuda_executor.cc:278] [0] failed to unload module 0x38d44dd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234561       1 cuda_executor.cc:278] [0] failed to unload module 0x3fa4a1b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234600       1 cuda_executor.cc:278] [0] failed to unload module 0x3802d780; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234644       1 cuda_executor.cc:278] [0] failed to unload module 0x28ab0cd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234703       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c05400: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234744       1 cuda_executor.cc:278] [0] failed to unload module 0x4abbbf50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234761       1 cuda_executor.cc:278] [0] failed to unload module 0x424d8e90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234786       1 cuda_executor.cc:278] [0] failed to unload module 0x2ee90370; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234887       1 cuda_executor.cc:278] [0] failed to unload module 0x210aa3b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.234952       1 cuda_executor.cc:278] [0] failed to unload module 0x3558bf00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235051       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c00e00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235093       1 cuda_executor.cc:278] [0] failed to unload module 0x240a45e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235140       1 cuda_executor.cc:278] [0] failed to unload module 0x44285500; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235181       1 cuda_executor.cc:278] [0] failed to unload module 0x42219b50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235248       1 cuda_executor.cc:278] [0] failed to unload module 0x485eaf40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235269       1 cuda_executor.cc:278] [0] failed to unload module 0x439961b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235368       1 cuda_executor.cc:278] [0] failed to unload module 0x5b474940; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235389       1 cuda_executor.cc:278] [0] failed to unload module 0x49f73ac0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235403       1 cuda_executor.cc:278] [0] failed to unload module 0x2a39ca40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235442       1 cuda_executor.cc:278] [0] failed to unload module 0x2ba05600; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235461       1 cuda_executor.cc:278] [0] failed to unload module 0x4dd01810; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235502       1 cuda_executor.cc:278] [0] failed to unload module 0x3ea4e1b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235517       1 cuda_executor.cc:278] [0] failed to unload module 0x2d69b890; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235530       1 cuda_executor.cc:278] [0] failed to unload module 0x3d07ac50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235543       1 cuda_executor.cc:278] [0] failed to unload module 0x38ae2260; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235565       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235603       1 cuda_executor.cc:278] [0] failed to unload module 0x2a8d6130; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235627       1 cuda_executor.cc:278] [0] failed to unload module 0x5ba46000; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235645       1 cuda_executor.cc:278] [0] failed to unload module 0x3f6ce650; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235732       1 cuda_executor.cc:278] [0] failed to unload module 0x268a1040; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235753       1 cuda_executor.cc:278] [0] failed to unload module 0x20860230; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235798       1 cuda_executor.cc:278] [0] failed to unload module 0x30a974d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235812       1 cuda_executor.cc:278] [0] failed to unload module 0x2bc04820; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235830       1 cuda_executor.cc:278] [0] failed to unload module 0x57c414f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235842       1 cuda_executor.cc:278] [0] failed to unload module 0x30dd7340; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235862       1 cuda_executor.cc:278] [0] failed to unload module 0x225f5360; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235935       1 cuda_executor.cc:278] [0] failed to unload module 0x237964f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235977       1 cuda_executor.cc:278] [0] failed to unload module 0x41ab91e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.235992       1 cuda_executor.cc:278] [0] failed to unload module 0x56712600; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236006       1 cuda_executor.cc:278] [0] failed to unload module 0x245eeb30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236029       1 cuda_executor.cc:278] [0] failed to unload module 0x216195b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236067       1 cuda_executor.cc:278] [0] failed to unload module 0x43d72c10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236083       1 cuda_executor.cc:278] [0] failed to unload module 0x3544eff0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236120       1 cuda_executor.cc:278] [0] failed to unload module 0x4ab2f2a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236166       1 cuda_executor.cc:278] [0] failed to unload module 0x38cf59b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236229       1 cuda_executor.cc:278] [0] failed to unload module 0x1e2995a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236284       1 cuda_executor.cc:278] [0] failed to unload module 0x2965d570; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236305       1 cuda_executor.cc:278] [0] failed to unload module 0x2a3eefe0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236317       1 cuda_executor.cc:278] [0] failed to unload module 0x380284a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236336       1 cuda_executor.cc:278] [0] failed to unload module 0x41fc89f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236377       1 cuda_executor.cc:278] [0] failed to unload module 0x21ac38a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236394       1 cuda_executor.cc:278] [0] failed to unload module 0x4b7d9140; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236430       1 cuda_executor.cc:278] [0] failed to unload module 0x32e1bfb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236446       1 cuda_executor.cc:278] [0] failed to unload module 0x426646f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236465       1 cuda_executor.cc:278] [0] failed to unload module 0x4596d180; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236505       1 cuda_executor.cc:278] [0] failed to unload module 0x2a2fa420; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236545       1 cuda_executor.cc:278] [0] failed to unload module 0x4cdda620; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236565       1 cuda_executor.cc:278] [0] failed to unload module 0x1801d060; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236604       1 cuda_executor.cc:278] [0] failed to unload module 0x38c62fa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236627       1 cuda_executor.cc:278] [0] failed to unload module 0x42a39d70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236644       1 cuda_executor.cc:278] [0] failed to unload module 0x256e7d10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236683       1 cuda_executor.cc:278] [0] failed to unload module 0x40aa1c50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236704       1 cuda_executor.cc:278] [0] failed to unload module 0x32827050; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236750       1 cuda_executor.cc:278] [0] failed to unload module 0x3c279d50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236797       1 cuda_executor.cc:278] [0] failed to unload module 0x2011d8c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236831       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01200: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236867       1 cuda_executor.cc:278] [0] failed to unload module 0x1d834600; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236883       1 cuda_executor.cc:278] [0] failed to unload module 0x3f0efd10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236894       1 cuda_executor.cc:278] [0] failed to unload module 0x44809b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236910       1 cuda_executor.cc:278] [0] failed to unload module 0x34b258f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.236923       1 cuda_executor.cc:278] [0] failed to unload module 0x44a79d80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237000       1 cuda_executor.cc:278] [0] failed to unload module 0x1e902040; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237015       1 cuda_executor.cc:278] [0] failed to unload module 0x4b1a05a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237026       1 cuda_executor.cc:278] [0] failed to unload module 0x4af27c10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237038       1 cuda_executor.cc:278] [0] failed to unload module 0x23c91540; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237112       1 cuda_executor.cc:278] [0] failed to unload module 0x4ca2d960; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237157       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01400: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237171       1 cuda_executor.cc:278] [0] failed to unload module 0x1d777bb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237182       1 cuda_executor.cc:278] [0] failed to unload module 0x3f9dd900; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237218       1 cuda_executor.cc:278] [0] failed to unload module 0x2965e6c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237232       1 cuda_executor.cc:278] [0] failed to unload module 0x581078b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237244       1 cuda_executor.cc:278] [0] failed to unload module 0x3c4fed90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237265       1 cuda_executor.cc:278] [0] failed to unload module 0x432f6300; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237277       1 cuda_executor.cc:278] [0] failed to unload module 0x236e10e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237317       1 cuda_executor.cc:278] [0] failed to unload module 0x39054e80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237332       1 cuda_executor.cc:278] [0] failed to unload module 0x22596b10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237374       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01600: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237412       1 cuda_executor.cc:278] [0] failed to unload module 0x1f965d00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237428       1 cuda_executor.cc:278] [0] failed to unload module 0x3f307b40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237438       1 cuda_executor.cc:278] [0] failed to unload module 0x1e5d5900; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237448       1 cuda_executor.cc:278] [0] failed to unload module 0x400f7a70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237485       1 cuda_executor.cc:278] [0] failed to unload module 0x39738b70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237508       1 cuda_executor.cc:278] [0] failed to unload module 0x2c7ed7a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237520       1 cuda_executor.cc:278] [0] failed to unload module 0x3ce7e5f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237533       1 cuda_executor.cc:278] [0] failed to unload module 0x2fed56d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237548       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01800: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237557       1 cuda_executor.cc:278] [0] failed to unload module 0x2b56b7a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237567       1 cuda_executor.cc:278] [0] failed to unload module 0x446a95d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237580       1 cuda_executor.cc:278] [0] failed to unload module 0x2ad97fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237590       1 cuda_executor.cc:278] [0] failed to unload module 0x2bc48c00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237625       1 cuda_executor.cc:278] [0] failed to unload module 0x279b45c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237669       1 cuda_executor.cc:278] [0] failed to unload module 0x38d46bc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237685       1 cuda_executor.cc:278] [0] failed to unload module 0x27f52fa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237722       1 cuda_executor.cc:278] [0] failed to unload module 0x413a5740; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237760       1 cuda_executor.cc:278] [0] failed to unload module 0x231e4330; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237774       1 cuda_executor.cc:278] [0] failed to unload module 0x580c48e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237791       1 cuda_executor.cc:278] [0] failed to unload module 0x2453e530; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237799       1 cuda_executor.cc:278] [0] failed to unload module 0x22401470; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237846       1 cuda_executor.cc:278] [0] failed to unload module 0x4d4e6580; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237863       1 cuda_executor.cc:278] [0] failed to unload module 0x36c349a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237873       1 cuda_executor.cc:278] [0] failed to unload module 0x21b48eb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237889       1 cuda_executor.cc:278] [0] failed to unload module 0x34826ef0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237899       1 cuda_executor.cc:278] [0] failed to unload module 0x3f54f9b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237912       1 cuda_executor.cc:278] [0] failed to unload module 0x4de3f180; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.237966       1 cuda_executor.cc:278] [0] failed to unload module 0x20832860; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238003       1 cuda_executor.cc:278] [0] failed to unload module 0x18d61ed0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238016       1 cuda_executor.cc:278] [0] failed to unload module 0x4caafa40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238027       1 cuda_executor.cc:278] [0] failed to unload module 0x21144dd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238037       1 cuda_executor.cc:278] [0] failed to unload module 0x3f507610; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238055       1 cuda_executor.cc:278] [0] failed to unload module 0x4189f3b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238064       1 cuda_executor.cc:278] [0] failed to unload module 0x404f4890; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238075       1 cuda_executor.cc:278] [0] failed to unload module 0x1f396fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238087       1 cuda_executor.cc:278] [0] failed to unload module 0x2d67c0d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238111       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01a00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238144       1 cuda_executor.cc:278] [0] failed to unload module 0x32d81260; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238159       1 cuda_executor.cc:278] [0] failed to unload module 0x43eb6010; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238169       1 cuda_executor.cc:278] [0] failed to unload module 0x50f5ee50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238183       1 cuda_executor.cc:278] [0] failed to unload module 0x29f2fab0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238194       1 cuda_executor.cc:278] [0] failed to unload module 0x27fba5e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238269       1 cuda_executor.cc:278] [0] failed to unload module 0x2d0be460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238284       1 cuda_executor.cc:278] [0] failed to unload module 0x3cf97640; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238294       1 cuda_executor.cc:278] [0] failed to unload module 0x367da870; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238306       1 cuda_executor.cc:278] [0] failed to unload module 0x1e56c380; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238318       1 cuda_executor.cc:278] [0] failed to unload module 0x3f102610; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238334       1 cuda_executor.cc:278] [0] failed to unload module 0x3099fe70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238347       1 cuda_executor.cc:278] [0] failed to unload module 0x31484e60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238386       1 cuda_executor.cc:278] [0] failed to unload module 0x3ef4bf90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238434       1 cuda_executor.cc:278] [0] failed to unload module 0x35e7d870; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238456       1 cuda_executor.cc:278] [0] failed to unload module 0x2cb7f430; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238474       1 cuda_executor.cc:278] [0] failed to unload module 0x1620d9d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238515       1 cuda_executor.cc:278] [0] failed to unload module 0x1f0985c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238554       1 cuda_executor.cc:278] [0] failed to unload module 0x3aa34660; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238572       1 cuda_executor.cc:278] [0] failed to unload module 0x51094830; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238614       1 cuda_executor.cc:278] [0] failed to unload module 0x1e4e82e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238656       1 cuda_executor.cc:278] [0] failed to unload module 0x29f87e80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238701       1 cuda_executor.cc:278] [0] failed to unload module 0x208288a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238741       1 cuda_executor.cc:278] [0] failed to unload module 0x2999eef0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238759       1 cuda_executor.cc:278] [0] failed to unload module 0x292b4a80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238779       1 cuda_executor.cc:278] [0] failed to unload module 0x442ec0c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238793       1 cuda_executor.cc:278] [0] failed to unload module 0x35ea5fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238825       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01c00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238869       1 cuda_executor.cc:278] [0] failed to unload module 0x49c65a10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238888       1 cuda_executor.cc:278] [0] failed to unload module 0x204bd8b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238904       1 cuda_executor.cc:278] [0] failed to unload module 0x572ba820; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238923       1 cuda_executor.cc:278] [0] failed to unload module 0x59830900; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.238965       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02200: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239044       1 cuda_executor.cc:278] [0] failed to unload module 0x20719660; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239067       1 cuda_executor.cc:278] [0] failed to unload module 0x3f48ba10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239087       1 cuda_executor.cc:278] [0] failed to unload module 0x21474df0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239130       1 cuda_executor.cc:278] [0] failed to unload module 0x1e0a2fc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239169       1 cuda_executor.cc:278] [0] failed to unload module 0x2d1a4690; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239186       1 cuda_executor.cc:278] [0] failed to unload module 0x2ace2e00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239225       1 cuda_executor.cc:278] [0] failed to unload module 0x20700f90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239242       1 cuda_executor.cc:278] [0] failed to unload module 0x2b244ec0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239275       1 cuda_executor.cc:278] [0] failed to unload module 0x2d7e0ca0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239295       1 cuda_executor.cc:278] [0] failed to unload module 0x22a17e40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239337       1 cuda_executor.cc:278] [0] failed to unload module 0x2c5c5dc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239355       1 cuda_executor.cc:278] [0] failed to unload module 0x2665e7e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239376       1 cuda_executor.cc:278] [0] failed to unload module 0x367ba0d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239425       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c01e00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239447       1 cuda_executor.cc:278] [0] failed to unload module 0x2b4beda0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239466       1 cuda_executor.cc:278] [0] failed to unload module 0x1dbeb0c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239507       1 cuda_executor.cc:278] [0] failed to unload module 0x247c5f20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239557       1 cuda_executor.cc:278] [0] failed to unload module 0x3681a7f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239580       1 cuda_executor.cc:278] [0] failed to unload module 0x2c7ecf50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239620       1 cuda_executor.cc:278] [0] failed to unload module 0x18df8340; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239679       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239701       1 cuda_executor.cc:278] [0] failed to unload module 0x3cf91060; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239733       1 cuda_executor.cc:278] [0] failed to unload module 0x3f6a4270; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239759       1 cuda_executor.cc:278] [0] failed to unload module 0x23526f70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239797       1 cuda_executor.cc:278] [0] failed to unload module 0x3f670e50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239841       1 cuda_executor.cc:278] [0] failed to unload module 0x41378190; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239862       1 cuda_executor.cc:278] [0] failed to unload module 0x3cf8bd30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239902       1 cuda_executor.cc:278] [0] failed to unload module 0x294cad10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239922       1 cuda_executor.cc:278] [0] failed to unload module 0x29dca870; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239942       1 cuda_executor.cc:278] [0] failed to unload module 0x40ac6cb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.239983       1 cuda_executor.cc:278] [0] failed to unload module 0x3ee721b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240027       1 cuda_executor.cc:278] [0] failed to unload module 0x1fb1fcd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240063       1 cuda_executor.cc:278] [0] failed to unload module 0x1e526e50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240079       1 cuda_executor.cc:278] [0] failed to unload module 0x4215cff0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240102       1 cuda_executor.cc:278] [0] failed to unload module 0x41e7a970; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240147       1 cuda_executor.cc:278] [0] failed to unload module 0x29808580; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240165       1 cuda_executor.cc:278] [0] failed to unload module 0x41151820; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240179       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02600: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240217       1 cuda_executor.cc:278] [0] failed to unload module 0x269a2370; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240233       1 cuda_executor.cc:278] [0] failed to unload module 0x5230c460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240255       1 cuda_executor.cc:278] [0] failed to unload module 0x2ac41960; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240316       1 cuda_executor.cc:278] [0] failed to unload module 0x38e00420; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240355       1 cuda_executor.cc:278] [0] failed to unload module 0x2da9a440; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240371       1 cuda_executor.cc:278] [0] failed to unload module 0x3e6d8480; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240385       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02400: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240392       1 cuda_executor.cc:278] [0] failed to unload module 0x3f1ef930; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240403       1 cuda_executor.cc:278] [0] failed to unload module 0x25300300; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240441       1 cuda_executor.cc:278] [0] failed to unload module 0x26364740; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240463       1 cuda_executor.cc:278] [0] failed to unload module 0x425d9b40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240503       1 cuda_executor.cc:278] [0] failed to unload module 0x2e0ec080; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240528       1 cuda_executor.cc:278] [0] failed to unload module 0x2b70c690; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240539       1 cuda_executor.cc:278] [0] failed to unload module 0x2fbcd740; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240558       1 cuda_executor.cc:278] [0] failed to unload module 0x4bb5ce60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240593       1 cuda_executor.cc:278] [0] failed to unload module 0x1e828e30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240655       1 cuda_executor.cc:278] [0] failed to unload module 0x31f35750; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240703       1 cuda_executor.cc:278] [0] failed to unload module 0x41f6fd40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240724       1 cuda_executor.cc:278] [0] failed to unload module 0x32af4270; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240747       1 cuda_executor.cc:278] [0] failed to unload module 0x3066af80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240787       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02e00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240806       1 cuda_executor.cc:278] [0] failed to unload module 0x22f9db60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240864       1 cuda_executor.cc:278] [0] failed to unload module 0x262a26d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240912       1 cuda_executor.cc:278] [0] failed to unload module 0x262c2a00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240923       1 cuda_executor.cc:278] [0] failed to unload module 0x324a8b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240934       1 cuda_executor.cc:278] [0] failed to unload module 0x2308c270; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240946       1 cuda_executor.cc:278] [0] failed to unload module 0x3f0ec950; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240958       1 cuda_executor.cc:278] [0] failed to unload module 0x1e569da0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240966       1 cuda_executor.cc:278] [0] failed to unload module 0x4c82e640; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240975       1 cuda_executor.cc:278] [0] failed to unload module 0x22f1b750; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.240989       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02800: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241017       1 cuda_executor.cc:278] [0] failed to unload module 0x3518af50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241058       1 cuda_executor.cc:278] [0] failed to unload module 0x23513750; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241102       1 cuda_executor.cc:278] [0] failed to unload module 0x402d2d50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241120       1 cuda_executor.cc:278] [0] failed to unload module 0x203d6800; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241129       1 cuda_executor.cc:278] [0] failed to unload module 0x297adc30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241168       1 cuda_executor.cc:278] [0] failed to unload module 0x3ccba450; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241184       1 cuda_executor.cc:278] [0] failed to unload module 0x4e0b6b40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241247       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02a00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241262       1 cuda_executor.cc:278] [0] failed to unload module 0x22bad560; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241271       1 cuda_executor.cc:278] [0] failed to unload module 0x38cccc40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241278       1 cuda_executor.cc:278] [0] failed to unload module 0x4de2bad0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241288       1 cuda_executor.cc:278] [0] failed to unload module 0x296a5200; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241299       1 cuda_executor.cc:278] [0] failed to unload module 0x3ee73ab0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241353       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c02c00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241382       1 cuda_executor.cc:278] [0] failed to unload module 0x2cb99720; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241394       1 cuda_executor.cc:278] [0] failed to unload module 0x279df910; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241408       1 cuda_executor.cc:278] [0] failed to unload module 0x2e7f1280; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241427       1 cuda_executor.cc:278] [0] failed to unload module 0x43948840; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241446       1 cuda_executor.cc:278] [0] failed to unload module 0x1e0fb110; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241476       1 cuda_executor.cc:278] [0] failed to unload module 0x3a771720; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241486       1 cuda_executor.cc:278] [0] failed to unload module 0x1d78c810; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241501       1 cuda_executor.cc:278] [0] failed to unload module 0x1efe05c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241515       1 cuda_executor.cc:278] [0] failed to unload module 0x46fe98d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241554       1 cuda_executor.cc:278] [0] failed to unload module 0x2b7ae240; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241569       1 cuda_executor.cc:278] [0] failed to unload module 0x36141040; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241611       1 cuda_executor.cc:278] [0] failed to unload module 0x26005b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241648       1 cuda_executor.cc:278] [0] failed to unload module 0x3e03abf0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241660       1 cuda_executor.cc:278] [0] failed to unload module 0x274b1660; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241688       1 cuda_executor.cc:278] [0] failed to unload module 0x2e65a1d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241704       1 cuda_executor.cc:278] [0] failed to unload module 0x49f1d090; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241714       1 cuda_executor.cc:278] [0] failed to unload module 0x4dfe3780; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241723       1 cuda_executor.cc:278] [0] failed to unload module 0x1ea4f8a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241733       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03200: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241739       1 cuda_executor.cc:278] [0] failed to unload module 0x414d8050; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241766       1 cuda_executor.cc:278] [0] failed to unload module 0x2b142d90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241805       1 cuda_executor.cc:278] [0] failed to unload module 0x29923fd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241818       1 cuda_executor.cc:278] [0] failed to unload module 0x3f8158d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241825       1 cuda_executor.cc:278] [0] failed to unload module 0x3af511b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241832       1 cuda_executor.cc:278] [0] failed to unload module 0x20254b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241844       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241874       1 cuda_executor.cc:278] [0] failed to unload module 0x2a02dbb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241890       1 cuda_executor.cc:278] [0] failed to unload module 0x20819ee0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241901       1 cuda_executor.cc:278] [0] failed to unload module 0x21102690; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241930       1 cuda_executor.cc:278] [0] failed to unload module 0x2d84dcd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241942       1 cuda_executor.cc:278] [0] failed to unload module 0x3aeb29c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241953       1 cuda_executor.cc:278] [0] failed to unload module 0x37e3d430; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241961       1 cuda_executor.cc:278] [0] failed to unload module 0x3f449270; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241969       1 cuda_executor.cc:278] [0] failed to unload module 0x3f479da0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241978       1 cuda_executor.cc:278] [0] failed to unload module 0x3c148b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241984       1 cuda_executor.cc:278] [0] failed to unload module 0x2830b1a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.241992       1 cuda_executor.cc:278] [0] failed to unload module 0x2f140440; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242002       1 cuda_executor.cc:278] [0] failed to unload module 0x217f4430; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242009       1 cuda_executor.cc:278] [0] failed to unload module 0x3f0bd100; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242040       1 cuda_executor.cc:278] [0] failed to unload module 0x2cb78bc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242062       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03400: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242068       1 cuda_executor.cc:278] [0] failed to unload module 0x382db900; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242100       1 cuda_executor.cc:278] [0] failed to unload module 0x1d7a5ff0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242117       1 cuda_executor.cc:278] [0] failed to unload module 0x2006cd40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242154       1 cuda_executor.cc:278] [0] failed to unload module 0x3f0ddfe0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242172       1 cuda_executor.cc:278] [0] failed to unload module 0x42b70990; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242187       1 cuda_executor.cc:278] [0] failed to unload module 0x36a5f3b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242195       1 cuda_executor.cc:278] [0] failed to unload module 0x41ffb2d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242203       1 cuda_executor.cc:278] [0] failed to unload module 0x32ff7a40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242210       1 cuda_executor.cc:278] [0] failed to unload module 0x3c5081a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242217       1 cuda_executor.cc:278] [0] failed to unload module 0x27211460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242227       1 cuda_executor.cc:278] [0] failed to unload module 0x4dba8a60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242237       1 cuda_executor.cc:278] [0] failed to unload module 0x4e132e60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242271       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03600: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242281       1 cuda_executor.cc:278] [0] failed to unload module 0x3ea5e150; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242289       1 cuda_executor.cc:278] [0] failed to unload module 0x269bff70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242311       1 cuda_executor.cc:278] [0] failed to unload module 0x4e100d70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242324       1 cuda_executor.cc:278] [0] failed to unload module 0x1f092bb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242333       1 cuda_executor.cc:278] [0] failed to unload module 0x3af395b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242353       1 cuda_executor.cc:278] [0] failed to unload module 0x2ca91920; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242376       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03800: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242414       1 cuda_executor.cc:278] [0] failed to unload module 0x378b0510; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242437       1 cuda_executor.cc:278] [0] failed to unload module 0x2cc685e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242480       1 cuda_executor.cc:278] [0] failed to unload module 0x49ff77a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242502       1 cuda_executor.cc:278] [0] failed to unload module 0x22255b30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242512       1 cuda_executor.cc:278] [0] failed to unload module 0x1dfcab10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242528       1 cuda_executor.cc:278] [0] failed to unload module 0x26527f90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242584       1 cuda_executor.cc:278] [0] failed to unload module 0x243f6200; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242615       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03a00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242653       1 cuda_executor.cc:278] [0] failed to unload module 0x40ac8fa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242673       1 cuda_executor.cc:278] [0] failed to unload module 0x2b544240; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242704       1 cuda_executor.cc:278] [0] failed to unload module 0x22404aa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242717       1 cuda_executor.cc:278] [0] failed to unload module 0x3e9b3340; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242726       1 cuda_executor.cc:278] [0] failed to unload module 0x42a20710; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242739       1 cuda_executor.cc:278] [0] failed to unload module 0x3ca4c670; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242748       1 cuda_executor.cc:278] [0] failed to unload module 0x4ccba9f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242757       1 cuda_executor.cc:278] [0] failed to unload module 0x224fcf80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242770       1 cuda_executor.cc:278] [0] failed to unload module 0x27b3b1f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242783       1 cuda_executor.cc:278] [0] failed to unload module 0x43c117f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242800       1 cuda_executor.cc:278] [0] failed to unload module 0x369907a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242921       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03c00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242940       1 cuda_executor.cc:278] [0] failed to unload module 0x2557bc70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242959       1 cuda_executor.cc:278] [0] failed to unload module 0x3edde9d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.242980       1 cuda_executor.cc:278] [0] failed to unload module 0x2d0a0610; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243024       1 cuda_executor.cc:278] [0] failed to unload module 0x25df3e50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243047       1 cuda_executor.cc:278] [0] failed to unload module 0x2875a130; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243103       1 cuda_executor.cc:278] [0] failed to unload module 0x23534f00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243144       1 cuda_executor.cc:278] [0] failed to unload module 0x36802000; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243182       1 cuda_executor.cc:278] [0] failed to unload module 0x2481e7d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243196       1 cuda_executor.cc:278] [0] failed to unload module 0x2320e060; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243209       1 cuda_executor.cc:278] [0] failed to unload module 0x3f9cb200; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243221       1 cuda_executor.cc:278] [0] failed to unload module 0x42172cf0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243246       1 cuda_executor.cc:278] [0] failed to unload module 0x26205e20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243285       1 cuda_executor.cc:278] [0] failed to unload module 0x27994910; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243301       1 cuda_executor.cc:278] [0] failed to unload module 0x211b7e20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243345       1 cuda_executor.cc:278] [0] failed to unload module 0x4dc49980; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243364       1 cuda_executor.cc:278] [0] failed to unload module 0x37fec160; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243401       1 cuda_executor.cc:278] [0] failed to unload module 0x4b447fa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243422       1 cuda_executor.cc:278] [0] failed to unload module 0x2452fec0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243463       1 cuda_executor.cc:278] [0] failed to unload module 0x1d277190; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243488       1 cuda_executor.cc:278] [0] failed to unload module 0x2cde9d70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243512       1 cuda_executor.cc:278] [0] failed to unload module 0x48620eb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243530       1 cuda_executor.cc:278] [0] failed to unload module 0x25e95880; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243580       1 cuda_executor.cc:278] [0] failed to unload module 0x324aa070; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243595       1 cuda_executor.cc:278] [0] failed to unload module 0x3f23dc00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243638       1 cuda_executor.cc:278] [0] failed to unload module 0x4d11efd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243676       1 cuda_executor.cc:278] [0] failed to unload module 0x3db12810; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243711       1 cuda_executor.cc:278] [0] failed to unload module 0x4df8eb10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243736       1 cuda_executor.cc:278] [0] failed to unload module 0x40ae34e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243755       1 cuda_executor.cc:278] [0] failed to unload module 0x26a6fa70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243774       1 cuda_executor.cc:278] [0] failed to unload module 0x1f22fac0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243869       1 cuda_executor.cc:278] [0] failed to unload module 0x2b9926d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243883       1 cuda_executor.cc:278] [0] failed to unload module 0x3eab3650; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243911       1 cuda_executor.cc:278] [0] failed to unload module 0x3f4563c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243923       1 cuda_executor.cc:278] [0] failed to unload module 0x4d603460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243952       1 cuda_executor.cc:278] [0] failed to unload module 0x2e12f4b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243967       1 cuda_executor.cc:278] [0] failed to unload module 0x32b32180; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243976       1 cuda_executor.cc:278] [0] failed to unload module 0x29b36760; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.243984       1 cuda_executor.cc:278] [0] failed to unload module 0x3276e920; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244016       1 cuda_executor.cc:278] [0] failed to unload module 0x27ee3ee0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244028       1 cuda_executor.cc:278] [0] failed to unload module 0x3d76f740; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244056       1 cuda_executor.cc:278] [0] failed to unload module 0x3a455680; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244067       1 cuda_executor.cc:278] [0] failed to unload module 0x2da9b0e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244100       1 cuda_executor.cc:278] [0] failed to unload module 0x3108e430; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244131       1 cuda_executor.cc:278] [0] failed to unload module 0x31c834c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244145       1 cuda_executor.cc:278] [0] failed to unload module 0x2d0bb570; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244154       1 cuda_executor.cc:278] [0] failed to unload module 0x496678a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244161       1 cuda_executor.cc:278] [0] failed to unload module 0x3fd03c40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244168       1 cuda_executor.cc:278] [0] failed to unload module 0x28bf6980; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244175       1 cuda_executor.cc:278] [0] failed to unload module 0x2078dc00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244183       1 cuda_executor.cc:278] [0] failed to unload module 0x381a4f60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244191       1 cuda_executor.cc:278] [0] failed to unload module 0x269ab710; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244199       1 cuda_executor.cc:278] [0] failed to unload module 0x4e0794e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244213       1 cuda_executor.cc:278] [0] failed to unload module 0x3ee684e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244221       1 cuda_executor.cc:278] [0] failed to unload module 0x2357c350; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244228       1 cuda_executor.cc:278] [0] failed to unload module 0x20015590; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244237       1 cuda_executor.cc:278] [0] failed to unload module 0x1f6f83e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244245       1 cuda_executor.cc:278] [0] failed to unload module 0x4cf5cc30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244255       1 cuda_executor.cc:278] [0] failed to unload module 0x314523f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244268       1 cuda_executor.cc:278] [0] failed to unload module 0x27d834d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244307       1 cuda_executor.cc:278] [0] failed to unload module 0x4d32cbe0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244320       1 cuda_executor.cc:278] [0] failed to unload module 0x31cfbc00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244334       1 cuda_executor.cc:278] [0] failed to unload module 0x38c8a510; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244355       1 cuda_executor.cc:278] [0] failed to unload module 0x5beb4c80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244371       1 cuda_executor.cc:278] [0] failed to unload module 0x230907c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244383       1 cuda_executor.cc:278] [0] failed to unload module 0x216d3dc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244390       1 cuda_executor.cc:278] [0] failed to unload module 0x29d0bbe0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244402       1 cuda_executor.cc:278] [0] failed to unload module 0x44234840; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244443       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c03e00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244469       1 cuda_executor.cc:278] [0] failed to unload module 0x297f5bb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244497       1 cuda_executor.cc:278] [0] failed to unload module 0x2d67b420; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244534       1 cuda_executor.cc:278] [0] failed to unload module 0x4d778430; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244572       1 cuda_executor.cc:278] [0] failed to unload module 0x4181a000; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244624       1 cuda_executor.cc:278] [0] failed to unload module 0x36126e10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244678       1 cuda_executor.cc:278] [0] failed to unload module 0x59144130; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244699       1 cuda_executor.cc:278] [0] failed to unload module 0x43a7aea0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244712       1 cuda_executor.cc:278] [0] failed to unload module 0x1d564bc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244758       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244778       1 cuda_executor.cc:278] [0] failed to unload module 0x24ac6fb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244791       1 cuda_executor.cc:278] [0] failed to unload module 0x25d5f030; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244802       1 cuda_executor.cc:278] [0] failed to unload module 0x37fe2000; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244842       1 cuda_executor.cc:278] [0] failed to unload module 0x268c8420; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244878       1 cuda_executor.cc:278] [0] failed to unload module 0x4de7bfe0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244913       1 cuda_executor.cc:278] [0] failed to unload module 0x4d65ccb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244927       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04200: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244932       1 cuda_executor.cc:278] [0] failed to unload module 0x4a4bb4f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244963       1 cuda_executor.cc:278] [0] failed to unload module 0x3971c390; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.244998       1 cuda_executor.cc:278] [0] failed to unload module 0x40d3f480; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245022       1 cuda_executor.cc:278] [0] failed to unload module 0x212f4460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245040       1 cuda_executor.cc:278] [0] failed to unload module 0x2bb12ab0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245058       1 cuda_executor.cc:278] [0] failed to unload module 0x3e9c52d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245068       1 cuda_executor.cc:278] [0] failed to unload module 0x3304aad0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245076       1 cuda_executor.cc:278] [0] failed to unload module 0x369219a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245085       1 cuda_executor.cc:278] [0] failed to unload module 0x212f0dd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245093       1 cuda_executor.cc:278] [0] failed to unload module 0x368835b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245124       1 cuda_executor.cc:278] [0] failed to unload module 0x367d7940; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245135       1 cuda_executor.cc:278] [0] failed to unload module 0x3c640dd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245147       1 cuda_executor.cc:278] [0] failed to unload module 0x1c690190; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245154       1 cuda_executor.cc:278] [0] failed to unload module 0x29b443e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245191       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04400: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245204       1 cuda_executor.cc:278] [0] failed to unload module 0x34eac5a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245211       1 cuda_executor.cc:278] [0] failed to unload module 0x3c5b9e50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245243       1 cuda_executor.cc:278] [0] failed to unload module 0x2638f050; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245255       1 cuda_executor.cc:278] [0] failed to unload module 0x1dd09b40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245288       1 cuda_executor.cc:278] [0] failed to unload module 0x3e771af0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245329       1 cuda_executor.cc:278] [0] failed to unload module 0x299b6be0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245364       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04600: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245374       1 cuda_executor.cc:278] [0] failed to unload module 0x2a237980; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245382       1 cuda_executor.cc:278] [0] failed to unload module 0x2492a300; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245389       1 cuda_executor.cc:278] [0] failed to unload module 0x3bd2a320; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245400       1 cuda_executor.cc:278] [0] failed to unload module 0x265187b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245409       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04800: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245437       1 cuda_executor.cc:278] [0] failed to unload module 0x27b416e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245457       1 cuda_executor.cc:278] [0] failed to unload module 0x5505e940; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245473       1 cuda_executor.cc:278] [0] failed to unload module 0x24c77780; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245514       1 cuda_executor.cc:278] [0] failed to unload module 0x4ce3b280; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245536       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04a00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245551       1 cuda_executor.cc:278] [0] failed to unload module 0x5b083df0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245571       1 cuda_executor.cc:278] [0] failed to unload module 0x40e10970; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245611       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04c00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245622       1 cuda_executor.cc:278] [0] failed to unload module 0x1e69e3c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245635       1 cuda_executor.cc:278] [0] failed to unload module 0x5ba846b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245654       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c04e00: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245666       1 cuda_executor.cc:278] [0] failed to unload module 0x4d9a4370; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245710       1 cuda_executor.cc:278] [0] failed to unload module 0x37fc2d20; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245758       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c05000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245769       1 cuda_executor.cc:278] [0] failed to unload module 0x1f2a6a90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245781       1 cuda_executor.cc:278] [0] failed to unload module 0x3ee3b370; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245796       1 cuda_executor.cc:278] [0] failed to unload module 0x3f0d8170; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245837       1 cuda_executor.cc:278] [0] failed to unload module 0x41a69bf0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245877       1 cuda_executor.cc:278] [0] failed to unload module 0x32897a50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245890       1 cuda_executor.cc:278] [0] failed to unload module 0x2fc71690; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245897       1 cuda_executor.cc:278] [0] failed to unload module 0x44a97560; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245905       1 cuda_executor.cc:278] [0] failed to unload module 0x3eeff170; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245917       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204c05200: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245950       1 cuda_executor.cc:278] [0] failed to unload module 0x3482b460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245966       1 cuda_executor.cc:278] [0] failed to unload module 0x20ee5110; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245974       1 cuda_executor.cc:278] [0] failed to unload module 0x42a6d5c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245981       1 cuda_executor.cc:278] [0] failed to unload module 0x42072710; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.245990       1 cuda_executor.cc:278] [0] failed to unload module 0x35083300; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246027       1 cuda_executor.cc:278] [0] failed to unload module 0x29657070; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246059       1 cuda_executor.cc:278] [0] failed to unload module 0x4d25bab0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246076       1 cuda_executor.cc:278] [0] failed to unload module 0x20625960; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246089       1 cuda_executor.cc:278] [0] failed to unload module 0x34cfd5b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246125       1 cuda_executor.cc:278] [0] failed to unload module 0x4761dc10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246144       1 cuda_executor.cc:278] [0] failed to unload module 0x2b170e00; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246162       1 cuda_executor.cc:278] [0] failed to unload module 0x25c79140; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246176       1 cuda_executor.cc:278] [0] failed to unload module 0x22ee8840; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246215       1 cuda_executor.cc:278] [0] failed to unload module 0x1deaecb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246230       1 cuda_executor.cc:278] [0] failed to unload module 0x2a7d4e10; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246245       1 cuda_executor.cc:278] [0] failed to unload module 0x3f3363d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246263       1 cuda_executor.cc:278] [0] failed to unload module 0x34b74290; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246306       1 cuda_executor.cc:278] [0] failed to unload module 0x22c1bf60; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246327       1 cuda_executor.cc:278] [0] failed to unload module 0x4cbdfeb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246338       1 cuda_executor.cc:278] [0] failed to unload module 0x23661840; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246346       1 cuda_executor.cc:278] [0] failed to unload module 0x23fb9910; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246353       1 cuda_executor.cc:278] [0] failed to unload module 0x429ee7e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246376       1 cuda_executor.cc:278] [0] failed to unload module 0x2b3a8fc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246408       1 cuda_executor.cc:278] [0] failed to unload module 0x410b0f70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246419       1 cuda_executor.cc:278] [0] failed to unload module 0x35eae9f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246442       1 cuda_executor.cc:278] [0] failed to unload module 0x254310e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246474       1 cuda_executor.cc:278] [0] failed to unload module 0x474d58f0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246485       1 cuda_executor.cc:278] [0] failed to unload module 0x3e9aa1d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246495       1 cuda_executor.cc:278] [0] failed to unload module 0x3f97dcb0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246502       1 cuda_executor.cc:278] [0] failed to unload module 0x2b8572d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246509       1 cuda_executor.cc:278] [0] failed to unload module 0x412420c0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246540       1 cuda_executor.cc:278] [0] failed to unload module 0x3009e590; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246550       1 cuda_executor.cc:278] [0] failed to unload module 0x3f2554a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246561       1 cuda_executor.cc:278] [0] failed to unload module 0x23641fa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246590       1 cuda_executor.cc:278] [0] failed to unload module 0x49748350; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246601       1 cuda_executor.cc:278] [0] failed to unload module 0x2fa28250; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246630       1 cuda_executor.cc:278] [0] failed to unload module 0x28e6ce90; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246641       1 cuda_executor.cc:278] [0] failed to unload module 0x2b5eb510; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246649       1 cuda_executor.cc:278] [0] failed to unload module 0x29708df0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246657       1 cuda_executor.cc:278] [0] failed to unload module 0x2033e5d0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246665       1 cuda_executor.cc:278] [0] failed to unload module 0x43c5c480; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246672       1 cuda_executor.cc:278] [0] failed to unload module 0x2b15a7e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246679       1 cuda_executor.cc:278] [0] failed to unload module 0x25536f40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246689       1 cuda_executor.cc:278] [0] failed to unload module 0x1dd48aa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.246696       1 cuda_executor.cc:278] [0] failed to unload module 0x4764fd40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.322790       1 cuda_executor.cc:278] [0] failed to unload module 0x246d3a40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+Traceback (most recent call last):
+  File "/workspace/scripts/run_candidate_experiment.py", line 43, in main
+    run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
+  File "/workspace/src/pipeline/candidate_experiment.py", line 189, in run_experiment
+    key = jax.random.PRNGKey(seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 286, in PRNGKey
+    return _return_prng_keys(True, _key('PRNGKey', seed, impl))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 230, in _key
+    return prng.random_seed(seed, impl=impl)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/prng.py", line 563, in random_seed
+    seeds_arr = jnp.asarray(np.int64(seeds))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 453, in asarray
+    return array(a, dtype=dtype, copy=bool(copy), order=order, device=device,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 206, in array
+    return lax.stage(object)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 1626, in stage
+    return stage_p.bind(x)
+           ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 705, in bind
+    return self.bind_with_trace(prev_trace, args, avals, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5406, in _stage_bind_with_trace
+    return trace.stage_value(args[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1283, in stage_value
+    return self.process_primitive(stage_p, [val], {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1294, in process_primitive
+    return primitive.impl(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5396, in _stage_impl
+    return dispatch.apply_primitive(stage_p, x)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+    outs = fun(*args)
+           ^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Error recording CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+Traceback (most recent call last):
+  File "/workspace/scripts/run_candidate_experiment.py", line 43, in main
+    run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
+  File "/workspace/src/pipeline/candidate_experiment.py", line 189, in run_experiment
+    key = jax.random.PRNGKey(seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 286, in PRNGKey
+    return _return_prng_keys(True, _key('PRNGKey', seed, impl))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 230, in _key
+    return prng.random_seed(seed, impl=impl)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/prng.py", line 563, in random_seed
+    seeds_arr = jnp.asarray(np.int64(seeds))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 453, in asarray
+    return array(a, dtype=dtype, copy=bool(copy), order=order, device=device,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 206, in array
+    return lax.stage(object)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 1626, in stage
+    return stage_p.bind(x)
+           ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 705, in bind
+    return self.bind_with_trace(prev_trace, args, avals, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5406, in _stage_bind_with_trace
+    return trace.stage_value(args[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1283, in stage_value
+    return self.process_primitive(stage_p, [val], {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1294, in process_primitive
+    return primitive.impl(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5396, in _stage_impl
+    return dispatch.apply_primitive(stage_p, x)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+    outs = fun(*args)
+           ^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Error recording CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+Traceback (most recent call last):
+  File "/workspace/scripts/run_candidate_experiment.py", line 43, in main
+    run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
+  File "/workspace/src/pipeline/candidate_experiment.py", line 189, in run_experiment
+    key = jax.random.PRNGKey(seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 286, in PRNGKey
+    return _return_prng_keys(True, _key('PRNGKey', seed, impl))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 230, in _key
+    return prng.random_seed(seed, impl=impl)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/prng.py", line 563, in random_seed
+    seeds_arr = jnp.asarray(np.int64(seeds))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 453, in asarray
+    return array(a, dtype=dtype, copy=bool(copy), order=order, device=device,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 206, in array
+    return lax.stage(object)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 1626, in stage
+    return stage_p.bind(x)
+           ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 705, in bind
+    return self.bind_with_trace(prev_trace, args, avals, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5406, in _stage_bind_with_trace
+    return trace.stage_value(args[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1283, in stage_value
+    return self.process_primitive(stage_p, [val], {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1294, in process_primitive
+    return primitive.impl(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5396, in _stage_impl
+    return dispatch.apply_primitive(stage_p, x)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+    outs = fun(*args)
+           ^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Error recording CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+Traceback (most recent call last):
+  File "/workspace/scripts/run_candidate_experiment.py", line 43, in main
+    run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
+  File "/workspace/src/pipeline/candidate_experiment.py", line 189, in run_experiment
+    key = jax.random.PRNGKey(seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 286, in PRNGKey
+    return _return_prng_keys(True, _key('PRNGKey', seed, impl))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 230, in _key
+    return prng.random_seed(seed, impl=impl)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/prng.py", line 563, in random_seed
+    seeds_arr = jnp.asarray(np.int64(seeds))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 453, in asarray
+    return array(a, dtype=dtype, copy=bool(copy), order=order, device=device,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 206, in array
+    return lax.stage(object)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 1626, in stage
+    return stage_p.bind(x)
+           ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 705, in bind
+    return self.bind_with_trace(prev_trace, args, avals, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5406, in _stage_bind_with_trace
+    return trace.stage_value(args[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1283, in stage_value
+    return self.process_primitive(stage_p, [val], {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1294, in process_primitive
+    return primitive.impl(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5396, in _stage_impl
+    return dispatch.apply_primitive(stage_p, x)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+    outs = fun(*args)
+           ^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Error recording CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+Traceback (most recent call last):
+  File "/workspace/scripts/run_candidate_experiment.py", line 43, in main
+    run_experiment(name, a.out, updates=a.updates, batch=a.batch, T=a.T, d_model=a.d_model,
+  File "/workspace/src/pipeline/candidate_experiment.py", line 189, in run_experiment
+    key = jax.random.PRNGKey(seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 286, in PRNGKey
+    return _return_prng_keys(True, _key('PRNGKey', seed, impl))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/core.py", line 230, in _key
+    return prng.random_seed(seed, impl=impl)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/random/prng.py", line 563, in random_seed
+    seeds_arr = jnp.asarray(np.int64(seeds))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 453, in asarray
+    return array(a, dtype=dtype, copy=bool(copy), order=order, device=device,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/numpy/array_constructors.py", line 206, in array
+    return lax.stage(object)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 1626, in stage
+    return stage_p.bind(x)
+           ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 705, in bind
+    return self.bind_with_trace(prev_trace, args, avals, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5406, in _stage_bind_with_trace
+    return trace.stage_value(args[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1283, in stage_value
+    return self.process_primitive(stage_p, [val], {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/core.py", line 1294, in process_primitive
+    return primitive.impl(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/lax/lax.py", line 5396, in _stage_impl
+    return dispatch.apply_primitive(stage_p, x)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+    outs = fun(*args)
+           ^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Error recording CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+E0926 06:04:08.986657       1 cuda_executor.cc:278] [0] failed to unload module 0x17f4f750; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.992025       1 cuda_executor.cc:278] [0] failed to unload module 0x18229630; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.994701       1 cuda_executor.cc:278] [0] failed to unload module 0x1c50a970; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:08.998732       1 cuda_executor.cc:278] [0] failed to unload module 0x1b41d300; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.003377       1 cuda_executor.cc:278] [0] failed to unload module 0x1a778c30; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.004265       1 cuda_executor.cc:278] [0] failed to unload module 0x192e7b40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.004581       1 cuda_executor.cc:278] [0] failed to unload module 0x19c7fab0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.005795       1 cuda_executor.cc:278] [0] failed to unload module 0x1c4ef810; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.006045       1 cuda_executor.cc:278] [0] failed to unload module 0x1c5bd130; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.006373       1 cuda_executor.cc:278] [0] failed to unload module 0x1c8a76a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.007021       1 cuda_executor.cc:278] [0] failed to unload module 0x1c893040; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.007328       1 cuda_executor.cc:278] [0] failed to unload module 0x1c385380; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.007597       1 cuda_executor.cc:278] [0] failed to unload module 0x1c105c50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.007929       1 cuda_executor.cc:278] [0] failed to unload module 0x1b1240a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.008466       1 cuda_executor.cc:278] [0] failed to unload module 0x1cb2ac80; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.008916       1 cuda_executor.cc:278] [0] failed to unload module 0x1b7880a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.009417       1 cuda_executor.cc:278] [0] failed to unload module 0x1cd0c850; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.009729       1 cuda_executor.cc:278] [0] failed to unload module 0x1b852ef0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.010195       1 cuda_executor.cc:278] [0] failed to unload module 0x1cdadc50; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.012910       1 cuda_executor.cc:278] [0] failed to unload module 0x19e99cc0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.013589       1 cuda_executor.cc:278] [0] failed to unload module 0x1b542060; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.014473       1 cuda_executor.cc:278] [0] failed to unload module 0x1a6efd40; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.016702       1 cuda_executor.cc:278] [0] failed to unload module 0x1a2c96b0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.017644       1 cuda_executor.cc:278] [0] failed to unload module 0x19ce2200; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.019289       1 cuda_executor.cc:278] [0] failed to unload module 0x1a1b2aa0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.020351       1 cuda_executor.cc:278] [0] failed to unload module 0x1a718620; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.021321       1 cuda_executor.cc:278] [0] failed to unload module 0x1acc7640; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.022441       1 cuda_executor.cc:278] [0] failed to unload module 0x1b0b3460; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.024184       1 cuda_executor.cc:278] [0] failed to unload module 0x1b9f1090; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.025737       1 cuda_executor.cc:278] [0] failed to unload module 0x1be143a0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.028057       1 cuda_executor.cc:278] [0] failed to unload module 0x41ce3180; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.029074       1 cuda_executor.cc:278] [0] failed to unload module 0x347ac790; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.030207       1 cuda_executor.cc:278] [0] failed to unload module 0x18d4bab0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.031850       1 cuda_executor.cc:278] [0] failed to unload module 0x1973f440; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.033049       1 cuda_executor.cc:278] [0] failed to unload module 0x192d0e70; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.034326       1 cuda_executor.cc:278] [0] failed to unload module 0x1b113bd0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.035183       1 cuda_executor.cc:278] [0] failed to unload module 0x1dd51830; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.037556       1 cuda_executor.cc:278] [0] failed to unload module 0x1d2b9390; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.039452       1 cuda_executor.cc:278] [0] failed to unload module 0x194b3be0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.042074       1 cuda_executor.cc:278] [0] failed to unload module 0x1d31d3e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.043343       1 cuda_executor.cc:278] [0] failed to unload module 0x334e17e0; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.044525       1 cuda_executor.cc:278] [0] failed to unload module 0x301c7110; leaking: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.310705       1 local_device_state.cc:167] Error when closing device: RESOURCE_EXHAUSTED: Could not synchronize CUDA stream: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324459       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324518       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324535       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324584       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324633       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324642       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324693       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324722       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324731       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324780       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324832       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324845       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324914       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324950       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324962       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324975       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324982       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.324988       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325049       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325076       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325083       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325130       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325175       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325183       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325228       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325254       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325262       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325268       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325271       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325274       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325279       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325282       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325285       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325330       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325364       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325376       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325389       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325400       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325407       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325474       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325506       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325518       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325529       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325534       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325540       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325546       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325549       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325552       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325596       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325620       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325627       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325633       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325637       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325667       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325676       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325680       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325683       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325688       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325691       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325695       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325704       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325709       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325715       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325722       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325725       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325728       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325734       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325739       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325771       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325780       1 cuda_stream.cc:316] stream not idle on destroy: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325784       1 cuda_stream.cc:321] failed to destroy CUDA stream for executor 0x79ee200014d0: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.325787       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326097       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326124       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326296       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326306       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326314       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326318       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326322       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326333       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326369       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326375       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326379       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326382       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326451       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326459       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326467       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326470       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326473       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326485       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326491       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326539       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326545       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326548       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326553       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326556       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326559       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326587       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326604       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326609       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326612       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326616       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326620       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326624       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326627       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326631       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326635       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326638       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326641       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326670       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326680       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326685       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326691       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326704       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326707       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326758       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326764       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326833       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326843       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326854       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326860       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326866       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326869       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326874       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326878       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326881       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326895       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326902       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326913       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326977       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.326996       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327005       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327011       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327020       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327023       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327076       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327097       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327102       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327106       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327110       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327113       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327177       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327187       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327194       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327224       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327298       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327311       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327314       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327319       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327323       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327327       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327330       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327361       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327376       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327386       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327393       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327481       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327490       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327508       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327512       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327514       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327518       1 cuda_event.cc:50] Error destroying CUDA event: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.327561       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc00000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.328435       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc02000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.329118       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc04000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.329777       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc06000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.330403       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc0a000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.331019       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc12000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.331675       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc22000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.332429       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc42000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.333116       1 cuda_device_allocator.cc:302] [0] Failed to synchronize before device memory deallocation at 0xc82000000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+E0926 06:04:09.348508       1 cuda_host_allocator.cc:107] [0] Failed to free host memory at 0x204e00000: RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory

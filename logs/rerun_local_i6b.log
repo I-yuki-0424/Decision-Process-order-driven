@@ -1,0 +1,52 @@
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.2.2
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+backend gpu
+kepler    hn_sep      N=  128 noise=0.00 s=0 par=  4433 ID h10=0.004 end=0.151 | OOD end=0.621 t=28s
+kepler    hn_sep      N=  128 noise=0.00 s=1 par=  4433 ID h10=0.002 end=0.116 | OOD end=0.432 t=48s
+kepler    hn_sep      N=  128 noise=0.00 s=2 par=  4433 ID h10=0.003 end=0.178 | OOD end=0.592 t=66s
+kepler    port_sep    N=  128 noise=0.00 s=0 par=  4433 ID h10=0.004 end=1.046 | OOD end=0.985 t=87s
+kepler    port_sep    N=  128 noise=0.00 s=1 par=  4433 ID h10=0.002 end=0.554 | OOD end=0.661 t=106s
+kepler    port_sep    N=  128 noise=0.00 s=2 par=  4433 ID h10=0.003 end=0.716 | OOD end=0.755 t=125s
+kepler    idea6_full  N=  128 noise=0.00 s=0 par=  5151 ID h10=0.070 end=1.761 | OOD end=29.527 t=237s
+kepler    idea6_full  N=  128 noise=0.00 s=1 par=  5151 ID h10=0.073 end=1.653 | OOD end=34.244 t=335s
+kepler    idea6_full  N=  128 noise=0.00 s=2 par=  5151 ID h10=0.077 end=1.705 | OOD end=42.755 t=429s
+kepler    i6_nores_rk4_hninit_noR N=  128 noise=0.00 s=0 par=  5151 ID h10=0.002 end=0.120 | OOD end=0.629 t=464s
+kepler    i6_nores_rk4_hninit_noR N=  128 noise=0.00 s=1 par=  5151 ID h10=0.002 end=0.099 | OOD end=0.610 t=495s
+kepler    i6_nores_rk4_hninit_noR N=  128 noise=0.00 s=2 par=  5151 ID h10=0.002 end=0.114 | OOD end=0.740 t=527s
+kepler    i6_nores_rk4_hninit N=  128 noise=0.00 s=0 par=  5151 ID h10=0.002 end=0.453 | OOD end=0.454 t=560s
+kepler    i6_nores_rk4_hninit N=  128 noise=0.00 s=1 par=  5151 ID h10=0.002 end=0.455 | OOD end=0.487 t=592s
+kepler    i6_nores_rk4_hninit N=  128 noise=0.00 s=2 par=  5151 ID h10=0.002 end=0.577 | OOD end=0.565 t=625s
+kepler    i6_rk4_hninit_noR N=  128 noise=0.00 s=0 par=  5151 ID h10=0.002 end=0.346 | OOD end=0.573 t=661s
+kepler    i6_rk4_hninit_noR N=  128 noise=0.00 s=1 par=  5151 ID h10=0.001 end=0.133 | OOD end=0.325 t=698s
+kepler    i6_rk4_hninit_noR N=  128 noise=0.00 s=2 par=  5151 ID h10=0.002 end=0.228 | OOD end=0.427 t=733s
+fall_drag hn_sep      N=  128 noise=0.00 s=0 par=  4357 ID h10=0.152 end=1.830 | OOD end=6.491 t=755s
+fall_drag hn_sep      N=  128 noise=0.00 s=1 par=  4357 ID h10=0.152 end=2.078 | OOD end=6.326 t=770s
+fall_drag hn_sep      N=  128 noise=0.00 s=2 par=  4357 ID h10=0.150 end=1.884 | OOD end=6.572 t=790s
+fall_drag port_sep    N=  128 noise=0.00 s=0 par=  4357 ID h10=0.040 end=1.388 | OOD end=4.344 t=807s
+fall_drag port_sep    N=  128 noise=0.00 s=1 par=  4357 ID h10=0.042 end=1.476 | OOD end=4.498 t=825s
+fall_drag port_sep    N=  128 noise=0.00 s=2 par=  4357 ID h10=0.044 end=1.608 | OOD end=4.743 t=842s
+fall_drag idea6_full  N=  128 noise=0.00 s=0 par=  4813 ID h10=0.018 end=1.385 | OOD end=1.127 t=946s
+fall_drag idea6_full  N=  128 noise=0.00 s=1 par=  4813 ID h10=0.020 end=1.456 | OOD end=1.190 t=1040s
+fall_drag idea6_full  N=  128 noise=0.00 s=2 par=  4813 ID h10=0.018 end=1.253 | OOD end=0.903 t=1131s
+fall_drag i6_nores_rk4_hninit_noR N=  128 noise=0.00 s=0 par=  4813 ID h10=0.152 end=5.824 | OOD end=4.674 t=1160s
+fall_drag i6_nores_rk4_hninit_noR N=  128 noise=0.00 s=1 par=  4813 ID h10=0.154 end=5.846 | OOD end=5.343 t=1187s
+fall_drag i6_nores_rk4_hninit_noR N=  128 noise=0.00 s=2 par=  4813 ID h10=0.153 end=5.836 | OOD end=5.249 t=1215s
+fall_drag i6_nores_rk4_hninit N=  128 noise=0.00 s=0 par=  4813 ID h10=nan end=nan | OOD end=nan t=1245s
+fall_drag i6_nores_rk4_hninit N=  128 noise=0.00 s=1 par=  4813 ID h10=0.044 end=3.651 | OOD end=4.388 t=1275s
+fall_drag i6_nores_rk4_hninit N=  128 noise=0.00 s=2 par=  4813 ID h10=0.044 end=3.602 | OOD end=4.068 t=1306s
+fall_drag i6_rk4_hninit_noR N=  128 noise=0.00 s=0 par=  4813 ID h10=0.019 end=1.450 | OOD end=1.191 t=1336s
+fall_drag i6_rk4_hninit_noR N=  128 noise=0.00 s=1 par=  4813 ID h10=0.020 end=1.621 | OOD end=1.323 t=1365s
+fall_drag i6_rk4_hninit_noR N=  128 noise=0.00 s=2 par=  4813 ID h10=0.020 end=1.352 | OOD end=1.059 t=1389s

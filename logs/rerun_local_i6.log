@@ -1,0 +1,43 @@
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.2.2
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+backend gpu
+kepler    mlp         N=  128 noise=0.00 s=0 par=  4740 ID h10=0.024 end=1.614 | OOD end=2.572 t=15s
+kepler    mlp         N=  128 noise=0.00 s=1 par=  4740 ID h10=0.027 end=1.425 | OOD end=2.313 t=23s
+kepler    mlp         N=  128 noise=0.00 s=2 par=  4740 ID h10=0.028 end=1.851 | OOD end=4.197 t=33s
+kepler    hn_sep      N=  128 noise=0.00 s=0 par=  4433 ID h10=0.004 end=0.151 | OOD end=0.621 t=59s
+kepler    hn_sep      N=  128 noise=0.00 s=1 par=  4433 ID h10=0.002 end=0.116 | OOD end=0.432 t=78s
+kepler    hn_sep      N=  128 noise=0.00 s=2 par=  4433 ID h10=0.003 end=0.178 | OOD end=0.592 t=97s
+kepler    idea6_full  N=  128 noise=0.00 s=0 par=  5151 ID h10=0.070 end=1.762 | OOD end=29.526 t=203s
+kepler    idea6_full  N=  128 noise=0.00 s=1 par=  5151 ID h10=0.073 end=1.652 | OOD end=34.225 t=302s
+kepler    idea6_full  N=  128 noise=0.00 s=2 par=  5151 ID h10=0.077 end=1.696 | OOD end=42.743 t=403s
+kepler    i6_nores    N=  128 noise=0.00 s=0 par=  5151 ID h10=0.004 end=1.249 | OOD end=1.160 t=508s
+kepler    i6_nores    N=  128 noise=0.00 s=1 par=  5151 ID h10=0.004 end=1.284 | OOD end=0.811 t=618s
+kepler    i6_nores    N=  128 noise=0.00 s=2 par=  5151 ID h10=0.004 end=1.137 | OOD end=0.938 t=724s
+kepler    i6_rk4      N=  128 noise=0.00 s=0 par=  5151 ID h10=0.070 end=1.765 | OOD end=29.586 t=758s
+kepler    i6_rk4      N=  128 noise=0.00 s=1 par=  5151 ID h10=0.073 end=1.655 | OOD end=34.480 t=792s
+kepler    i6_rk4      N=  128 noise=0.00 s=2 par=  5151 ID h10=0.077 end=1.704 | OOD end=42.329 t=829s
+kepler    i6_nogate   N=  128 noise=0.00 s=0 par=  5151 ID h10=0.070 end=1.762 | OOD end=29.526 t=921s
+kepler    i6_nogate   N=  128 noise=0.00 s=1 par=  5151 ID h10=0.073 end=1.652 | OOD end=34.225 t=1016s
+kepler    i6_nogate   N=  128 noise=0.00 s=2 par=  5151 ID h10=0.077 end=1.696 | OOD end=42.743 t=1102s
+kepler    i6_nores_rk4 N=  128 noise=0.00 s=0 par=  5151 ID h10=0.004 end=0.921 | OOD end=0.997 t=1137s
+kepler    i6_nores_rk4 N=  128 noise=0.00 s=1 par=  5151 ID h10=0.003 end=0.808 | OOD end=0.591 t=1169s
+kepler    i6_nores_rk4 N=  128 noise=0.00 s=2 par=  5151 ID h10=0.003 end=0.699 | OOD end=0.899 t=1202s
+kepler    i6_hninit   N=  128 noise=0.00 s=0 par=  5151 ID h10=0.003 end=0.534 | OOD end=1.090 t=1310s
+kepler    i6_hninit   N=  128 noise=0.00 s=1 par=  5151 ID h10=0.002 end=0.450 | OOD end=0.892 t=1426s
+kepler    i6_hninit   N=  128 noise=0.00 s=2 par=  5151 ID h10=0.002 end=0.382 | OOD end=0.961 t=1536s
+kepler    i6_nores_rk4_hninit N=  128 noise=0.00 s=0 par=  5151 ID h10=0.002 end=0.453 | OOD end=0.465 t=1570s
+kepler    i6_nores_rk4_hninit N=  128 noise=0.00 s=1 par=  5151 ID h10=0.002 end=0.460 | OOD end=0.486 t=1603s
+kepler    i6_nores_rk4_hninit N=  128 noise=0.00 s=2 par=  5151 ID h10=0.002 end=0.578 | OOD end=0.564 t=1635s

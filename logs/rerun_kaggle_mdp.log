@@ -1,0 +1,69 @@
+
+[PUSH] Pushing kernel: bfloat16/dpod-candidates-convergence
+[PUSH] Kernel version 3 successfully pushed.  Please check progress at https://www.kaggle.com/code/bfloat16/dpod-candidates-convergence
+
+[POLL] Monitoring kernel: bfloat16/dpod-candidates-convergence
+       Log sync every 60s | Status check every 30s
+       Max wait: 6.0h
+
+[POLL] 14:10:17 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=1.7min
+[POLL] 14:12:31 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=3.9min
+[POLL] 14:14:47 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=6.2min
+[POLL] 14:17:01 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=8.4min
+[POLL] 14:19:17 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=10.7min
+[POLL] 14:21:31 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=12.9min
+[POLL] 14:23:47 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=15.2min
+[POLL] 14:26:04 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=17.5min
+[POLL] 14:28:18 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=19.7min
+[POLL] 14:30:31 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=21.9min
+[POLL] 14:32:48 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=24.2min
+[POLL] 14:35:02 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=26.4min
+[POLL] 14:37:15 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=28.7min
+[POLL] 14:39:31 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=30.9min
+[POLL] 14:41:47 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=33.2min
+[POLL] 14:44:04 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=35.4min
+[POLL] 14:46:21 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=37.8min
+[POLL] 14:48:35 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=40.0min
+[POLL] 14:50:49 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=42.2min
+[POLL] 14:53:03 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=44.5min
+[POLL] 14:55:18 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=46.7min
+[POLL] 14:57:32 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=48.9min
+[POLL] 14:59:45 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=51.2min
+[POLL] 15:01:59 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=53.4min
+[POLL] 15:04:13 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=55.6min
+[POLL] 15:06:28 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=57.9min
+[POLL] 15:08:45 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=60.1min
+[POLL] 15:11:01 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=62.4min
+[POLL] 15:13:20 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=64.7min
+[POLL] 15:15:34 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=67.0min
+[POLL] 15:17:47 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=69.2min
+[POLL] 15:19:59 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=71.4min
+[POLL] 15:22:16 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=73.7min
+[POLL] 15:24:33 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=76.0min
+[POLL] 15:26:49 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=78.2min
+[POLL] 15:29:03 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=80.4min
+[POLL] 15:31:18 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=82.7min
+[POLL] 15:33:33 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=85.0min
+[POLL] 15:35:46 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=87.2min
+[POLL] 15:38:00 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=89.4min
+[POLL] 15:40:12 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=91.6min
+[POLL] 15:42:30 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=93.9min
+[POLL] 15:44:46 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=96.2min
+[POLL] 15:46:59 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=98.4min
+[POLL] 15:49:12 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=100.6min
+[POLL] 15:51:28 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=102.9min
+[POLL] 15:53:44 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=105.1min
+[POLL] 15:55:59 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=107.4min
+[POLL] 15:58:11 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=109.6min
+[POLL] 16:00:28 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=111.9min
+[POLL] 16:02:45 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=114.2min
+[POLL] 16:04:59 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=116.4min
+[POLL] 16:07:11 status='bfloat16/dpod-candidates-convergence has status "kernelworkerstatus.running"' elapsed=118.6min
+
+[POLL] COMPLETE in 120.4 min.
+[WinError 5] アクセスが拒否されました。: 'C:/Program Files/Git/kaggle'
+[RUN] kernel ok
+
+[FETCH] Downloading outputs -> output_remote\rerun_mdp_obs/
+[FETCH] Retrieved 0 files:
+[FETCH] WARNING: 0 files. Kernel may still be running or had no outputs.

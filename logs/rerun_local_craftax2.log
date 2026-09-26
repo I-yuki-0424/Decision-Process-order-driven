@@ -1,0 +1,58 @@
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.2.2
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+JAX backend: gpu [CudaDevice(id=0)]
+[variant_5_2__reinforce__obs__lr0.0003__s0] params=8118 backend=gpu updates=250 batch=8 T=200
+[variant_5_2__reinforce__obs__lr0.0003__s0] upd 50/250 ep=400 train_ret=1.325 eval_ret=2.028 unlocked=3.34 crafter=2.110 H=2.81 t=137s
+[variant_5_2__reinforce__obs__lr0.0003__s0] upd 100/250 ep=800 train_ret=2.350 eval_ret=2.091 unlocked=3.78 crafter=2.559 H=2.75 t=342s
+[variant_5_2__reinforce__obs__lr0.0003__s0] upd 150/250 ep=1200 train_ret=1.512 eval_ret=2.763 unlocked=4.34 crafter=2.651 H=2.68 t=643s
+[variant_5_2__reinforce__obs__lr0.0003__s0] upd 200/250 ep=1600 train_ret=2.050 eval_ret=2.597 unlocked=4.12 crafter=3.133 H=2.72 t=954s
+[variant_5_2__reinforce__obs__lr0.0003__s0] upd 250/250 ep=2000 train_ret=2.375 eval_ret=2.516 unlocked=4.34 crafter=2.527 H=2.58 t=1215s
+[variant_5_2__reinforce__obs__lr0.0003__s0] DONE wall=1337s final sampled ret=2.623 vs random 1.469 vs untrained 1.627
+[variant_5_2__reinforce__obs__lr0.001__s0] params=8118 backend=gpu updates=250 batch=8 T=200
+[variant_5_2__reinforce__obs__lr0.001__s0] upd 50/250 ep=400 train_ret=1.212 eval_ret=1.919 unlocked=3.56 crafter=2.322 H=2.69 t=297s
+[variant_5_2__reinforce__obs__lr0.001__s0] upd 100/250 ep=800 train_ret=3.050 eval_ret=2.941 unlocked=4.12 crafter=2.713 H=2.70 t=596s
+[variant_5_2__reinforce__obs__lr0.001__s0] upd 150/250 ep=1200 train_ret=1.587 eval_ret=2.387 unlocked=3.72 crafter=2.184 H=2.77 t=894s
+[variant_5_2__reinforce__obs__lr0.001__s0] upd 200/250 ep=1600 train_ret=3.200 eval_ret=2.778 unlocked=3.97 crafter=2.177 H=2.53 t=1191s
+[variant_5_2__reinforce__obs__lr0.001__s0] upd 250/250 ep=2000 train_ret=2.838 eval_ret=3.016 unlocked=4.41 crafter=2.690 H=2.19 t=1513s
+[variant_5_2__reinforce__obs__lr0.001__s0] DONE wall=1715s final sampled ret=3.152 vs random 1.469 vs untrained 1.627
+[variant_5_2__reinforce__obs__lr0.003__s0] params=8118 backend=gpu updates=250 batch=8 T=200
+[variant_5_2__reinforce__obs__lr0.003__s0] upd 50/250 ep=400 train_ret=1.462 eval_ret=2.272 unlocked=3.88 crafter=1.943 H=2.54 t=358s
+[variant_5_2__reinforce__obs__lr0.003__s0] upd 100/250 ep=800 train_ret=2.725 eval_ret=2.519 unlocked=3.97 crafter=2.424 H=2.49 t=724s
+[variant_5_2__reinforce__obs__lr0.003__s0] upd 150/250 ep=1200 train_ret=2.225 eval_ret=2.503 unlocked=3.94 crafter=2.569 H=2.03 t=1125s
+[variant_5_2__reinforce__obs__lr0.003__s0] upd 200/250 ep=1600 train_ret=2.450 eval_ret=2.753 unlocked=3.94 crafter=2.633 H=2.63 t=1310s
+[variant_5_2__reinforce__obs__lr0.003__s0] upd 250/250 ep=2000 train_ret=3.375 eval_ret=3.056 unlocked=4.22 crafter=2.565 H=1.68 t=1418s
+[variant_5_2__reinforce__obs__lr0.003__s0] DONE wall=1472s final sampled ret=2.925 vs random 1.469 vs untrained 1.627
+[variant_5_3__reinforce__obs__lr0.0003__s0] params=5014 backend=gpu updates=250 batch=8 T=200
+[variant_5_3__reinforce__obs__lr0.0003__s0] upd 50/250 ep=400 train_ret=2.500 eval_ret=2.225 unlocked=3.66 crafter=2.537 H=2.42 t=121s
+[variant_5_3__reinforce__obs__lr0.0003__s0] upd 100/250 ep=800 train_ret=3.288 eval_ret=2.569 unlocked=4.03 crafter=2.401 H=2.37 t=227s
+[variant_5_3__reinforce__obs__lr0.0003__s0] upd 150/250 ep=1200 train_ret=2.700 eval_ret=2.919 unlocked=4.38 crafter=2.458 H=2.07 t=331s
+[variant_5_3__reinforce__obs__lr0.0003__s0] upd 200/250 ep=1600 train_ret=3.338 eval_ret=2.766 unlocked=4.34 crafter=2.672 H=2.23 t=435s
+[variant_5_3__reinforce__obs__lr0.0003__s0] upd 250/250 ep=2000 train_ret=3.450 eval_ret=3.137 unlocked=4.59 crafter=3.094 H=2.25 t=539s
+[variant_5_3__reinforce__obs__lr0.0003__s0] DONE wall=591s final sampled ret=3.080 vs random 1.469 vs untrained 2.073
+[variant_5_3__reinforce__obs__lr0.001__s0] params=5014 backend=gpu updates=250 batch=8 T=200
+[variant_5_3__reinforce__obs__lr0.001__s0] upd 50/250 ep=400 train_ret=2.675 eval_ret=3.019 unlocked=4.44 crafter=3.190 H=2.30 t=117s
+[variant_5_3__reinforce__obs__lr0.001__s0] upd 100/250 ep=800 train_ret=4.175 eval_ret=2.775 unlocked=4.19 crafter=2.560 H=2.42 t=221s
+[variant_5_3__reinforce__obs__lr0.001__s0] upd 150/250 ep=1200 train_ret=2.725 eval_ret=3.062 unlocked=4.28 crafter=3.092 H=2.04 t=325s
+[variant_5_3__reinforce__obs__lr0.001__s0] upd 200/250 ep=1600 train_ret=2.975 eval_ret=3.222 unlocked=4.69 crafter=3.106 H=2.30 t=422s
+[variant_5_3__reinforce__obs__lr0.001__s0] upd 250/250 ep=2000 train_ret=3.088 eval_ret=3.047 unlocked=4.41 crafter=2.508 H=2.33 t=524s
+[variant_5_3__reinforce__obs__lr0.001__s0] DONE wall=572s final sampled ret=3.248 vs random 1.469 vs untrained 2.073
+[variant_5_3__reinforce__obs__lr0.003__s0] params=5014 backend=gpu updates=250 batch=8 T=200
+[variant_5_3__reinforce__obs__lr0.003__s0] upd 50/250 ep=400 train_ret=2.600 eval_ret=2.869 unlocked=4.25 crafter=2.511 H=2.15 t=115s
+[variant_5_3__reinforce__obs__lr0.003__s0] upd 100/250 ep=800 train_ret=3.688 eval_ret=3.097 unlocked=4.50 crafter=3.079 H=1.63 t=215s
+[variant_5_3__reinforce__obs__lr0.003__s0] upd 150/250 ep=1200 train_ret=3.325 eval_ret=3.009 unlocked=4.38 crafter=2.885 H=2.33 t=316s
+[variant_5_3__reinforce__obs__lr0.003__s0] upd 200/250 ep=1600 train_ret=3.200 eval_ret=3.091 unlocked=4.47 crafter=2.470 H=2.44 t=415s
+[variant_5_3__reinforce__obs__lr0.003__s0] upd 250/250 ep=2000 train_ret=1.712 eval_ret=2.953 unlocked=4.22 crafter=2.611 H=2.62 t=517s
+[variant_5_3__reinforce__obs__lr0.003__s0] DONE wall=566s final sampled ret=2.975 vs random 1.469 vs untrained 2.073

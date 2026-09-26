@@ -1,0 +1,43 @@
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.2.2
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+backend gpu
+kepler_pert    rssm          N= 512 nz=0.02 s=0 par=162884 ID mean=1.590 end=3.416 | OOD mean=1.587 t=67s
+kepler_pert    rssm          N= 512 nz=0.02 s=1 par=162884 ID mean=1.118 end=2.053 | OOD mean=1.189 t=109s
+kepler_pert    rssm          N= 512 nz=0.02 s=2 par=162884 ID mean=1.281 end=2.502 | OOD mean=1.433 t=140s
+pendulum       rssm          N= 512 nz=0.02 s=0 par=161986 ID mean=0.239 end=0.415 | OOD mean=2.400 t=193s
+pendulum       rssm          N= 512 nz=0.02 s=1 par=161986 ID mean=0.111 end=0.209 | OOD mean=2.569 t=237s
+pendulum       rssm          N= 512 nz=0.02 s=2 par=161986 ID mean=0.208 end=0.376 | OOD mean=2.352 t=281s
+backend gpu
+kepler_pert    rssm          N= 512 nz=0.02 s=0 par=162884 ID mean=2.317 end=5.623 | OOD mean=2.478 t=98s
+kepler_pert    rssm          N= 512 nz=0.02 s=1 par=162884 ID mean=2.544 end=6.072 | OOD mean=3.081 t=176s
+kepler_pert    rssm          N= 512 nz=0.02 s=2 par=162884 ID mean=2.688 end=6.485 | OOD mean=1.953 t=256s
+pendulum       rssm          N= 512 nz=0.02 s=0 par=161986 ID mean=0.820 end=0.931 | OOD mean=2.082 t=343s
+pendulum       rssm          N= 512 nz=0.02 s=1 par=161986 ID mean=2.366 end=2.435 | OOD mean=3.238 t=421s
+pendulum       rssm          N= 512 nz=0.02 s=2 par=161986 ID mean=2.127 end=1.842 | OOD mean=2.713 t=500s
+backend gpu
+kepler_pert    rssm          N= 512 nz=0.02 s=0 par=306692 ID mean=1.265 end=2.306 | OOD mean=1.435 t=101s
+kepler_pert    rssm          N= 512 nz=0.02 s=1 par=306692 ID mean=1.141 end=1.833 | OOD mean=1.005 t=186s
+kepler_pert    rssm          N= 512 nz=0.02 s=2 par=306692 ID mean=0.929 end=1.814 | OOD mean=0.932 t=266s
+pendulum       rssm          N= 512 nz=0.02 s=0 par=305794 ID mean=0.690 end=0.658 | OOD mean=2.161 t=358s
+pendulum       rssm          N= 512 nz=0.02 s=1 par=305794 ID mean=0.580 end=0.591 | OOD mean=2.259 t=437s
+pendulum       rssm          N= 512 nz=0.02 s=2 par=305794 ID mean=0.552 end=0.582 | OOD mean=2.240 t=518s
+backend gpu
+kepler_pert    rssm          N= 512 nz=0.02 s=0 par=306692 ID mean=0.938 end=1.414 | OOD mean=0.899 t=315s
+kepler_pert    rssm          N= 512 nz=0.02 s=1 par=306692 ID mean=0.808 end=1.155 | OOD mean=0.960 t=584s
+kepler_pert    rssm          N= 512 nz=0.02 s=2 par=306692 ID mean=1.149 end=3.164 | OOD mean=1.232 t=882s
+pendulum       rssm          N= 512 nz=0.02 s=0 par=305794 ID mean=0.592 end=0.612 | OOD mean=2.219 t=1183s
+pendulum       rssm          N= 512 nz=0.02 s=1 par=305794 ID mean=0.805 end=0.681 | OOD mean=2.283 t=1470s
+pendulum       rssm          N= 512 nz=0.02 s=2 par=305794 ID mean=1.104 end=1.007 | OOD mean=2.262 t=1761s
