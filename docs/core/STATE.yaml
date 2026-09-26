@@ -312,6 +312,39 @@ tasks:
       - "Full DreamerV3 still not implemented."
       - "idea6_full WorldModel not modified: a mode/dissipation-aware redesign is an open design decision."
 
+  - id: "TASK-20260927-008-passive-wm-v2"
+    created_at: "2026-09-27T00:00:00Z"
+    status: "done"
+    description: >
+      Operator request (2026-09-27): a "do-nothing" (noop) world model should make action selection easier; train it
+      decoupled from the policy beforehand (operator: "reinforcement learning it independently") and verify existing
+      architectures + derivatives in that direction. Local 3060 Ti (OOM-prone, one container at a time) + Kaggle in
+      parallel with separate notebooks.
+      CRITICAL REVIEW (recorded per CLAUDE.md): (1) TASK-004 WM predicted only 4 vitals under noop; their noop future is
+      near-deterministic decay of the current vitals, i.e. a function of inputs the policy already sees, so no gain was
+      possible -- that failure says nothing about passive WMs in general. (2) A world model is fit by prediction (supervised /
+      self-supervised); "RL" only makes sense as the data-collection policy (curiosity / disagreement) or state-distribution
+      choice, not as the learning rule. (3) Chess analogy is wrong: noop-future != opponent's next move; it omits the agent's
+      own effect, which is what a plan needs; passive prediction alone cannot produce a checkmate sequence. (4) Off-policy
+      data contains noop only where the behaviour policy chose noop; passive branches in this repo use simulator branching
+      (offline data only; not available for real robot data -- there it must be an action-conditional model queried at noop).
+      Decisive first test: ORACLE CEILING (policy fed the TRUE simulated noop future, upper bound by construction). If it does
+      not beat base, no passive-WM accuracy improvement can help this policy learner.
+    spec_ref: "docs/experiments/2026-09-27_passive_wm_v2/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE. Craftax noop future: predictable part is clock-like (vitals skill 0.55 @h8, light 0.78); mob counts/motion barely predictable (mob-cell recall 1-9%).
+      Policy (4 seeds, 4,800 eps): base = oracle-noop-future = trained WM = untrained-WM control ~3.0; POSITIVE CONTROL (true reward of every action) also ~2.9 => the Craftax
+      test has no power; no evidence for or against. Pendulum-MPC: passive pre-training helps only when passive data covers states the active data never visits (pooled MLP
+      -203 vs -600); the decoupled schedule adds nothing over pooling; port-Hamiltonian structure + passive-pretrained V,R + G learned from 8 trajectories reaches the ceiling (-195 vs -196).
+      RL for the WM not implemented (a WM is fit by prediction; coverage is the lever). Details docs/experiments/2026-09-27_passive_wm_v2/README.md.
+      Impact check: new files only (adapter subclass, candidates/passive_wm_full.py, scripts); no existing symbol modified; scip-neo4j not queried.
+    blockers:
+      - "Craftax Stage B lacks power (positive control flat); needs a stronger learner before WM arms are informative."
+      - "oracle_act only 2 seeds; distribution shift random->policy states not measured; curiosity collector not built."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
