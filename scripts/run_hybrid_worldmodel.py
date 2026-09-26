@@ -86,6 +86,10 @@ def mlp2f(p, x):
 
 def init_params(arm, task, key):
     n = task.n; d = 2 * n; ks = jax.random.split(key, 8); P = {}
+    if arm in ("phys_feat", "skip_feat", "skip_feat0"):
+        if arm == "skip_feat": P["a"] = jnp.ones(())
+        if arm == "skip_feat0": P["a"] = jnp.zeros(())  # skip starts CLOSED; learned gate decides whether to trust the preset
+        P["hn"] = dict(v=HamiltonianOps.init_parameters(ks[0], task.n + 1, HID), L=jax.random.normal(ks[1], (d, d)) * 0.01)
     if arm in ("hn", "phys_hn", "phys_hn_mu", "hyb_sum_mlp", "hyb_gate_mlp", "hyb_force_mlp", "hyb_sum_rssm", "hyb_tf_rssm"):
         P["hn"] = dict(v=HamiltonianOps.init_parameters(ks[0], n, HID), L=jax.random.normal(ks[1], (d, d)) * 0.01)
     if arm == "phys_hn_mu":
@@ -135,13 +139,16 @@ def kl_cat(p, q):  # sum over groups of KL(p||q)
 def make_model(arm, task):
     n = task.n; dt = task.dt
     J = HamiltonianOps.symplectic_matrix(n)
-    use_hn = "hn" in arm or arm == "phys_hn"
+    use_hn = "hn" in arm or arm in ("phys_hn", "phys_feat", "skip_feat", "skip_feat0")
     use_phys = arm in ("phys", "phys_hn", "phys_hn_mu", "hyb_sum_mlp", "hyb_gate_mlp", "hyb_force_mlp", "hyb_sum_rssm", "hyb_tf_rssm")
     has_rssm = arm in ("rssm", "hyb_sum_rssm", "hyb_tf_rssm")
 
     def Htot(P, x):
         q, p = x[:n], x[n:]
         h = 0.0
+        if arm in ("phys_feat", "skip_feat", "skip_feat0"):  # preset potential as an input feature of the learned potential (+ learned-scale skip for skip_feat)
+            hh = 0.5 * jnp.sum(p ** 2) + HamiltonianOps.mlp_scalar(P["hn"]["v"], jnp.concatenate([q, task.Vp(q)[None]]))
+            return hh + P["a"] * task.Vp(q) if arm != "phys_feat" else hh
         if use_phys: h = h + 0.5 * jnp.sum(p ** 2) + task.Vp(q) * (jnp.exp(P["mu"]) if arm == "phys_hn_mu" else 1.0)
         if use_hn:
             h = h + HamiltonianOps.mlp_scalar(P["hn"]["v"], q)
@@ -171,7 +178,7 @@ def make_model(arm, task):
         if arm == "rssm": return res_field(P, x, ctx)
         if arm == "phys": return f_phys(x)
         fpo = f_port(P, x)
-        if arm in ("phys_hn", "phys_hn_mu", "hn"): return fpo
+        if arm in ("phys_hn", "phys_hn_mu", "hn", "phys_feat", "skip_feat", "skip_feat0"): return fpo
         r = res_field(P, x, ctx)
         if arm == "hyb_tf_rssm":
             return tf_fuse(P, x, f_phys(x), fpo - f_phys(x), r)

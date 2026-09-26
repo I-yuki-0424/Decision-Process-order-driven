@@ -47,7 +47,9 @@ def init(arm, key):
     k = jax.random.split(key, 5); P = {}
     if arm == "mlp":
         P["f"] = mlp(k[0], 3, 2, 0.1); return P
-    P["v"] = HamiltonianOps.init_parameters(k[0], 1, HID); P["L"] = jax.random.normal(k[1], (2, 2)) * 0.01
+    P["v"] = HamiltonianOps.init_parameters(k[0], 2 if arm in ("phys_feat", "oracle_feat", "skip_feat", "skip_feat0", "oracle_skip") else 1, HID);
+    P["a"] = jnp.zeros(()) if arm == "skip_feat0" else jnp.ones(())  # skip-connection scale on the preset potential
+    P["L"] = jax.random.normal(k[1], (2, 2)) * 0.01
     P["G"] = jnp.zeros(2)
     if arm == "hyb": P["res"] = mlp(k[2], 3, 2, 0.01)
     return P
@@ -60,6 +62,12 @@ def model_field(arm, P, x, u):
     if arm == "mlp": return mlpf(P["f"], jnp.concatenate([x, u[None]]))
     def H(z):
         q, p = z[:1], z[1:]
+        if arm in ("skip_feat", "skip_feat0", "oracle_skip"):  # preset as feature of the learned potential PLUS a learned-scale direct skip
+            feat = 0.5 * q[0] ** 2 if arm != "oracle_skip" else -jnp.cos(q[0])
+            return 0.5 * jnp.sum(p ** 2) + HamiltonianOps.mlp_scalar(P["v"], jnp.concatenate([q, feat[None]])) + P["a"] * feat
+        if arm in ("phys_feat", "oracle_feat"):  # preset potential enters as an INPUT FEATURE of the learned potential (no structural lock-in)
+            feat = 0.5 * q[0] ** 2 if arm == "phys_feat" else -jnp.cos(q[0])
+            return 0.5 * jnp.sum(p ** 2) + HamiltonianOps.mlp_scalar(P["v"], jnp.concatenate([q, feat[None]]))
         h = 0.5 * jnp.sum(p ** 2) + HamiltonianOps.mlp_scalar(P["v"], q)
         if arm in ("phys_hn", "hyb"): h = h + 0.5 * q[0] ** 2
         if arm == "oracle_phys": h = h - jnp.cos(q[0])

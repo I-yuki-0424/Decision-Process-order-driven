@@ -268,6 +268,27 @@ tasks:
       - "idea6_full underperformance not isolated (integrator vs gate vs residual)."
       - "Single network size, 3 seeds, untuned hyper-parameters; sine end-point metric degenerate (documented)."
 
+  - id: "TASK-20260926-006-hybrid-worldmodel"
+    created_at: "2026-09-26T07:39:00Z"
+    status: "done"
+    description: >
+      Operator proposal: unified world model = DreamerV3-style layer + Hamiltonian layers + known-physics layers, fused (Transformer/sum).
+      Authorised ~5 h of autonomous evaluation and iteration (used ~2 h 45 min). Local Docker GPU only (Kaggle not needed).
+    spec_ref: "docs/experiments/2026-09-26_hybrid_worldmodel/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE. The proposal as stated did not beat a plain structured Hamiltonian model; Dreamer-lite (reduced RSSM, not full DreamerV3) was unstable on long rollouts and 6-90x larger;
+      Transformer fusion ~ sum fusion. Robust finding: give the known equation to the learned potential as an input FEATURE (optionally plus a learned-scale skip) instead of a hard term:
+      pendulum swing-up planning return -204..-207 vs -480..-530 for a wrong hard preset (ceiling -196) with N=8 trajectories. Parameter count did not matter for structured models (325 vs 66K params same error).
+      Two invalid intermediate results (attractive Kepler perturbation; unsolvable first planning task) were found, documented and replaced.
+      Impact check: new script files only; run_experiment/others untouched here; scip-neo4j not queried.
+    blockers:
+      - "Full DreamerV3 not implemented; only a reduced RSSM. Conclusions about DreamerV3 proper are untested."
+      - "3-5 seeds, ~5K-parameter models, toy physics tasks; no transfer claim to Craftax or other non-physical domains."
+      - "Learned partial-observation filter used simulator momentum labels."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
