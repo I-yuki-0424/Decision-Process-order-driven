@@ -1,0 +1,6 @@
+#!/bin/sh
+# Keep requirements.txt in sync with imports on every commit.
+PY=$(for c in python3 python; do "$c" -c "" 2>/dev/null && echo "$c" && break; done)
+[ -n "$PY" ] || exit 0
+"$PY" scripts/update_requirements.py || exit 1
+git add requirements.txt 2>/dev/null

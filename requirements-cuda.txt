@@ -1,0 +1,3 @@
+# NVIDIA GPU (CUDA 12) install: pip install -r requirements-cuda.txt
+-r requirements.txt
+jax[cuda12]

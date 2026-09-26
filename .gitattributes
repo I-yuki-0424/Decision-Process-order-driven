@@ -5,3 +5,7 @@
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 output/** filter=lfs diff=lfs merge=lfs -text
+# Shell scripts / hooks must stay LF (Linux containers)
+.githooks/* text eol=lf
+*.sh text eol=lf
+requirements*.txt text eol=lf

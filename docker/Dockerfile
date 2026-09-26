@@ -20,18 +20,8 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
 
 WORKDIR /workspace
 
-# Install JAX with CUDA 12 support and project dependencies
-RUN python -m pip install --upgrade pip setuptools wheel
-RUN python -m pip install --no-cache-dir \
-    "jax[cuda12]" \
-    flax \
-    optax \
-    gymnax \
-    craftax \
-    matplotlib \
-    numpy \
-    pandas \
-    kaggle \
-    -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+# Dependencies come from requirements-cuda.txt (generated list + jax[cuda12]); copied first for layer caching
+COPY requirements.txt requirements-cuda.txt ./
+RUN python -m pip install --upgrade pip setuptools wheel     && python -m pip install --no-cache-dir -r requirements-cuda.txt
 
 CMD ["python", "run_standalone.py"]

@@ -13,3 +13,9 @@ tmp/
 # committed as plain blobs; curate what's worth keeping into output/ instead.
 output_remote/
 kaggle_logs/
+# Python / tooling
+.venv*/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.env
