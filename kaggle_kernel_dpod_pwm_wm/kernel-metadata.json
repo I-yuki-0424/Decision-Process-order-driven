@@ -1,0 +1,14 @@
+{
+  "id": "bfloat16/dpod-pwm-wm",
+  "title": "Dpod Pwm Wm",
+  "code_file": "nb.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}
