@@ -345,6 +345,51 @@ tasks:
       - "Craftax Stage B lacks power (positive control flat); needs a stronger learner before WM arms are informative."
       - "oracle_act only 2 seeds; distribution shift random->policy states not measured; curiosity collector not built."
 
+  - id: "TASK-20260927-009-noop-anticipation-heuristic"
+    created_at: "2026-09-27T20:00:00Z"
+    status: "done"
+    description: >
+      Operator proposal (2026-09-27, follow-up): a rigorous world model = a learned prediction of t+1 from "existence alone"
+      (no action), with a literal formula T+2 = (T+0)*(T+1) over "hidden dimensions"; train it via whole-episode (not per-step)
+      batch updates on episodes ending in death; use it to train an action model that "lives longer"; retrain the WM on the
+      resulting longer episodes; at test time treat the model's own t+1 prediction as the next t (autoregressive/off-policy).
+      CRITICAL REVIEW (recorded per CLAUDE.md, stated to the operator before implementing): (1) the T+2=(T+0)*(T+1) formula has no
+      defined semantics as literal arithmetic on the raw state vector -- unfalsifiable as written; read here as "learn a latent
+      representation" (what an MLP hidden layer / Dreamer-style latent already is), not literal elementwise multiplication.
+      (2) DECISIVE FLAW IN THE MECHANISM: a noop-only prediction is the SAME value added to every action's predicted outcome, so
+      argmax over actions is invariant to it -- it cannot by itself rank actions. It can only matter combined with something
+      action-dependent: the real simulator (oracle, disallowed at test time) or a hand-specified action-effect model
+      (CRAFTAX_RESOURCE_EFFECTS, already in src/environment/craftax_env_adapter.py -- static, approximate, not learned/oracle).
+      Tested here as: does adding the WM's noop-anticipation to that known-effects table change which vital becomes the
+      bottleneck, and does that change survival? (3) Testing this via the existing RL policy learner would reproduce
+      TASK-20260927-008's null result for the wrong reason (that learner had no power at all, not even from a positive control).
+      Tested instead with a deterministic heuristic decision rule (no RL training loop), so the WM-quality question is decidable
+      on its own. (4) Whole-episode-batch vs pooled-shuffle training and h=1 vs h=8 autoregressive anticipation are legitimate,
+      cheap ablations, tested directly.
+    spec_ref: "docs/experiments/2026-09-27_noop_anticipation_heuristic/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      RUN COMPLETE (deterministic heuristic, no RL learner, n=384 episodes/arm, T=250). effects_wm_h1 (known action-effects
+      table + WM noop-anticipation) does NOT beat effects_only (149.6 vs 149.8 mean survival steps, s.e.m. ~3.5): the WM
+      anticipation adds nothing measurable once the known table is used. effects_wm_h8 is worse than h1 (146.3 vs 149.6),
+      confirming the pre-registered compounding-error concern. None of the action-based heuristics beat noop_always (152.9,
+      the best arm): every non-noop action costs energy in the known table with no reliable food/water source for an
+      untooled random walk, so a vitals-only rule cannot substitute for exploration. Training-procedure ablation: episodic
+      (one gradient step per whole episode, as literally proposed) is uniformly worse than pooled shuffled-minibatch MSE at
+      every horizon (e.g. 0.284 vs 0.244 at h=8) -- the proposed schedule is not an improvement. Bootstrap on the
+      best-surviving (noop-only) episodes overfit hard: held-out MSE improved on its own narrow distribution but got 10x
+      worse on the original random-policy distribution (4.48 vs 0.244 at h=8), and produced no survival gain when fed back
+      into the heuristic. Decisive structural point stated to the operator before running: a noop-only prediction is added
+      identically to every action's outcome, so it cannot rank actions by itself; it was combined with the repo's existing
+      hand-specified CRAFTAX_RESOURCE_EFFECTS table to make the test meaningful at all. Details
+      docs/experiments/2026-09-27_noop_anticipation_heuristic/README.md.
+      Impact check: new files only (scripts/run_noop_heuristic_planner.py); no existing symbol modified; scip-neo4j not queried.
+    blockers:
+      - "CRAFTAX_RESOURCE_EFFECTS ignores action feasibility (e.g. drink with no water in view); a state-conditioned known-effects model was not built."
+      - "Single behaviour seed; only one bootstrap round (moot given round-1's best arm was noop-only)."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
