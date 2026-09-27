@@ -1,10 +1,12 @@
-"""Return-vs-latency experiment for the latency / goal-chunking learner (TASK-20260928-012, design in
+"""Return-vs-latency experiment for the latency / goal-chunking learner (TASK-20260928-012/013, design in
 docs/experiments/2026-09-28_latency_chunking/DESIGN.md).
 
-Code only in TASK-012 -- nothing has been trained with it yet. Usage (run from repo root):
+Usage (run from repo root):
   python scripts/run_latency_experiment.py --dry-run --env intercept          # wiring check: 1 rollout, no update
   python scripts/run_latency_experiment.py --env intercept --deltas 0,1,2,4,8 --k 8 --seeds 0,1,2,3
-  python scripts/run_latency_experiment.py --calibrate --seeds 0,1            # plain PPO on Craftax-Classic
+  python scripts/run_latency_experiment.py --calibrate --seeds 0,1            # step 1: plain PPO, MLP actor
+  python scripts/run_latency_experiment.py --calibrate --calibrate-actor transformer --seeds 0,1 --num-envs 128
+                                                                               # step 1b: chunk actor vs MLP
 Step 1 is --calibrate (the learner must reproduce published PPO numbers before any arm comparison is read).
 Long runs need operator authorisation (ADR-002 covers Craftax Phase-II runs of 1M-10M steps).
 At delta = 0 every arm sees the same state, so only 'augment' is run there (the shared anchor of the curves).
@@ -25,7 +27,12 @@ def build_configs(a):
     for seed in ints(a.seeds):
         common = dict(seed=seed, total_env_ticks=a.total_ticks, time_limit_s=a.time_limit_h * 3600.0)
         if a.calibrate:
-            runs.append((f"craftax_calibration/s{seed}", craftax_calibration_config(**common)))
+            overrides = dict(common)
+            if a.num_envs is not None:   # None = keep craftax_calibration_config's own num_envs (1024, verified)
+                overrides["num_envs"] = a.num_envs
+            cfg = craftax_calibration_config(actor=a.calibrate_actor, **overrides)
+            name = "craftax_calibration" if a.calibrate_actor == "mlp" else f"craftax_calibration_{a.calibrate_actor}"
+            runs.append((f"{name}/s{seed}", cfg))
             continue
         for base_delta in ints(a.deltas):
             delta = charged_latency(base_delta, a.k, a.calls_per_tick or None)
@@ -33,7 +40,7 @@ def build_configs(a):
                 print(f"skip delta={delta}: exceeds commit length k={a.k}")
                 continue
             for arm in (["augment"] if delta == 0 else a.arms.split(",")):
-                cfg = ChunkPPOConfig(env=a.env, arm=arm, delta=delta, k=a.k, num_envs=a.num_envs, **common)
+                cfg = ChunkPPOConfig(env=a.env, arm=arm, delta=delta, k=a.k, num_envs=a.num_envs or 64, **common)
                 if arm in ("wm", "wm_passive") and a.passive_envs > 0:
                     cfg = cfg._replace(passive_envs=a.passive_envs, passive_ticks_per_env=a.passive_ticks,
                                        passive_pretrain_steps=a.passive_steps)
@@ -49,13 +56,18 @@ def main():
     ap.add_argument("--k", type=int, default=8)
     ap.add_argument("--seeds", default="0")
     ap.add_argument("--total-ticks", type=int, default=1_000_000)
-    ap.add_argument("--num-envs", type=int, default=64)
+    ap.add_argument("--num-envs", type=int, default=None,
+                    help="default 64 for the delta-sweep; --calibrate keeps craftax_calibration_config's own 1024 "
+                         "unless this is set explicitly (e.g. to fit a smaller GPU)")
     ap.add_argument("--passive-envs", type=int, default=64, help="reference-action pretraining (wm arms); 0 = off")
     ap.add_argument("--passive-ticks", type=int, default=200)
     ap.add_argument("--passive-steps", type=int, default=2000)
     ap.add_argument("--calls-per-tick", type=float, default=0.0,
                     help="charge the k sequential decoding passes as extra latency (0 = fixed delta sweep)")
     ap.add_argument("--calibrate", action="store_true")
+    ap.add_argument("--calibrate-actor", default="mlp", choices=["mlp", "transformer"],
+                    help="DESIGN.md sec.4 step 1 uses mlp; step 1b re-runs with transformer (k=1) to confirm the "
+                         "chunk actor is not weaker than the MLP")
     ap.add_argument("--dry-run", action="store_true", help="one rollout + loss/grad evaluation per config, no update")
     ap.add_argument("--time-limit-h", type=float, default=24.0)
     ap.add_argument("--out", default="output/latency_chunking")

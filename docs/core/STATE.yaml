@@ -647,6 +647,92 @@ tasks:
       - "greedy eval_return << stochastic train_return at the same checkpoint (both seeds, both platforms, ~10-14x) -- reproduced independently on local and Kaggle, so likely real (probable early-training/under-trained-greedy artifact), but the mechanism is not confirmed; do not yet trust eval_return alone as the main-sweep comparison metric without revisiting this."
       - "DESIGN.md sec.4 item 1b (transformer actor, k=1 calibration) not yet run -- only the MLP-actor calibration in this task's scope."
 
+  - id: "TASK-20260928-014-eval-window-bias-and-transformer-calibration"
+    created_at: "2026-09-28T01:50:00Z"
+    status: "in_progress"
+    description: >
+      Operator request (2026-09-28, follow-up): (1) verify the root cause of TASK-013's flagged greedy-eval-return
+      gap rather than leaving it as an unconfirmed hypothesis; (2) run DESIGN.md sec.4 item 1b (transformer actor,
+      k=1 calibration) since 1 (MLP) passed; (3) in parallel, redo the scip-neo4j MCP feedback with a full review
+      of all four tools (check_symbol_constraints, analyze_change_impact, get_symbol_dependencies,
+      find_semantic_neighbors) covering correctness, ease of use, and reliability, since the operator says the
+      server has reportedly improved but results may not change mid-session.
+    spec_ref: "docs/experiments/2026-09-28_latency_chunking/DESIGN.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_latency_chunking"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      (1) EVAL-GAP ROOT CAUSE CONFIRMED AND FIXED (not just hypothesised). Built scripts/adhoc/diag_eval_gap.py to
+      reload TASK-013's real trained checkpoints (step_15.pkl, seed 0) and re-run genuine greedy evaluation at
+      several eval_cycles budgets, no synthetic data. Mechanism: ChunkPPO.evaluate() always did a FRESH
+      reset_envs() and then episode_summary() averaged return only over envs that reached `done` inside that one
+      fixed-length window; ChunkPPO.run()'s training rollout instead keeps `ws` persistent across all updates, so
+      it sees a steady mixed stream of completions. At the checkpoint's original eval_cycles=64, only ~8% of the
+      1024 envs (83/1024) finished an episode in time to be counted at all -- not "several hundred" as the TASK-013
+      docstring wrongly assumed -- so mean_return was computed over just the fastest (likely worst) 8% of episodes,
+      systematically excluding the majority that needed longer to finish. Doubling the window to 128 ticks alone
+      (same checkpoint, same policy, zero retraining) raised mean_return 0.257->0.461 and done-fraction 8%->37%,
+      which is decisive: a real behaviour metric cannot jump like that from re-measuring an unchanged policy unless
+      the original measurement was biased.
+      FIX: added `eval_windows` to ChunkPPOConfig (default 1, preserves old behaviour for any caller that doesn't
+      opt in) and rewrote evaluate() to run `eval_windows` sequential eval_cycles-sized windows with env state
+      carried FORWARD between them (same persistence pattern as training) instead of one big window, pooling
+      done-episode statistics across all windows. This gives episodes eval_windows x eval_cycles ticks to finish
+      while keeping peak memory at a single eval_cycles-sized rollout (the direct cause of TASK-013's OOM is
+      avoided by construction, not by luck). craftax_calibration_config now sets eval_windows=4.
+      RE-VERIFIED against both saved TASK-013 checkpoints (seeds 0 and 1, step_15.pkl) with the fix:
+      eval_windows=4 -> mean_return 0.335->0.710 (s0), 0.282->0.745 (s1), done_frac 1.13-1.13 (i.e. >100% -- many
+      envs completed more than one episode in the 256-tick window). A follow-up sweep (eval_windows=8 -> 0.760,
+      16 -> 0.776, both seed 0) shows mean_return plateauing well below train_return (~3.6-3.9) rather than closing
+      the gap entirely: MOST of the originally-flagged 10-14x gap (TASK-013) was a real measurement bug, now fixed
+      (recovering roughly 2.2-2.4x of it), but a genuine, smaller residual gap (~4.6-5x) remains between greedy and
+      stochastic action selection on this still-undertrained (15-update) policy, plateauing rather than shrinking
+      further with more eval ticks -- consistent with the "greedy gets stuck in a repeated bad deterministic loop
+      that stochastic sampling escapes" hypothesis from TASK-013, now with much stronger (though still not
+      conclusive) support, since window-length is now ruled out as the explanation for the remainder.
+      Dependency-impact check (scip-neo4j): check_symbol_constraints on `evaluate` returned ALLOWED;
+      analyze_change_impact on `evaluate` returned an empty dependent list despite two real, grep-confirmed callers
+      (ChunkPPO.run, tests.test_latency_chunking) -- same failure mode logged in
+      docs/LOGS/SCIP_NEO4J_MCP_FEEDBACK.md.
+      (2) DESIGN.md 1b (transformer actor, k=1): added `--calibrate-actor {mlp,transformer}` to
+      scripts/run_latency_experiment.py (backward compatible: default "mlp" keeps the original
+      craftax_calibration/s{seed} output path; transformer writes to craftax_calibration_transformer/s{seed}) and
+      made `--num-envs` default to None so it no longer silently overrides craftax_calibration_config's verified
+      num_envs=1024 unless explicitly passed. A full num_envs=1024 transformer dry-run OOM'd the local 8GB GPU even
+      for a single gradient step (transformer forward+backward is markedly heavier than the MLP's, matching the
+      operator's own prediction that time/memory would "skyrocket") -- confirmed with a reduced num_envs=128
+      dry-run that the transformer actor's wiring itself is fine at hist_len=0 (finite loss/grad, sane entropy
+      ln(17)~2.83, no crash), isolating the OOM to scale, not a bug. Running in parallel: LOCAL at the
+      GPU-fitting num_envs=128 (seeds 0,1, hardware-constrained, not a strict apples-to-apples match to the
+      1024-env MLP baseline) and KAGGLE at the full num_envs=1024 (seeds 0,1, matching the MLP calibration exactly
+      -- the true DESIGN.md 1b comparison). Local seed 0 in progress: by update 115/122, train_return reached
+      4.2-4.5, already at or above the MLP calibration's final 3.6-3.9 at 1024 envs (not a controlled comparison
+      given the different num_envs/update-count regime, but directionally consistent with "the chunk actor is not
+      weaker than the MLP," DESIGN.md 1b's question). Kaggle push v1 failed immediately (exit 2, argparse error)
+      from a real CLI-ordering mistake on this session's part -- `--max-wait-hours` was placed after
+      `--script-args`, whose argparse.REMAINDER swallowed it into the in-kernel script's own argv, which doesn't
+      have that flag; fixed by reordering and re-pushed (v2), not a bug in the training code itself.
+      Full local+Kaggle 1b numbers to be added once both finish (in progress at time of writing).
+      (3) scip-neo4j second-pass full-tool review: see docs/LOGS/SCIP_NEO4J_MCP_FEEDBACK.md for the complete
+      per-tool writeup. Headline: no change observed from the first pass in this session (re-tested
+      craftax_calibration_config's analyze_change_impact specifically, per the operator's ask, identical empty
+      result). New findings this pass: check_symbol_constraints returns ALLOWED even for a symbol name that does
+      not exist anywhere in the repo, i.e. it does not appear to gate on the symbol actually being found;
+      analyze_change_impact/get_symbol_dependencies were empty for 5 more real-callered symbols tested today
+      (sample_chunk, forward_decision_transformer, DecisionProcessEnv.step, evaluate, build_mdp_transition_array)
+      but correctly empty for one real dead-end (build_configs, a script-local helper with zero external callers)
+      -- across all sessions, 7 of 8 real-caller tests were false negatives, and the tool's own output gives no way
+      to tell the 1 correct case apart from the 7 wrong ones. find_semantic_neighbors had zero visibility into any
+      TASK-012/013 file (chunk_ppo.py, chunk_policy.py, factored_world_model.py, latency_envs.py) despite those
+      files existing and being committed hours before the test -- consistent with the index not having been
+      re-ingested since those files landed -- but did surface one plausibly-relevant neighbor for an older
+      (2026-09-25) symbol, so it is not purely noise, just low signal-to-noise and blind to very recent commits.
+    blockers:
+      - "Local and Kaggle DESIGN.md-1b transformer-actor runs (seeds 0,1) not yet complete."
+      - "Residual ~4.6-5x greedy-vs-stochastic return gap after the window-bias fix is not yet explained beyond a plausible hypothesis (greedy gets stuck in a repeated bad action loop); would need e.g. logging the actual greedy action sequence at a death to confirm, which was not done here."
+      - "scip-neo4j: cannot yet confirm whether the operator-reported server-side improvement has reached this repo's ingestion; re-test in a fresh session after the next ingestion run rather than concluding 'no improvement' from this session's unchanged results alone."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >

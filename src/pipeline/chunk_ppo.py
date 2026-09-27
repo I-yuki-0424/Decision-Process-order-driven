@@ -83,6 +83,7 @@ class ChunkPPOConfig(NamedTuple):
     equal_env_ticks: bool = True
     eval_every: int = 10
     eval_cycles: int = 64
+    eval_windows: int = 1                # sequential eval_cycles-sized windows; see evaluate()'s docstring
     checkpoint_ticks: int = 100_000
     time_limit_s: float = 0.0            # 0 = none; otherwise checkpoint and stop (ADR-002: 24 h per config)
     seed: int = 0
@@ -103,12 +104,20 @@ def craftax_calibration_config(**overrides) -> ChunkPPOConfig:
     eval_cycles left at the default (64, matching cycles_per_update): an earlier version of this preset raised it to
     512 to get a larger evaluation sample, but at num_envs=1024 that made a single eval rollout 8x the size of a
     training rollout, which OOM'd the 8GB local GPU mid-run (found during TASK-20260928-013's first real run,
-    update 10's scheduled eval). 64 cycles x 1024 envs is still several hundred eval episodes -- ample for a mean
-    return estimate -- and is a rollout shape already proven to fit during training."""
+    update 10's scheduled eval).
+    eval_windows=4 (not the default 1): a follow-up diagnostic (this task, scripts/adhoc/diag_eval_gap.py) found the
+    "several hundred eval episodes" reasoning above was wrong in practice -- a single 64-cycle eval window only let
+    ~8% of the 1024 envs (not "several hundred") actually finish an episode before the window ended, because eval
+    always starts from a synchronised fresh reset (unlike training, whose env state persists and keeps a steady
+    stream of completions). That undercounts and biases mean_return toward whichever episodes died fastest.
+    eval_windows=4 runs 4 sequential 64-cycle windows (same per-window memory footprint that already fits, just
+    more wall time) with env state carried forward between them, giving episodes 4x longer to finish -- confirmed
+    to raise both the done-fraction and mean_return substantially on an already-trained checkpoint with no policy
+    change, i.e. the earlier single-window number really was an undercount, not a true performance reading."""
     base = ChunkPPOConfig(env="craftax", arm="ignore", delta=0, k=1, hist_len=0, actor="mlp", mlp_width=512,
                           mlp_layers=3, critic_width=512, critic_layers=3, critic_time_feature=False, num_envs=1024,
                           cycles_per_update=64, lr=2e-4, gae_lambda=0.8, max_grad_norm=1.0, num_minibatches=8,
-                          dist_coef=0.0)
+                          dist_coef=0.0, eval_windows=4)
     return base._replace(**overrides)
 
 
@@ -391,10 +400,34 @@ class ChunkPPO:
 
     # -- evaluation ----------------------------------------------------------------------------------------------------
     def evaluate(self, st, key, greedy: bool = True):
+        """episode_summary only averages return over episodes that reach `done` inside the window it is given.
+        A single fresh-reset window of `eval_cycles` ticks found (TASK-20260928-013 diagnostic,
+        scripts/adhoc/diag_eval_gap.py) systematically undercounts: with num_envs=1024 and eval_cycles=64, only
+        ~8% of envs died in time to be counted at all, vs ~40-50% per window on the training rollout (whose env
+        state persists across many updates, so completions are a steady mixed stream, not a synchronised fresh
+        start). The excluded majority is whichever episodes needed longer than the window to finish -- exactly
+        the ones a still-improving policy is starting to survive on -- so the reported mean was biased toward
+        the fastest (likely worst) deaths only: mean_return rose 0.26->0.46 and done_frac rose 0.08->0.37 just
+        from doubling eval_cycles 64->128 on an already-trained checkpoint, with no change to the policy.
+        Fix: run `eval_windows` sequential eval_cycles-sized windows, carrying env state forward between them
+        (same persistence pattern as training) instead of one large window, and pool done-episode statistics
+        across all of them. This gives episodes eval_windows x eval_cycles ticks to finish while keeping peak
+        memory at a single eval_cycles-sized rollout (avoids the OOM a single larger window hit locally)."""
+        cfg = self.cfg
         k1, k2 = jax.random.split(key)
-        _, _, traj, _ = self.collect(st["pp"], st["wm"], st["stats"], self.reset_envs(k1), k2,
-                                     n_cycles=self.cfg.eval_cycles, greedy=greedy)
-        return episode_summary(traj)
+        ws = self.reset_envs(k1)
+        n_done, ret_sum, term_sum = 0, 0.0, 0
+        for kk in jax.random.split(k2, cfg.eval_windows):
+            ws, _, traj, _ = self.collect(st["pp"], st["wm"], st["stats"], ws, kk,
+                                          n_cycles=cfg.eval_cycles, greedy=greedy)
+            done = np.asarray(traj.out.done)
+            n = int(done.sum())
+            if n:
+                ret_sum += float((np.asarray(traj.out.finished_return) * done).sum())
+                term_sum += int((np.asarray(traj.out.terminated) & done).sum())
+            n_done += n
+        return dict(mean_return=(ret_sum / n_done) if n_done else float("nan"), episodes=n_done,
+                   terminal_rate=(term_sum / n_done) if n_done else float("nan"))
 
     # -- dry run (wiring check: one rollout + loss/gradient evaluation, NO parameter update) --------------------------
     def dry_run(self, key=None):
