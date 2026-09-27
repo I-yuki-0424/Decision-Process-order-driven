@@ -435,7 +435,7 @@ tasks:
 
   - id: "TASK-20260927-011-actor-critic-learner-handoff"
     created_at: "2026-09-28T00:00:00Z"
-    status: "queued"
+    status: "Postponed or cancelled by the operator"
     description: >
       HANDOFF (operator is starting a fresh thread to keep this line of work logically clean; read this entry plus
       TASK-20260927-008/009/010 before continuing). Chosen next step: replace the plain-REINFORCE policy learner used in
