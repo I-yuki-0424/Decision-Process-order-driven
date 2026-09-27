@@ -546,7 +546,7 @@ tasks:
 
   - id: "TASK-20260928-013-latency-goal-chunking-calibration"
     created_at: "2026-09-28T00:45:00Z"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator authorization (2026-09-28, new thread) to proceed with training for TASK-012: run step 1 of
       DESIGN.md sec.4 (`python scripts/run_latency_experiment.py --calibrate --seeds 0,1`), fix any errors,
@@ -559,7 +559,7 @@ tasks:
       - "python -m unittest tests.test_architecture_fixes"
       - "python scripts/run_latency_experiment.py --calibrate --seeds 0,1"
     result: >
-      IN PROGRESS. Pre-flight hyperparameter verification (blocker from TASK-012) done: fetched
+      RUN COMPLETE, PASS on both platforms. Pre-flight hyperparameter verification (blocker from TASK-012) done: fetched
       github.com/MichaelTMatthews/Craftax_Baselines ppo.py + models/actor_critic.py directly (Craftax's own repo
       has no craftax_baselines/ directory; the baseline lives in the separate Craftax_Baselines repo linked from
       Craftax's README). Confirmed matches: tanh, 3-hidden-layer x512 MLP (both actor and critic), lr=2e-4 with
@@ -618,13 +618,34 @@ tasks:
       --calibrate exists to check) is clean; it does mean eval_return specifically should not yet be trusted as
       the comparison metric for the main delta x arms sweep without more updates or a look at what greedy is
       doing differently.
-      VERDICT (local): PASS against the read criterion above (no NaNs, clear monotonic positive training signal,
-      GPU-confirmed, checkpoint/resume exercised for real under an actual crash) -- learner is not broken. Full
-      Kaggle-side numbers to be added once that run completes (in progress at time of writing).
+
+      KAGGLE RESULT (kernel bfloat16/dpod-latency-chunking-calibration v2, the fixed config; T4x2, JAX 0.7.2,
+      backend='gpu' confirmed; 16.3 min total incl. queue/push/fetch, ~5 min actual compute): seeds 0,1 both
+      completed all 15/15 updates, no NaNs anywhere. s0: train_return 0.44->3.69, eval_return=0.309 (67 episodes).
+      s1: train_return 0.49->3.97, eval_return=0.279 (67 episodes). Update-1 metrics are effectively identical to
+      local (train_return 0.4425 both platforms, pg/vl/entropy match to ~4 significant figures), and the
+      per-update trajectory and final numbers are close but not bit-identical to local (s0 final train_return
+      3.692 Kaggle vs 3.643 local; s1 3.974 vs 3.849) -- consistent with ordinary cross-GPU-architecture floating
+      point / XLA fusion non-determinism (RTX 3060 Ti vs T4), not a divergent bug. The greedy-eval << stochastic-
+      train gap reproduced on Kaggle too (0.309 vs 3.69; 0.279 vs 3.97), independently of local, which raises
+      confidence that gap is a property of the (under-trained, 15-update) policy/algorithm rather than a
+      platform-specific artifact.
+      Committed under output/latency_chunking/ (local run) and output/latency_chunking/kaggle/ (Kaggle run);
+      per-update checkpoint .pkl files were NOT committed (~28MB x 15 x 2 seeds x 2 platforms, not needed for a
+      calibration-only run) -- summary.json under each seed has every logged metric.
+
+      FINAL VERDICT: PASS on both platforms against the read criterion (no NaNs, clear monotonic positive
+      training-return signal on both, GPU-confirmed, checkpoint/resume exercised for real under an actual crash,
+      cross-platform qualitative agreement including on the flagged eval-gap finding) -- the learner is not
+      broken and TASK-011/012's line of work may proceed to DESIGN.md sec.4 item 1b (transformer actor, k=1) and
+      then the main delta x arms sweep. This calibration run intentionally used the DESIGN.md-specified 1e6-tick
+      budget (the ADR-002 floor) and 2 seeds, per the operator's explicit instruction not to increase params/data
+      beyond what an accurate result needs; the still-open eval-gap question would need more updates or a
+      targeted look at greedy decoding to resolve, not more calibration seeds.
     blockers:
-      - "Kaggle run (seeds 0,1) not yet complete; a cross-platform (local vs Kaggle) agreement check is still pending."
-      - "No published Craftax-Classic-specific PPO number at 1e6 ticks exists to compare against exactly (see result); using the closest available full-Craftax-1M anchor instead, which is a deliberate approximation, not the literal DESIGN.md criterion."
-      - "greedy eval_return << stochastic train_return at the same checkpoint (both seeds, ~10-13x) -- probable early-training artifact, not confirmed; do not yet trust eval_return alone as the main-sweep comparison metric."
+      - "No published Craftax-Classic-specific PPO number at 1e6 ticks exists to compare against exactly (see result); the closest available anchor (full-Craftax-1M, ~2.2%-of-max) was used instead, which is a deliberate approximation, not the literal DESIGN.md criterion."
+      - "greedy eval_return << stochastic train_return at the same checkpoint (both seeds, both platforms, ~10-14x) -- reproduced independently on local and Kaggle, so likely real (probable early-training/under-trained-greedy artifact), but the mechanism is not confirmed; do not yet trust eval_return alone as the main-sweep comparison metric without revisiting this."
+      - "DESIGN.md sec.4 item 1b (transformer actor, k=1 calibration) not yet run -- only the MLP-actor calibration in this task's scope."
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
