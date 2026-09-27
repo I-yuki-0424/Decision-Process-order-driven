@@ -1,0 +1,14 @@
+{
+  "id": "bfloat16/dpod-latency-chunking-calibration",
+  "title": "DPOD Latency Chunking Calibration",
+  "code_file": "latency_calibration.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

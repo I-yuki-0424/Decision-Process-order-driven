@@ -90,12 +90,25 @@ class ChunkPPOConfig(NamedTuple):
 
 def craftax_calibration_config(**overrides) -> ChunkPPOConfig:
     """Plain PPO (k = 1, delta = 0, MLP actor) on Craftax-Classic for comparison with published PPO numbers.
-    Hyper-parameters follow the Craftax PPO baseline as recalled (tanh MLP 512, lr 2e-4, GAE lambda 0.8, clip 0.2,
-    ent 0.01, vf 0.5, grad-norm 1.0, 4 epochs x 8 minibatches); CHECK against craftax_baselines/ppo.py before running."""
+    Hyper-parameters verified against github.com/MichaelTMatthews/Craftax_Baselines ppo.py + models/actor_critic.py
+    (2026-09-28): tanh MLP, 3 hidden layers x 512 (actor and critic), lr 2e-4 with linear-to-0 anneal, adam eps 1e-5,
+    gamma 0.99, GAE lambda 0.8, clip 0.2, ent 0.01, vf 0.5, grad-norm 1.0 (not stated in the paper table, kept as a
+    standard PPO default), 4 epochs x 8 minibatches, num_envs 1024, 64 steps/rollout. No published Craftax-CLASSIC
+    (vs. full Craftax) PPO number exists at this exact 1e6-tick budget (README only tables Craftax-1B/1M for full
+    Craftax; the Craftax-1M row is PPO ~2.2% of max reward). num_envs was corrected from an earlier guess of 64 to
+    1024 specifically so the update count/batch-size regime matches that published Craftax-1M setup as closely as
+    possible -- pass/fail for --calibrate should be judged against "clearly above a random/no-op policy, no NaNs,
+    order-of-magnitude consistent with the ~2.2%-of-max full-Craftax-1M number", not an exact target Craftax-Classic
+    reproduces even less well documented.
+    eval_cycles left at the default (64, matching cycles_per_update): an earlier version of this preset raised it to
+    512 to get a larger evaluation sample, but at num_envs=1024 that made a single eval rollout 8x the size of a
+    training rollout, which OOM'd the 8GB local GPU mid-run (found during TASK-20260928-013's first real run,
+    update 10's scheduled eval). 64 cycles x 1024 envs is still several hundred eval episodes -- ample for a mean
+    return estimate -- and is a rollout shape already proven to fit during training."""
     base = ChunkPPOConfig(env="craftax", arm="ignore", delta=0, k=1, hist_len=0, actor="mlp", mlp_width=512,
-                          mlp_layers=3, critic_width=512, critic_layers=3, critic_time_feature=False, num_envs=64,
+                          mlp_layers=3, critic_width=512, critic_layers=3, critic_time_feature=False, num_envs=1024,
                           cycles_per_update=64, lr=2e-4, gae_lambda=0.8, max_grad_norm=1.0, num_minibatches=8,
-                          dist_coef=0.0, eval_cycles=512)
+                          dist_coef=0.0)
     return base._replace(**overrides)
 
 

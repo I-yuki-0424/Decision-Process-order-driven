@@ -544,6 +544,88 @@ tasks:
       - "Training runs not authorised yet; step 1 is the Craftax PPO calibration (--calibrate)."
       - "craftax_calibration_config hyper-parameters are from memory; verify against craftax_baselines/ppo.py first."
 
+  - id: "TASK-20260928-013-latency-goal-chunking-calibration"
+    created_at: "2026-09-28T00:45:00Z"
+    status: "in_progress"
+    description: >
+      Operator authorization (2026-09-28, new thread) to proceed with training for TASK-012: run step 1 of
+      DESIGN.md sec.4 (`python scripts/run_latency_experiment.py --calibrate --seeds 0,1`), fix any errors,
+      execute in parallel on local Docker GPU (RTX 3060 Ti) and Kaggle, and report results. Operator explicit
+      constraint: do not increase params/data volume beyond what is needed for an accurate result.
+    spec_ref: "docs/experiments/2026-09-28_latency_chunking/DESIGN.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_latency_chunking"
+      - "python -m unittest tests.test_architecture_fixes"
+      - "python scripts/run_latency_experiment.py --calibrate --seeds 0,1"
+    result: >
+      IN PROGRESS. Pre-flight hyperparameter verification (blocker from TASK-012) done: fetched
+      github.com/MichaelTMatthews/Craftax_Baselines ppo.py + models/actor_critic.py directly (Craftax's own repo
+      has no craftax_baselines/ directory; the baseline lives in the separate Craftax_Baselines repo linked from
+      Craftax's README). Confirmed matches: tanh, 3-hidden-layer x512 MLP (both actor and critic), lr=2e-4 with
+      linear-to-0 anneal, adam eps=1e-5, gamma=0.99, gae_lambda=0.8, clip_eps=0.2, ent_coef=0.01, vf_coef=0.5,
+      max_grad_norm=1.0 (not in the paper table; kept as the standard PPO default already used), 4 update epochs
+      x 8 minibatches, 64 steps/rollout. Found ONE real mismatch: craftax_calibration_config's num_envs was 64 vs
+      the baseline's 1024 -- fixed in src/pipeline/chunk_ppo.py (see hazards / commit). This matters because at a
+      fixed 1e6-tick budget, num_envs sets the update count (n_updates = ticks/(num_envs*steps)): 64 envs gives
+      ~244 updates in a regime with no published comparison point; 1024 envs gives 15 updates, matching the
+      regime the README's own Craftax-1M (full Craftax, not Classic) PPO~2.2%-of-max number was produced in.
+      IMPORTANT CAVEAT found while checking: no published PPO number exists for Craftax-CLASSIC specifically at a
+      1e6-tick budget (only Craftax-1B/1M tables for full Craftax, and Craftax-Classic's own claim is "solved by
+      PPO in under an hour", which corresponds to the 1e9-scale run, not 1M). The pre-registered pass criterion in
+      DESIGN.md ("must land in the published PPO range at that budget") is therefore being read as "no NaNs, a
+      clear positive learning trend well above random, order-of-magnitude consistent with the ~2.2%-of-max
+      full-Craftax-1M anchor" rather than an exact Craftax-Classic target, since the latter does not exist to
+      compare against. Dependency-impact check (scip-neo4j): check_symbol_constraints on craftax_calibration_config
+      returned ALLOWED; analyze_change_impact returned an empty dependent list despite two real, grep-confirmed
+      callers (scripts/run_latency_experiment.py, tests/test_latency_chunking.py) -- logged in the new
+      docs/LOGS/SCIP_NEO4J_MCP_FEEDBACK.md per operator request, same empty-list-despite-real-callers failure mode
+      as TASK-20260925-002.
+      Execution: local Docker (dpod-local:latest, --gpus all, XLA_PYTHON_CLIENT_PREALLOCATE=false to avoid the
+      RTX 3060 Ti's 8GB triggering repeated (non-fatal) XLA preallocation-retry OOM log spam) running
+      `--calibrate --seeds 0,1`, log at output/latency_chunking/logs/local_calibration.log; in parallel, a NEW
+      Kaggle kernel bfloat16/dpod-latency-chunking-calibration (kaggle_kernel_latency_chunking/,
+      scripts/kaggle_run_latency.py -- a thin sibling of kaggle_run_experiment.py pointed at its own kernel so the
+      existing production/candidates-convergence kernels are untouched) running the identical command.
+
+      REAL ERROR FOUND AND FIXED (local, seed 0, first attempt): crashed with a genuine CUDA
+      RESOURCE_EXHAUSTED at the update-10 scheduled eval (`eval_cycles=512` was another unverified guess in the
+      same docstring as the num_envs one -- at num_envs=1024 that made one eval rollout 8x the size of a training
+      rollout, an 11.3GB tensor vs the RTX 3060 Ti's ~6-8GB usable). AsyncCheckpointManager's resume worked exactly
+      as designed: fixed eval_cycles back to the framework default (64, same shape already proven to fit during 9
+      training updates), re-ran, and it auto-resumed from update 9 (see "resumed at update 9" in the log) rather
+      than restarting from scratch. Kaggle kernel version 1 was pushed before this fix landed and was still queued
+      (not yet running) when the fix was ready, so version 2 (fixed) was pushed over it before it started -- no
+      Kaggle GPU quota was spent on the buggy config.
+
+      LOCAL RESULT (seeds 0,1, GPU-confirmed via summary.json backend='gpu', both completed all 15/15 updates,
+      no NaNs in loss/pg/vl/approx_kl/clipfrac at any point): train_return (stochastic, on the training rollout)
+      rose monotonically both seeds: s0 0.44->3.64, s1 0.49->3.85; entropy fell 2.83->1.95/2.07 (max possible
+      ~2.83 = ln(17 actions), so the policy sharpened but did not collapse); approx_kl and clipfrac shrank toward
+      ~0 by update 15 because anneal_lr (matching the baseline) linearly decays lr to 0 over this run's own short
+      480-optimizer-step schedule, which is expected and not itself a problem.
+      FINDING WORTH FLAGGING (not silently accepted): greedy eval_return at the final checkpoint was much LOWER
+      than the concurrent stochastic train_return for both seeds -- s0 eval=0.335 (68 episodes) vs train=3.64;
+      s1 eval=0.282 (66 episodes) vs train=3.85, roughly a 10-13x gap. Checked the greedy-decoding code path
+      (src/model/chunk_policy.py sample_chunk: `jnp.argmax(logp) if greedy else jax.random.categorical(...)`) --
+      it is a plain, correct argmax, not an obvious wiring bug, and eval_return did move across updates in both
+      seeds (not a frozen/constant output), which a hard bug would more likely produce. The much more likely
+      explanation at only 15 PPO updates (vs. the ~15,000 updates the published 1e9-step number represents) is the
+      well-documented early-PPO artifact where a still-high-entropy stochastic policy avoids getting stuck in a
+      repeated bad deterministic action loop (e.g. walking into the same hazard) that greedy argmax falls into --
+      but this is not proven here, only the more probable of the two explanations; flagging it rather than
+      resolving it. Does not block the calibration pass/fail call below since the *training* signal (the thing
+      --calibrate exists to check) is clean; it does mean eval_return specifically should not yet be trusted as
+      the comparison metric for the main delta x arms sweep without more updates or a look at what greedy is
+      doing differently.
+      VERDICT (local): PASS against the read criterion above (no NaNs, clear monotonic positive training signal,
+      GPU-confirmed, checkpoint/resume exercised for real under an actual crash) -- learner is not broken. Full
+      Kaggle-side numbers to be added once that run completes (in progress at time of writing).
+    blockers:
+      - "Kaggle run (seeds 0,1) not yet complete; a cross-platform (local vs Kaggle) agreement check is still pending."
+      - "No published Craftax-Classic-specific PPO number at 1e6 ticks exists to compare against exactly (see result); using the closest available full-Craftax-1M anchor instead, which is a deliberate approximation, not the literal DESIGN.md criterion."
+      - "greedy eval_return << stochastic train_return at the same checkpoint (both seeds, ~10-13x) -- probable early-training artifact, not confirmed; do not yet trust eval_return alone as the main-sweep comparison metric."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
