@@ -509,6 +509,41 @@ tasks:
     blockers:
       - "Actor-critic not yet implemented; litmus test (oracle_act vs base) not yet re-run under it."
 
+  - id: "TASK-20260928-012-latency-goal-chunking-code"
+    created_at: "2026-09-28T00:00:00Z"
+    status: "done"
+    description: >
+      Operator request (2026-09-28): implement (code only, NO training) the redesign agreed in discussion: a model that
+      generates action chunks toward a goal in a world that keeps moving while the agent computes. Components: latency
+      decision-process wrapper (committed prefix executes during the delta-tick thinking time; pendulum-goal, intercept,
+      Craftax cores), factored action-conditional world model s' = s + dt*(f(s) + e(s,a)) with e(s,a_ref)=0 (f pretrainable
+      on reference-action data), autoregressive chunk-policy transformer with continuous-time embeddings, chunk-level PPO
+      with an asymmetric critic, hindsight temporal-distance auxiliary head, and the arms ignore / augment / wm /
+      wm_passive / oracle for the return-vs-latency experiment. Operator asked to check the architecture for logical
+      issues while implementing; findings recorded in the spec_ref design doc.
+    spec_ref: "docs/experiments/2026-09-28_latency_chunking/DESIGN.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_latency_chunking"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      CODE COMPLETE, NOTHING TRAINED. New: src/environment/latency_envs.py, src/model/factored_world_model.py,
+      src/model/chunk_policy.py, src/pipeline/chunk_ppo.py, scripts/run_latency_experiment.py,
+      tests/test_latency_chunking.py (25 tests). Validation (dpod-local container, CPU): ban check passed;
+      test_latency_chunking 25/25 OK; test_architecture_fixes 5/5 OK; runner --dry-run (one rollout + loss/grad, no update)
+      finite for all arms. Logical issues found (details in DESIGN.md sec. 2): (1) tokens past the commit horizon get no PPO
+      signal -> H = k; (2) hindsight relabelling is off-policy -> used only for the auxiliary temporal-distance head;
+      (3) the f + e factorisation is a reparameterisation for discrete actions; (4) the WM forecast is a function of
+      (o_c, u_c): it cannot add information over `augment`, only sample efficiency -> pre-registered fixed-budget test plus
+      a 10M check; (5) passive ticks charged to the wm arms' budget; (6) passive coverage predicts help only where exogenous
+      dynamics dominate (intercept yes, pendulum no); (7)-(10) ignore-arm information via history, asymmetric critic for
+      equal learner power, reward attribution, AR decoding cost as latency; (11) timing bug (history placed relative to the
+      forecast time) found and fixed with a test; (12) latent-subgoal hierarchy deferred -- needs off-policy GC learning.
+      Impact check: new files only plus index/doc edits; no existing symbol modified, so scip-neo4j checks were not needed.
+    blockers:
+      - "Training runs not authorised yet; step 1 is the Craftax PPO calibration (--calibrate)."
+      - "craftax_calibration_config hyper-parameters are from memory; verify against craftax_baselines/ppo.py first."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
