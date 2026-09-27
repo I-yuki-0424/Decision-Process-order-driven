@@ -390,6 +390,49 @@ tasks:
       - "CRAFTAX_RESOURCE_EFFECTS ignores action feasibility (e.g. drink with no water in view); a state-conditioned known-effects model was not built."
       - "Single behaviour seed; only one bootstrap round (moot given round-1's best arm was noop-only)."
 
+  - id: "TASK-20260927-010-learner-power-budget-check"
+    created_at: "2026-09-27T22:00:00Z"
+    status: "done"
+    description: >
+      Operator clarification (2026-09-27, third message): Phase 1 = WM trained on synchronized real no-op branches (World B),
+      conditioned on state+history, purpose is a learned counterfactual baseline, not action ranking. Phase 2 = policy trained
+      separately on the acting branch (World A); WM provides features/comparison signal to the action model, NOT by adding
+      the same no-op value to every action (the mechanism TASK-009 refuted was a strawman of what was intended). Coupled
+      curriculum: better policy -> longer/broader episodes -> better WM data -> more stable features. Phase 3 = batch action
+      generation with a WM-baseline comparison signal to reduce OOD brittleness, not to raise average return.
+      RESPONSE: (1) Phase 2's "WM as policy feature" is exactly what TASK-20260927-008's oracle/wm_full/wm_untrain arms tested;
+      that remains the valid design, blocked by the SAME confound flagged there (a REINFORCE learner with no shown power).
+      (2) Verified via code read (src/model/candidates/transformer_branch.py + shared_stages.self_attention_now_goal_actions):
+      state/target/action tokens fully bidirectionally cross-attend in stage 1, and action_logits are per-action dot products
+      against that state-aware representation -- NOT a wiring dead end; a leaked signal in the state channel CAN reach action
+      scores in one hop. (scip-neo4j find_semantic_neighbors returned no relevant matches for this file/symbol -- index looks
+      incomplete for this repo; verified by direct code read instead per CLAUDE.md's fallback.) (3) Budget diagnostic: re-ran
+      the oracle_act positive control (true 1-step reward of every action, the strongest possible leak) and base at 4x batch
+      (64 vs 16) and ~2.7x total episodes (12,800 vs 4,800), 4 seeds each (2 local + 2 Kaggle).
+    spec_ref: "docs/experiments/2026-09-27_noop_anticipation_heuristic/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: >
+      At 4x batch / 2.7x episodes: oracle_act mean last-3-eval return 3.32 +- 0.06 (4 seeds) vs base 3.25 +- 0.14 -- a small
+      directional gap (+0.07) with markedly lower variance for oracle_act, but NOT statistically separated (seed ranges
+      overlap: base's best seed 3.44 exceeds oracle_act's best 3.39). This revises TASK-008's "flat/no power at all" down to
+      "no detectable power at the original budget; a small, inconclusive signal appears at ~3x the compute for the STRONGEST
+      possible leak." Since a passive no-op-future signal is weaker/less decision-relevant than a full per-action reward leak,
+      testing wm_full/oracle (TASK-008) at this budget would very likely still show nothing above noise; the learner-power
+      confound is softened, not resolved. Recommendation before further Craftax WM testing: either scale compute further to
+      confirm the oracle_act trend cleanly (more seeds/updates, cheap) or move to an actor-critic-style learner (structural
+      fix, more engineering) -- do not re-test the WM hypothesis on Craftax again until one of these resolves the confound.
+      Tooling note: Kaggle output fetch failed (PermissionError against 'C:/Program Files/Git/...') because the `--out
+      /kaggle/working/exp` argument was mangled by Git Bash's automatic POSIX-path conversion on the LOCAL notebook-build
+      call (missing MSYS_NO_PATHCONV=1) -- the remote run itself succeeded; data was recovered by listing kernel output files
+      directly via the kagglesdk client and stripping the bogus prefix. Always set MSYS_NO_PATHCONV=1 on every command whose
+      arguments contain a literal "/..." path destined for a remote/container environment, not just docker/kaggle invocations.
+      Impact check: no existing symbol modified (read-only verification); scip-neo4j index does not cover this file.
+    blockers:
+      - "Learner power still not decisively confirmed or ruled out; needs either more seeds/compute or an actor-critic rewrite."
+      - "Phase 3 (OOD batch-scoring robustness) and the coupled curriculum remain untested pending the learner-power resolution."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >

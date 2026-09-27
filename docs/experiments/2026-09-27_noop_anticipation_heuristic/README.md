@@ -61,6 +61,47 @@ prediction accuracy worse or overfit rather than better. The blocking issue for 
 it is that the known cheap decision rules available here (constant table, single-step anticipation) do not capture what
 actually keeps the player alive (finding food/water/shelter), which requires exploration this mechanism does not provide.
 
+## Addendum (TASK-20260927-010): operator clarification + learner-power budget check
+The operator clarified the proposal after this report: Phase 1 trains the WM on synchronized real no-op branches ("World B"),
+not to rank actions; Phase 2 trains the policy separately on the acting branch ("World A") and gives it the WM's counterfactual
+baseline as a *feature*, not by adding the same no-op value to every action (the mechanism refuted above was a strawman of the
+intended design); a coupled curriculum lets a better policy produce broader WM training data; Phase 3 is a batch action-scoring
+scheme where the WM baseline is meant to reduce brittleness on out-of-distribution states, not raise average return.
+
+Phase 2's "WM as policy feature" is exactly what TASK-20260927-008 already tested (its `oracle`/`wm_full`/`wm_untrain` arms).
+That test is not invalidated by the strawman correction; it is blocked by the same confound already flagged there: a REINFORCE
+learner with no demonstrated power. Two things were checked in response:
+
+**Architecture is not a wiring dead end.** Read `src/model/candidates/transformer_branch.py` and
+`shared_stages.self_attention_now_goal_actions`: state, target and action tokens fully bidirectionally cross-attend in stage 1,
+and `action_logits` are per-action dot products against that state-aware representation. A signal placed in the state channel
+(as TASK-008's oracle arms did) can reach the action scores in one hop -- this is not why the earlier null results occurred.
+
+**Budget diagnostic.** Re-ran the strongest possible positive control (`oracle_act`: true one-step reward of every action) and
+`base` at 4x the batch size (64 vs 16) and ~2.7x the episodes (12,800 vs 4,800), 4 seeds each (2 local RTX 3060 Ti + 2 Kaggle):
+
+| arm | mean last-3-eval return (4 seeds) | per-seed |
+|---|---|---|
+| base | 3.25 +- 0.14 | 3.17, 3.31, 3.08, 3.44 |
+| oracle_act | 3.32 +- 0.06 | 3.24, 3.36, 3.30, 3.39 |
+
+A small directional gap appears with markedly lower variance for `oracle_act`, but it is not statistically separated (base's
+best seed, 3.44, exceeds oracle_act's best, 3.39). This softens TASK-008's "flat, no power at all" to "no detectable power at
+the original budget; an inconclusive, small signal for the strongest possible leak at ~3x the compute." Since a passive
+no-op-future feature is weaker/less decision-relevant than a full per-action reward leak, re-testing `wm_full`/`oracle` at this
+budget would very likely still show nothing above noise -- the confound is softened, not resolved.
+
+**Recommendation before any further Craftax WM test:** either scale compute further to confirm the `oracle_act` trend cleanly
+(cheap: more seeds/updates), or move to an actor-critic-style learner (a structural fix; more engineering). Phase 3's
+OOD-robustness claim and the coupled curriculum are both real, distinct, and still untested -- but testing them on top of an
+unconfirmed learner would reproduce the same ambiguity, so that is the next blocking step, not the world model itself.
+
+**Tooling note:** the Kaggle output fetch initially failed with a Windows `PermissionError` against `C:/Program Files/Git/...`.
+Cause: the `--out /kaggle/working/exp` argument was silently mangled by Git Bash's automatic POSIX-path conversion on the
+*local* notebook-build call (that specific call was missing `MSYS_NO_PATHCONV=1`) -- the remote run itself succeeded and wrote
+to a garbled-but-harmless nested path on Kaggle's Linux filesystem; the data was recovered by listing kernel output files
+directly via the `kagglesdk` client and stripping the bogus prefix, rather than through `kaggle kernels output`.
+
 ## Blockers / limits
 - Single behaviour seed for data collection and heuristic evaluation (episode-level variance is already captured via n=384,
   but a second full replicate was not run).
