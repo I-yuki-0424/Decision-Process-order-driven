@@ -649,7 +649,7 @@ tasks:
 
   - id: "TASK-20260928-014-eval-window-bias-and-transformer-calibration"
     created_at: "2026-09-28T01:50:00Z"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator request (2026-09-28, follow-up): (1) verify the root cause of TASK-013's flagged greedy-eval-return
       gap rather than leaving it as an unconfirmed hypothesis; (2) run DESIGN.md sec.4 item 1b (transformer actor,
@@ -713,7 +713,27 @@ tasks:
       from a real CLI-ordering mistake on this session's part -- `--max-wait-hours` was placed after
       `--script-args`, whose argparse.REMAINDER swallowed it into the in-kernel script's own argv, which doesn't
       have that flag; fixed by reordering and re-pushed (v2), not a bug in the training code itself.
-      Full local+Kaggle 1b numbers to be added once both finish (in progress at time of writing).
+
+      BOTH RUNS COMPLETE, GPU-confirmed, no NaNs, all updates finished.
+      LOCAL (num_envs=128, hardware-constrained, 122 updates -- 8x more updates than MLP's 15 at the same 1e6-tick
+      budget because of the smaller batch): s0 train_return 0.52->4.28, eval_return=1.481 (147 eps, eval_windows=4);
+      s1 train_return 0.52->4.34, eval_return=1.414 (140 eps). Both clearly above the MLP calibration's numbers,
+      but this is NOT an apples-to-apples comparison (different num_envs and 8x more gradient updates), so it does
+      not by itself answer DESIGN.md 1b.
+      KAGGLE (num_envs=1024, 15 updates -- the TRUE apples-to-apples match to the MLP calibration): s0 train_return
+      0.431->3.118, eval_return=0.694 (1155 eps); s1 train_return 0.468->3.190, eval_return=0.662 (1163 eps).
+      HONEST COMPARISON AT THE MATCHED BUDGET (num_envs=1024, 15 updates, both actors, eval_windows=4): MLP
+      train_return 3.64-3.97, eval_return 0.71-0.75 vs transformer train_return 3.12-3.19, eval_return 0.66-0.69.
+      At this specific, very short (15-update) matched budget, the transformer actor is SLIGHTLY BEHIND the MLP on
+      both metrics, not "not weaker" as DESIGN.md 1b hoped -- this is stated plainly rather than read selectively
+      from the more flattering (but uncontrolled) local comparison. Plausible, unconfirmed explanation: the
+      transformer has more parameters and no dedicated warm-up/lr tuning for its own capacity, and the local
+      128-env run (which reaches transformer train_return 4.28-4.34, above MLP, after 122 updates) suggests it may
+      simply need more updates than 15 to close the gap it starts behind at -- but that comparison used a different
+      num_envs, so it is suggestive, not proof. VERDICT: DESIGN.md 1b's specific claim ("the chunk actor is not
+      weaker than the MLP") is NOT confirmed at the calibration budget; it is at minimum update-count-sensitive.
+      This does not block proceeding to the main delta x arms sweep (which uses the transformer actor by design,
+      per DESIGN.md, and will run far more than 15 updates), but the operator should not read 1b as a clean pass.
       (3) scip-neo4j second-pass full-tool review: see docs/LOGS/SCIP_NEO4J_MCP_FEEDBACK.md for the complete
       per-tool writeup. Headline: no change observed from the first pass in this session (re-tested
       craftax_calibration_config's analyze_change_impact specifically, per the operator's ask, identical empty
@@ -729,7 +749,7 @@ tasks:
       re-ingested since those files landed -- but did surface one plausibly-relevant neighbor for an older
       (2026-09-25) symbol, so it is not purely noise, just low signal-to-noise and blind to very recent commits.
     blockers:
-      - "Local and Kaggle DESIGN.md-1b transformer-actor runs (seeds 0,1) not yet complete."
+      - "DESIGN.md 1b's claim ('chunk actor is not weaker than the MLP') is NOT confirmed at the matched 15-update calibration budget -- transformer trailed the MLP on both train_return and eval_return there; only a differently-configured (more updates, fewer envs) local run showed it ahead. Needs a real matched-budget test at a larger update count before this is resolved either way."
       - "Residual ~4.6-5x greedy-vs-stochastic return gap after the window-bias fix is not yet explained beyond a plausible hypothesis (greedy gets stuck in a repeated bad action loop); would need e.g. logging the actual greedy action sequence at a death to confirm, which was not done here."
       - "scip-neo4j: cannot yet confirm whether the operator-reported server-side improvement has reached this repo's ingestion; re-test in a fresh session after the next ingestion run rather than concluding 'no improvement' from this session's unchanged results alone."
 
