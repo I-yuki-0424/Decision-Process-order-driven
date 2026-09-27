@@ -433,6 +433,82 @@ tasks:
       - "Learner power still not decisively confirmed or ruled out; needs either more seeds/compute or an actor-critic rewrite."
       - "Phase 3 (OOD batch-scoring robustness) and the coupled curriculum remain untested pending the learner-power resolution."
 
+  - id: "TASK-20260927-011-actor-critic-learner-handoff"
+    created_at: "2026-09-28T00:00:00Z"
+    status: "queued"
+    description: >
+      HANDOFF (operator is starting a fresh thread to keep this line of work logically clean; read this entry plus
+      TASK-20260927-008/009/010 before continuing). Chosen next step: replace the plain-REINFORCE policy learner used in
+      src/pipeline/candidate_experiment.py's build_fns/loss_fn with an actor-critic learner (learned state-value baseline,
+      advantage = return - V(s) or GAE, standard variance-reduction fix for REINFORCE), as a NEW code path (do not overwrite
+      the existing reinforce/argmax_legacy modes -- add e.g. mode="actor_critic"). candidate_experiment.build_fns/loss_fn are
+      EXISTING symbols: run check_symbol_constraints/analyze_change_impact before editing (TASK-010 found scip-neo4j's index
+      does not cover this repo's src/ well -- results looked empty/irrelevant for transformer_decision_core.py and
+      shared_stages.py; if the same happens here, fall back to a manual grep-based caller check per CLAUDE.md and record
+      that the index was incomplete, don't skip the check).
+
+      === Proposal under test (operator, verbatim intent, refined across three messages) ===
+      A "do nothing" (no-op) world model, trained via real state transitions, can serve as a useful anticipatory signal for
+      action selection because it tells the policy what would happen without intervention -- if that differs from a target,
+      the policy should pick an action producing a bigger favorable change. Refined procedure (operator's 3rd clarification,
+      supersedes the literal formula in TASK-009):
+        Phase 1: WM trained on synchronized REAL no-op branches from the current state+history ("World B"), predicting t+1
+          under no-op. Purpose: a learned counterfactual baseline, NOT action ranking.
+        Phase 2: policy trained separately on the REAL acting branch ("World A"); the WM's prediction is given to the policy
+          as a FEATURE / comparison signal (not by uniformly adding the same no-op delta to every action's outcome -- that
+          mechanism cannot rank actions and was correctly refuted as a strawman of what was intended, see TASK-009).
+          Coupled curriculum: better policy -> longer/broader episodes -> richer WM training data -> more stable features ->
+          (hoped) better policy.
+        Phase 3 (not yet tested): batch action-candidate generation/scoring where the WM baseline is meant to reduce
+          brittleness on out-of-distribution states specifically, not to raise average return -- a narrower, still-untested
+          claim.
+
+      === Verification results so far ===
+      TASK-008 (Craftax, RL learner; pendulum, decoupled pretraining): Craftax noop-future is predictable only for slow,
+        clock-like quantities (vitals skill 0.55 @h8, light 0.78); mob motion barely predictable (cell-recall 1-9%). Giving
+        the REINFORCE policy the trained WM's features, the TRUE simulated noop future (oracle), or even a random-init WM
+        control all scored ~3.0, statistically indistinguishable, n=4 seeds, 4,800 episodes/run. POSITIVE CONTROL at that
+        budget (oracle_act arm, true 1-step reward of every action) ALSO scored ~2.9 -- flat. Separately, on a pendulum
+        swing-up planning task (where the plant genuinely is control-affine + physically structured), decoupled passive
+        pretraining DID help, but only when the passive data covered states the active data never visited (coverage, not
+        the decoupling schedule itself, is what mattered): a port-Hamiltonian model pretrained on wide passive data + only
+        G learned from 8 active trajectories reached the planning ceiling (-195 vs -196 true-model MPC).
+      TASK-009 (deterministic heuristic planner, no RL loop, decisive test of the ORIGINAL literal proposal): combining the
+        WM's noop-anticipation with the repo's existing hand-specified CRAFTAX_RESOURCE_EFFECTS action-effect table did NOT
+        beat the table alone (149.6 vs 149.8 mean survival steps, n=384 episodes/arm); h=8 anticipation was WORSE than h=1
+        (compounding-error risk confirmed); "update once per whole episode" (as literally proposed) gave uniformly WORSE
+        held-out prediction accuracy than pooled shuffled-minibatch training at every horizon; bootstrapping the WM on the
+        best-surviving (do-nothing) episodes overfit an order of magnitude worse on the original distribution. Decisive
+        structural point: a noop-only prediction is added identically to every action's predicted outcome, so it cannot by
+        itself rank actions -- it must be combined with something action-dependent.
+      TASK-010 (response to the operator's clarification; architecture check; budget diagnostic): verified via code read
+        that transformer_branch's action-scoring is NOT a wiring dead end -- state/target/action tokens fully
+        bidirectionally cross-attend in stage 1 (self_attention_now_goal_actions), and action_logits are per-action-token
+        dot products, so a feature placed in the state channel CAN reach action scores in one hop. Re-ran oracle_act vs
+        base at 4x batch (64 vs 16) and ~2.7x episodes (12,800 vs 4,800), 4 seeds: oracle_act 3.32 +- 0.06 vs base 3.25 +-
+        0.14 -- a small, non-significant directional gap (seed ranges still overlap). Conclusion: the REINFORCE learner's
+        "no power" finding softens from "flat" to "underpowered/inconclusive even for the strongest possible leaked
+        signal"; re-testing any WM-feature hypothesis on Craftax at the old or even 3x budget is not decidable with this
+        learner. This is the reason the operator chose to switch to actor-critic rather than keep scaling REINFORCE blindly.
+
+      === What the actor-critic switch must establish before the WM question is re-opened ===
+      1. Litmus test (do this FIRST, before any WM feature is reintroduced): train actor-critic on `base` and `oracle_act`
+         (both already implemented, src/environment/craftax_future_adapter.py) with a modest budget close to TASK-008's
+         original (or a bit more). If oracle_act does NOT now clearly and reproducibly beat base by a wide, non-overlapping
+         margin, the learner is still underpowered or something else is wrong -- do not proceed to WM-feature arms yet.
+      2. Only once that litmus test passes cleanly: re-run TASK-008's Stage B (`wm_full`, `wm_untrain`, `oracle` arms) with
+         the actor-critic learner to get a decidable answer on whether the passive world model itself helps.
+      3. Phase 3 (OOD batch-scoring robustness) and the Phase-2 coupled curriculum remain valid, untested ideas -- attempt
+         them only after step 2 gives a clean result, since both build on top of a working policy-improvement loop.
+      Keep the critical-review discipline from CLAUDE.md: state objections plainly before implementing, record them here.
+    spec_ref: null
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+    result: ""
+    blockers:
+      - "Actor-critic not yet implemented; litmus test (oracle_act vs base) not yet re-run under it."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
