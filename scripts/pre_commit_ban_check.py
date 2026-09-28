@@ -52,13 +52,41 @@ def check_file(filepath):
                     if re.search(r':\s*[-+]?[0-9]*\.?[0-9]+', line):
                         num_literals += 1
 
+    # Check 4: metric-like keyword argument set to a bare float literal, e.g. `noise_recovery_rate=0.85,`
+    # (a measured value must be computed; a constant with a metric name is a fabricated result)
+    kw = re.compile(r'^\s+([A-Za-z0-9_]*(rate|resilience|accuracy|score|reward|success)[A-Za-z0-9_]*)\s*=\s*[-+]?[0-9]+\.[0-9]+\s*(,|(?=\s*$))\s*(#.*)?$')
+    for i, line in enumerate(lines):
+        m = kw.match(line)
+        # keyword-argument context only: the line ends with a comma, or the next line closes the call
+        is_kwarg = bool(m) and (line.split('#')[0].rstrip().endswith(',') or
+                                (i + 1 < len(lines) and lines[i + 1].lstrip().startswith(')')))
+        if is_kwarg and '# SOURCE:' not in line:
+            errors.append(f"{filepath}:{i+1}: metric-like keyword {m.group(1)} set to a numeric literal (compute it, or annotate '# SOURCE:')")
+
     return errors
+
+
+def check_json(filepath):
+    """Result files must not carry the banned status literal (the .py check cannot see committed outputs)."""
+    banned = "VERIFIED" + "_" + "SUCCESS"
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            head = f.read(2000000)
+    except Exception:
+        return []
+    return [f"{filepath}: JSON output contains banned literal {banned}"] if banned in head else []
+
 
 all_errors = []
 for root, dirs, files in os.walk('.'):
     if '.git' in root or '__pycache__' in root or 'venv' in root:
         continue
+    norm = root.replace(os.sep, '/')
+    if 'output_remote' in norm or 'quarantine_fabricated' in norm:
+        continue
     for file in files:
+        if file.endswith('.json') and (norm.startswith('./output') or norm.startswith('./kaggle')):
+            all_errors.extend(check_json(os.path.join(root, file)))
         if file.endswith('.py') or file.endswith('.sh'):
             if file == 'pre_commit_ban_check.py' or file == 'check_banned_patterns.py':
                 continue
