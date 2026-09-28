@@ -294,6 +294,59 @@ class TestChunkPPOWiring(unittest.TestCase):
         self.assertEqual(r.n_updates, (10_000 - 4 * 16) // (4 * 4 * 4))   # passive ticks charged to the budget
 
 
+class TestMetricProtocol(unittest.TestCase):
+    """TASK-20260928-015 items 8/9: evaluation and training-return estimators."""
+
+    def _pend(self, **kw):
+        return _tiny(env="pendulum_goal", env_kwargs=(("max_ticks", 48),), arm="augment", delta=0, k=4, hist_len=0,
+                     eval_cycles=4, **kw)          # 16 ticks per window, every episode lasts exactly 48 ticks
+
+    def test_evaluate_scores_first_episode_of_every_env_across_windows(self):
+        r = ChunkPPO(self._pend(eval_windows=4))                       # 64 ticks >= 48: everyone finishes
+        st = r.init(jax.random.PRNGKey(0))
+        ev = r.evaluate(st, jax.random.PRNGKey(1))
+        self.assertEqual(ev["episodes"], r.cfg.num_envs)
+        self.assertEqual(ev["censored_frac"], 0.0)
+        self.assertTrue(np.isfinite(ev["mean_return"]))
+        self.assertAlmostEqual(ev["mean_return"], ev["mean_return_incl_censored"], places=5)
+        self.assertEqual(ev["terminal_rate"], 0.0)                     # pendulum never terminates: time limit only
+
+    def test_evaluate_reports_censoring_instead_of_dropping_unfinished_envs(self):
+        r = ChunkPPO(self._pend(eval_windows=1))                       # 16 ticks < 48: nobody finishes
+        st = r.init(jax.random.PRNGKey(0))
+        ev = r.evaluate(st, jax.random.PRNGKey(1))
+        self.assertEqual(ev["episodes"], 0)
+        self.assertEqual(ev["censored_frac"], 1.0)
+        self.assertTrue(np.isnan(ev["mean_return"]))
+        self.assertTrue(np.isfinite(ev["mean_return_incl_censored"]))  # running returns are still reported
+
+    def test_evaluate_greedy_and_stochastic_paths_run(self):
+        r = ChunkPPO(self._pend(eval_windows=4))
+        st = r.init(jax.random.PRNGKey(0))
+        for g in (False, True):
+            self.assertEqual(r.evaluate(st, jax.random.PRNGKey(2), greedy=g)["episodes"], r.cfg.num_envs)
+
+    def test_train_episode_summary_excludes_first_completion_and_flags_settling(self):
+        from types import SimpleNamespace
+        from src.pipeline.chunk_ppo import train_episode_summary
+        done = np.array([[1, 0], [0, 1], [1, 0], [0, 0]], bool)           # (C=4, N=2)
+        fr = np.array([[10., 0], [0, 20.], [30., 0], [0, 0]], np.float32)
+        traj = SimpleNamespace(out=SimpleNamespace(done=done, finished_return=fr, terminated=done))
+        ep, after = train_episode_summary(traj, np.zeros(2, np.int64))
+        self.assertEqual((ep["episodes"], ep["episodes_all"]), (1, 3))     # env0's 2nd completion only
+        self.assertAlmostEqual(ep["mean_return"], 30.0)
+        self.assertAlmostEqual(ep["mean_return_all"], 20.0)
+        self.assertFalse(ep["settled"])
+        np.testing.assert_array_equal(after, [2, 1])
+        ep2, _ = train_episode_summary(traj, np.array([2, 2]))
+        self.assertEqual(ep2["episodes"], 3)
+        self.assertTrue(ep2["settled"])
+        ep3, _ = train_episode_summary(SimpleNamespace(out=SimpleNamespace(
+            done=np.zeros((2, 2), bool), finished_return=np.zeros((2, 2)), terminated=np.zeros((2, 2), bool))),
+            np.zeros(2, np.int64))
+        self.assertTrue(np.isnan(ep3["mean_return"]))
+
+
 @unittest.skipUnless(importlib.util.find_spec("craftax"), "craftax not installed")
 class TestCraftaxCalibrationWiring(unittest.TestCase):
     def test_calibration_config_dry_run(self):
