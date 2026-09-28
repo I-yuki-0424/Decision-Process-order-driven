@@ -36,6 +36,7 @@ from src.environment.craftax_env_adapter import (
     NUM_ACHIEVEMENTS,
     CraftaxEnvAdapter,
     calculate_crafter_score,
+    masked_achievements,
 )
 from src.model.checkpoint import AsyncCheckpointManager
 from src.pipeline.candidate_benchmark import CANDIDATE_REGISTRY
@@ -95,7 +96,7 @@ def build_fns(name: str, adapter: CraftaxEnvAdapter, d_model: int, T: int, lr: f
             act = jnp.where(random_policy, a_rand, jnp.where(greedy, a_greedy, sampled)).astype(jnp.int32)
             n_input, n_state, reward, done, _ = adapter.step(
                 k_env, env_state, act, actions_data, step_count=t, prev_history=input_n.history)
-            ach = jnp.maximum(ach, n_state.achievements.astype(jnp.float32))
+            ach = jnp.maximum(ach, masked_achievements(n_state.achievements, done, alive))  # not the auto-reset life
             out = dict(input_n=input_n, hist=hist, act=act, reward=reward * alive, mask=alive)
             n_alive = alive * (1.0 - done.astype(jnp.float32))
             return (n_input, n_state, new_hist, n_alive, ach), out

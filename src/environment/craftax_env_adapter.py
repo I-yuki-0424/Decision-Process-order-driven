@@ -59,6 +59,17 @@ def calculate_crafter_score(achievement_unlock_rates: List[float]) -> float:
     return float(score)
 
 
+def masked_achievements(achievements, done, alive=1.0):
+    """Achievement flags that belong to the episode being scored.
+
+    CraftaxClassicSymbolicEnv.step() AUTO-RESETS when `done`: the state it returns on the terminal step (and every step
+    after it) is a fresh episode whose achievements are all zero, and accumulating a max over later steps would credit the
+    NEXT life to this one (random policy, T=600: Crafter score 3.03 instead of the first-life 1.71).
+    Returns achievements * alive * (1 - done): pass `alive` = 1 while the episode is still running, 0 once it has ended.
+    Limitation: an achievement unlocked on the very tick of death is not visible (the returned state is already reset)."""
+    return jnp.asarray(achievements, jnp.float32) * (alive * (1.0 - jnp.asarray(done, jnp.float32)))
+
+
 # Craftax-Classic action→resource delta table.
 # Shape: (17, 8) — rows = actions, cols = [health, food, drink, energy, wood, stone, coal, iron]
 # Signs follow: positive = gain, negative = consumption.

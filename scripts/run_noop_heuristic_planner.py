@@ -31,7 +31,7 @@ import argparse, json, os, sys, time
 sys.path.insert(0, ".")
 import jax, jax.numpy as jnp, numpy as np, optax
 from src.environment.craftax_env_adapter import (
-    CraftaxEnvAdapter, CRAFTAX_RESOURCE_EFFECTS, NUM_ACHIEVEMENTS, calculate_crafter_score,
+    CraftaxEnvAdapter, CRAFTAX_RESOURCE_EFFECTS, NUM_ACHIEVEMENTS, calculate_crafter_score, masked_achievements,
 )
 from src.environment.craftax_obs_adapter import obs_to_features, BASE_DIM
 
@@ -106,7 +106,7 @@ def gen_data(n_env, steps, seed, act_fn, act_params):
             sel = jnp.array([h - 1 for h in HORIZONS])
             act = act_fn(feats, v0, ka, act_params)
             o2, s2, r, d, _ = env.step(ks, st, act, P)
-            ach2 = jnp.maximum(ach, s2.achievements.astype(jnp.float32))
+            ach2 = jnp.maximum(ach, masked_achievements(s2.achievements, d, alive))  # not the auto-reset life
             n_alive = alive * (1.0 - d.astype(jnp.float32))
             return (o2, s2, n_alive, ach2), (feats, v0, fut[sel], ok[sel] * alive, alive)
         (_, _, _, ach), out = jax.lax.scan(

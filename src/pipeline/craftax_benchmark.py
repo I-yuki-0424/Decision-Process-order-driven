@@ -22,6 +22,7 @@ from src.environment.craftax_env_adapter import (
     NUM_ACHIEVEMENTS,
     ACHIEVEMENT_NAMES,
     calculate_crafter_score,
+    masked_achievements,
 )
 from src.model.hierarchical_transformer import (
     HierarchicalModelParameters,
@@ -169,6 +170,7 @@ def evaluate_craftax_agent(
         input_n, env_state, actions_data = adapter.reset(keys[ep])
         ep_steps = 0
         done = False
+        cum_ach = np.zeros(NUM_ACHIEVEMENTS, dtype=np.float32)   # achievements of THIS life only
 
         while not done and ep_steps < max_steps_per_ep:
             ep_key = jax.random.fold_in(keys[ep], ep_steps)
@@ -197,9 +199,11 @@ def evaluate_craftax_agent(
                 ep_key, env_state, action_idx, actions_data, step_count=ep_steps, prev_history=input_n.history
             )
             ep_steps += 1
+            # step() auto-resets on done: env_state is then a fresh episode with zero achievements
+            cum_ach = np.maximum(cum_ach, np.asarray(masked_achievements(env_state.achievements, done)))
 
         if hasattr(env_state, 'achievements'):
-            ach_unlocked = np.array(env_state.achievements, dtype=np.float32)
+            ach_unlocked = cum_ach
             achievement_matrix[ep, :] = ach_unlocked
             episode_unlocked_counts.append(float(np.sum(ach_unlocked)))
         else:
