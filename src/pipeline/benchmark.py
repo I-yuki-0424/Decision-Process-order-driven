@@ -45,7 +45,6 @@ class BenchmarkMetrics(NamedTuple):
     success_rate: float
     avg_steps: float
     avg_progress_rate: float
-    exposure_bias_resilience: float
     avg_cost_consumed: List[float]
     execution_ms_per_step: float
 
@@ -177,7 +176,6 @@ def evaluate_hierarchical_variant(
         success_rate=successes / num_episodes,
         avg_steps=float(jnp.mean(jnp.array(total_steps))),
         avg_progress_rate=float(jnp.mean(jnp.array(final_progress))),
-        exposure_bias_resilience=0.95,
         avg_cost_consumed=[float(c) for c in avg_costs],
         execution_ms_per_step=total_time_ms / max(1, total_step_counts),
     )
@@ -240,7 +238,6 @@ def evaluate_simplified_mdp_baseline(
         success_rate=successes / num_episodes,
         avg_steps=float(jnp.mean(jnp.array(total_steps))),
         avg_progress_rate=float(jnp.mean(jnp.array(final_progress))),
-        exposure_bias_resilience=0.60,
         avg_cost_consumed=[float(c) for c in avg_costs],
         execution_ms_per_step=total_time_ms / max(1, total_step_counts),
     )

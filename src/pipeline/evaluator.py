@@ -23,7 +23,6 @@ class EvaluationResult(NamedTuple):
     avg_steps: float
     avg_progress_rate: float
     total_cost_consumed: jnp.ndarray
-    noise_recovery_rate: float
     progress_trajectories: List[jnp.ndarray]
     cost_trajectories: List[jnp.ndarray]
 
@@ -73,7 +72,6 @@ def evaluate_greedy(
         avg_steps=float(jnp.mean(jnp.array(total_steps_list))),
         avg_progress_rate=float(jnp.mean(jnp.array(final_progress_list))),
         total_cost_consumed=jnp.sum(cost_trajectories[0], axis=0),
-        noise_recovery_rate=0.85,
         progress_trajectories=progress_trajectories,
         cost_trajectories=cost_trajectories,
     )
@@ -129,7 +127,6 @@ def evaluate_beam_search(
         avg_steps=float(jnp.mean(jnp.array(total_steps_list))),
         avg_progress_rate=float(jnp.mean(jnp.array(final_progress_list))),
         total_cost_consumed=jnp.sum(cost_trajectories[0], axis=0),
-        noise_recovery_rate=0.95,
         progress_trajectories=progress_trajectories,
         cost_trajectories=cost_trajectories,
     )
