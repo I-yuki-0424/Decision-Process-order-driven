@@ -78,6 +78,7 @@
     <rule>
       Dependency and impact data comes from the scip-neo4j MCP server. Use it before changing
       any existing symbol (function, class, method). symbol_id is the SCIP symbol string.
+      To structure dependencies with the latest code, create a working branch and perform a Git commit and push for each set of tasks.
     </rule>
     <tool name="check_symbol_constraints">
       Call first on every symbol you intend to modify.
