@@ -83,7 +83,8 @@ class ChunkPPOConfig(NamedTuple):
     equal_env_ticks: bool = True
     eval_every: int = 10
     eval_cycles: int = 64
-    eval_windows: int = 1                # sequential eval_cycles-sized windows; see evaluate()'s docstring
+    eval_windows: int = 8                # MAX sequential eval_cycles-sized windows; evaluation stops early once every
+                                         # env has finished its first episode (see evaluate()'s docstring)
     checkpoint_ticks: int = 100_000
     time_limit_s: float = 0.0            # 0 = none; otherwise checkpoint and stop (ADR-002: 24 h per config)
     seed: int = 0
@@ -105,7 +106,7 @@ def craftax_calibration_config(**overrides) -> ChunkPPOConfig:
     512 to get a larger evaluation sample, but at num_envs=1024 that made a single eval rollout 8x the size of a
     training rollout, which OOM'd the 8GB local GPU mid-run (found during TASK-20260928-013's first real run,
     update 10's scheduled eval).
-    eval_windows=4 (not the default 1): a follow-up diagnostic (this task, scripts/adhoc/diag_eval_gap.py) found the
+    eval_windows=4 (not the default 1): [SUPERSEDED, see below] a follow-up diagnostic (this task, scripts/adhoc/diag_eval_gap.py) found the
     "several hundred eval episodes" reasoning above was wrong in practice -- a single 64-cycle eval window only let
     ~8% of the 1024 envs (not "several hundred") actually finish an episode before the window ended, because eval
     always starts from a synchronised fresh reset (unlike training, whose env state persists and keeps a steady
@@ -113,11 +114,17 @@ def craftax_calibration_config(**overrides) -> ChunkPPOConfig:
     eval_windows=4 runs 4 sequential 64-cycle windows (same per-window memory footprint that already fits, just
     more wall time) with env state carried forward between them, giving episodes 4x longer to finish -- confirmed
     to raise both the done-fraction and mean_return substantially on an already-trained checkpoint with no policy
-    change, i.e. the earlier single-window number really was an undercount, not a true performance reading."""
+    change, i.e. the earlier single-window number really was an undercount, not a true performance reading.
+    UPDATE (TASK-20260928-015, items 8/9): evaluate() no longer averages "whatever finished in a fixed window". It scores the
+    FIRST episode of every env (an unbiased per-policy estimate) and keeps stepping, up to eval_windows=16 windows of 64 ticks
+    (early exit once all envs finished; the measured trained/untrained MLP policies all finished within 384-640 ticks), and
+    reports the censored fraction. Headline eval_return is the STOCHASTIC policy (what PPO optimises); the greedy return is
+    logged separately as eval_return_greedy -- on the two trained MLP checkpoints greedy is ~4.6x worse (0.80/0.85 vs
+    3.67/3.88), a real behavioural gap, not a window artefact."""
     base = ChunkPPOConfig(env="craftax", arm="ignore", delta=0, k=1, hist_len=0, actor="mlp", mlp_width=512,
                           mlp_layers=3, critic_width=512, critic_layers=3, critic_time_feature=False, num_envs=1024,
                           cycles_per_update=64, lr=2e-4, gae_lambda=0.8, max_grad_norm=1.0, num_minibatches=8,
-                          dist_coef=0.0, eval_windows=4)
+                          dist_coef=0.0, eval_windows=16)
     return base._replace(**overrides)
 
 
@@ -399,35 +406,40 @@ class ChunkPPO:
         return 1.0 - err(traj.ai.state) / jnp.maximum(err(obs_c), 1e-12)
 
     # -- evaluation ----------------------------------------------------------------------------------------------------
-    def evaluate(self, st, key, greedy: bool = True):
-        """episode_summary only averages return over episodes that reach `done` inside the window it is given.
-        A single fresh-reset window of `eval_cycles` ticks found (TASK-20260928-013 diagnostic,
-        scripts/adhoc/diag_eval_gap.py) systematically undercounts: with num_envs=1024 and eval_cycles=64, only
-        ~8% of envs died in time to be counted at all, vs ~40-50% per window on the training rollout (whose env
-        state persists across many updates, so completions are a steady mixed stream, not a synchronised fresh
-        start). The excluded majority is whichever episodes needed longer than the window to finish -- exactly
-        the ones a still-improving policy is starting to survive on -- so the reported mean was biased toward
-        the fastest (likely worst) deaths only: mean_return rose 0.26->0.46 and done_frac rose 0.08->0.37 just
-        from doubling eval_cycles 64->128 on an already-trained checkpoint, with no change to the policy.
-        Fix: run `eval_windows` sequential eval_cycles-sized windows, carrying env state forward between them
-        (same persistence pattern as training) instead of one large window, and pool done-episode statistics
-        across all of them. This gives episodes eval_windows x eval_cycles ticks to finish while keeping peak
-        memory at a single eval_cycles-sized rollout (avoids the OOM a single larger window hit locally)."""
+    def evaluate(self, st, key, greedy: bool = False):
+        """Unbiased per-policy return: the FIRST episode of every env, all started together from a fresh reset.
+
+        Why not "mean over the episodes that finished inside the window" (the old estimator and the training metric): with
+        synchronised starts only the fastest deaths are counted, and a policy that dies sooner is counted more often
+        (TASK-20260928-013/014 diagnostics; TASK-20260928-015: an UNTRAINED policy scored 0.30 / 1.16 with 1 / 4 windows vs a true
+        first-episode mean of 1.36). Here every env contributes exactly once, envs are stepped until all have finished or
+        `eval_windows` windows of `eval_cycles` cycles have elapsed (peak memory = one window), and the censored fraction is
+        reported. Envs that never finish are NOT silently dropped: `mean_return_incl_censored` adds their running return.
+        Default is the stochastic policy (what PPO optimises); pass greedy=True for the argmax policy."""
         cfg = self.cfg
         k1, k2 = jax.random.split(key)
         ws = self.reset_envs(k1)
-        n_done, ret_sum, term_sum = 0, 0.0, 0
+        N = cfg.num_envs
+        seen = np.zeros(N, bool)
+        ret = np.zeros(N)
+        term = np.zeros(N, bool)
         for kk in jax.random.split(k2, cfg.eval_windows):
             ws, _, traj, _ = self.collect(st["pp"], st["wm"], st["stats"], ws, kk,
                                           n_cycles=cfg.eval_cycles, greedy=greedy)
             done = np.asarray(traj.out.done)
-            n = int(done.sum())
-            if n:
-                ret_sum += float((np.asarray(traj.out.finished_return) * done).sum())
-                term_sum += int((np.asarray(traj.out.terminated) & done).sum())
-            n_done += n
-        return dict(mean_return=(ret_sum / n_done) if n_done else float("nan"), episodes=n_done,
-                   terminal_rate=(term_sum / n_done) if n_done else float("nan"))
+            first = done & ((np.cumsum(done, 0) - done) == 0) & ~seen[None, :]   # first completion of a still-unseen env
+            fin = first.any(0)
+            ret[fin] = (np.asarray(traj.out.finished_return) * first).sum(0)[fin]
+            term[fin] = (np.asarray(traj.out.terminated) & first).any(0)[fin]
+            seen |= fin
+            if seen.all():
+                break
+        partial = np.asarray(ws.ep_return)[~seen]
+        n = int(seen.sum())
+        return dict(mean_return=float(ret[seen].mean()) if n else float("nan"), episodes=n,
+                    terminal_rate=float(term[seen].mean()) if n else float("nan"),
+                    censored_frac=float(1.0 - n / N),
+                    mean_return_incl_censored=float((ret[seen].sum() + partial.sum()) / N))
 
     # -- dry run (wiring check: one rollout + loss/gradient evaluation, NO parameter update) --------------------------
     def dry_run(self, key=None):
@@ -475,6 +487,7 @@ class ChunkPPO:
                                                       n_steps=cfg.passive_pretrain_steps, train_f=True)
             log_fn(f"passive pretraining: {self.passive_ticks} reference-action ticks, loss {float(l):.4f}")
         ws = self.reset_envs(k_env)
+        completed = np.zeros(cfg.num_envs, np.int64)   # episodes each env has finished since (re)start; envs are fresh here
         n_updates = self.n_updates if max_updates is None else min(self.n_updates, max_updates)
         t0 = time.time()
         for u in range(start, n_updates):
@@ -492,17 +505,22 @@ class ChunkPPO:
                 wm_loss = float(l)
             st["pp"], st["opt"], aux = self.update(st["pp"], st["opt"], traj, last_v, ku)
             aux = np.asarray(aux)
-            ep = episode_summary(traj)
+            ep, completed = train_episode_summary(traj, completed)
             rec = dict(update=u + 1, env_ticks=self.passive_ticks + (u + 1) * self.ticks_per_update,
                        train_return=ep["mean_return"], train_episodes=ep["episodes"],
-                       train_terminal_rate=ep["terminal_rate"], pg=float(aux[0]), vl=float(aux[1]),
+                       train_terminal_rate=ep["terminal_rate"], train_settled=ep["settled"],
+                       train_return_all=ep["mean_return_all"], train_episodes_all=ep["episodes_all"],
+                       pg=float(aux[0]), vl=float(aux[1]),
                        entropy=float(aux[2]), dist_loss=float(aux[3]), approx_kl=float(aux[4]),
                        clipfrac=float(aux[5]), forecast_skill=float(self.forecast_skill(traj)), wm_loss=wm_loss,
                        wall_s=time.time() - t0)
             if cfg.eval_every and ((u + 1) % cfg.eval_every == 0 or u + 1 == n_updates):
-                ev = self.evaluate(st, ke, greedy=True)
+                ev = self.evaluate(st, ke, greedy=False)
+                evg = self.evaluate(st, ke, greedy=True)
                 rec.update(eval_return=ev["mean_return"], eval_episodes=ev["episodes"],
-                           eval_terminal_rate=ev["terminal_rate"])
+                           eval_terminal_rate=ev["terminal_rate"], eval_censored_frac=ev["censored_frac"],
+                           eval_return_greedy=evg["mean_return"], eval_episodes_greedy=evg["episodes"],
+                           eval_censored_frac_greedy=evg["censored_frac"])
             records.append(rec)
             log_fn(" ".join(f"{a}={b:.4g}" if isinstance(b, float) else f"{a}={b}" for a, b in rec.items()))
             over_time = cfg.time_limit_s and time.time() - t0 > cfg.time_limit_s
@@ -514,12 +532,44 @@ class ChunkPPO:
                 break
         if ckpt is not None:
             ckpt.close()
+        settled = [r["train_return"] for r in records if r.get("train_settled") and r["train_return"] == r["train_return"]]
         summary = dict(cfg=cfg._asdict(), n_updates=n_updates, passive_ticks=self.passive_ticks,
-                       ticks_per_update=self.ticks_per_update, backend=jax.default_backend(), records=records)
+                       ticks_per_update=self.ticks_per_update, backend=jax.default_backend(), metric_protocol=METRIC_PROTOCOL,
+                       n_settled_updates=len(settled),
+                       train_return_settled_mean=float(np.mean(settled)) if settled else float("nan"), records=records)
         if out_dir:
             with open(os.path.join(out_dir, "summary.json"), "w") as f:
                 json.dump(summary, f, indent=1)
         return summary
+
+
+METRIC_PROTOCOL = ("v2 (TASK-20260928-015): eval_return = mean return of the FIRST episode of every env (fresh start, stochastic "
+                   "policy, censoring reported; eval_return_greedy = argmax policy); train_return = mean over finished episodes "
+                   "EXCLUDING each env's first, valid only where train_settled (every env had finished >= 2 episodes before the "
+                   "window); train_return_all = old definition (biased low early because all envs start synchronised). "
+                   "Files written before this protocol have eval_return = greedy, 1-window and train_return = train_return_all.")
+
+
+def train_episode_summary(traj, completed_before):
+    """Training-rollout episode statistics without the synchronised-start bias.
+
+    All envs start at tick 0 together, so during the first updates only the fastest deaths complete and the plain mean of
+    finished returns is biased low (an UNTRAINED policy read 0.39 -> 1.4 over 4 updates; its true mean is 1.36). The bias decays
+    as episode start times spread out. Here each env's first completion is excluded from `mean_return`, and `settled` is True
+    only once every env had already finished >= 2 episodes before this window (measured: from then the excluded and plain
+    means coincide). Use only settled updates for learning curves; `mean_return_all` keeps the old definition.
+    Returns (summary dict, completed_after) with completed_after = completed_before + per-env completions in this window."""
+    done = np.asarray(traj.out.done)                              # (C, N)
+    fr = np.asarray(traj.out.finished_return)
+    term = np.asarray(traj.out.terminated)
+    before = completed_before[None, :] + np.cumsum(done, 0) - done  # completions of that env strictly before each cycle
+    keep = done & (before >= 1)
+    n, n_all = int(keep.sum()), int(done.sum())
+    out = dict(mean_return=float((fr * keep).sum() / n) if n else float("nan"), episodes=n,
+               terminal_rate=float((term & keep).sum() / n) if n else float("nan"),
+               mean_return_all=float((fr * done).sum() / n_all) if n_all else float("nan"), episodes_all=n_all,
+               settled=bool(completed_before.min() >= 2))
+    return out, completed_before + done.sum(0)
 
 
 def episode_summary(traj):
