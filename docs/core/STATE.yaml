@@ -753,6 +753,38 @@ tasks:
       - "Residual ~4.6-5x greedy-vs-stochastic return gap after the window-bias fix is not yet explained beyond a plausible hypothesis (greedy gets stuck in a repeated bad action loop); would need e.g. logging the actual greedy action sequence at a death to confirm, which was not done here."
       - "scip-neo4j: cannot yet confirm whether the operator-reported server-side improvement has reached this repo's ingestion; re-test in a fresh session after the next ingestion run rather than concluding 'no improvement' from this session's unchanged results alone."
 
+  - id: "TASK-20260928-015-evaluation-integrity-audit"
+    created_at: "2026-09-28T06:30:00Z"
+    status: "in_progress"
+    description: >
+      Operator request (2026-09-28): re-verify score / reward / comparison-score calculations and training-process integrity
+      across the repo, identify defects, report. Follow-up: fix items 1, 2, 3, 8, 9 on separate branches; record the rest here.
+    spec_ref: null
+    validation_commands:
+      - "python scripts/adhoc/audit_score_autoreset.py"
+      - "python scripts/adhoc/audit_untrained_train_return.py"
+      - "python scripts/adhoc/audit_greedy_vs_stochastic.py"
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_architecture_fixes"
+      - "python -m unittest tests.test_latency_chunking"
+    result: >
+      AUDIT COMPLETE (numbering = the operator report of 2026-09-28). Key measured facts (CPU, real Craftax steps):
+      (3) Craftax step() auto-resets; random-policy Crafter score 1.71 first-life vs 3.03 when achievements are accumulated across
+      post-death lives. (8) ChunkPPO train_return of an UNTRAINED policy rises 0.39 -> ~1.4 in 4 updates from the synchronised-start
+      completion window alone (true first-episode mean 1.36). (9) greedy-vs-stochastic gap is REAL (first-episode return greedy
+      0.80/0.85 vs stochastic 3.67/3.88 on the two MLP checkpoints), not an eval-window artifact.
+      FIX BRANCHES (stacked, each based on the previous one): audit/evaluation-integrity-2026-09-28 (this record) ->
+      fix/quarantine-fabricated-results (items 1, 2) -> fix/score-autoreset-leak (item 3) -> fix/chunkppo-metric-bias (items 8, 9).
+    blockers:
+      - "OPEN item 4: grid_search_benchmark.py:166 and kaggle_kernel/phase2_runner.py:316 compute Crafter score from binary 0/100 rates (one episode / 'ever unlocked in any life'), so the score is the fixed function 101^(k/22)-1 of the unlock count k and is not comparable to the multi-episode Crafter score. Same auto-reset leak as item 3 there (achievements read after done)."
+      - "OPEN item 5: grid_search_benchmark.py:298-303 fills the wood/stone/coal/iron milestone columns by thresholding crafter_score (>1,>5,>10,>20) although per-achievement data (final_achievements) exists."
+      - "OPEN item 6: src/pipeline/craftax_benchmark.py:137 uses undefined name `info` (NameError) in train_craftax_rl_agent (pyflakes)."
+      - "OPEN item 7: committed MLP calibration summary.json files (local + Kaggle, TASK-013) use the OLD single-window eval (no eval_windows, 62-83 eval episodes) although output/README.md says numbers reflect the fix; the 0.71-0.75 MLP figure in TASK-014 came from a separate re-evaluation; MLP-vs-transformer comparison mixes protocols and uses greedy eval (see item 9 fix for the new protocol; old files are NOT re-generated)."
+      - "OPEN item 10: (superseded in part by the item-8/9 fix) old eval counted only finished episodes, so faster-dying policies were counted more (68 vs 1155 eval episodes for the same budget)."
+      - "OPEN item 11: no summary contains a random / untrained baseline scored with the same protocol as train_return / eval_return; TASK-013's PASS has no anchor, and no published PPO number exists for Craftax-Classic at 1M ticks."
+      - "OPEN item 12: (a) after resume, envs are reset with the original key and the first post-resume update repeats the synchronised-start bias; (b) every time-limit end is treated as terminal in GAE (critic time feature on for sweep envs, off for the Craftax calibration); (c) candidate_experiment baseline is the batch mean return-to-go including the sample's own return, and with batch 8 late timesteps with one live episode get zero advantage; (d) 1-4 seeds per config, no variance estimate."
+      - "OPEN item C: scripts/pre_commit_ban_check.py scans only .py/.sh, flags only dict literals assigned to names containing metrics/results/rollout/benchmark, and treats any open( as 'real I/O'. (Partly addressed on fix/quarantine-fabricated-results: JSON scan for the banned literal.)"
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
