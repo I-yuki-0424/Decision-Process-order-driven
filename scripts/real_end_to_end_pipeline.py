@@ -17,7 +17,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from src.environment.craftax_env_adapter import CraftaxEnvAdapter
+from src.environment.craftax_env_adapter import CraftaxEnvAdapter, masked_achievements
 from src.model.hierarchical_transformer import (
     init_hierarchical_model_parameters,
     forward_hierarchical_transformer,
@@ -107,6 +107,7 @@ def run_real_pipeline():
         obs, env_state, act_data = env.reset(reset_rng)
         done = False
         step_idx = 0
+        cum_ach = np.zeros((22,), dtype=np.float32)   # achievements of THIS life only
 
         while not done:
             rng, forward_rng = jax.random.split(rng)
@@ -115,6 +116,8 @@ def run_real_pipeline():
 
             rng, step_rng = jax.random.split(rng)
             obs, env_state, reward, done, info = env.step(step_rng, env_state, action, act_data)
+            # step() auto-resets on done: env_state is then a fresh episode with zero achievements
+            cum_ach = np.maximum(cum_ach, np.asarray(masked_achievements(env_state.achievements, done)))
 
             # Print occasionally to avoid flooding but show progress
             if step_idx % 100 == 0:
@@ -131,7 +134,7 @@ def run_real_pipeline():
         # Using CraftaxEnvAdapter, achievements are typically returned in info or env_state.achievements
         # According to Craftax design, achievements are inside the env_state.
         if hasattr(env_state, 'achievements'):
-            achievements_matrix.append(np.array(env_state.achievements))
+            achievements_matrix.append(cum_ach)
         else:
             achievements_matrix.append(np.zeros((22,), dtype=bool))
 
