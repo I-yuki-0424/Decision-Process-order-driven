@@ -927,21 +927,6 @@ tasks:
       - "OPEN (found while fixing 1-2): `python -m src.main` fails on import: src/pipeline/plotter.py has no plot_evaluation_comparison / plot_training_curves as imported by src/main.py (pre-existing on main). Also evaluator.total_cost_consumed = sum over the FIRST episode only, although labelled as the run total."
       - "OPEN item C: scripts/pre_commit_ban_check.py scans only .py/.sh, flags only dict literals assigned to names containing metrics/results/rollout/benchmark, and treats any open( as 'real I/O'. (Partly addressed on fix/quarantine-fabricated-results: JSON scan for the banned literal.)"
 
-hazards:
-  - "<condition to watch for>: <what breaks if it's ignored>"  # Example
-  - >
-    src/model/candidates/*.py's MDP-search candidates (variant_5_1,
-    variant_5_4, mdp_branch) route action selection through
-    discretize_embeddings_to_ids's jnp.argmax, which blocks gradient flow
-    from the action-selection loss into that head. Training these three
-    candidates end to end will visibly improve estimated_costs /
-    predicted_next_state / progress / validity (whose heads DO get gradient)
-    but the discretization head itself will not learn from the policy loss
-    alone -- do not report improved action_logits accuracy for these three
-    without checking whether it's coming from somewhere else (e.g. the
-    encoder shifting via the other heads' gradients) rather than a learned
-    discretization.
-
   - id: "TASK-20260929-016-arc-design-proposals-training"
     created_at: "2026-09-29T18:52:00Z"
     status: "in_progress"
@@ -985,3 +970,18 @@ hazards:
       symbol modified, so scip-neo4j checks were not needed.
       Execution plan: local Docker GPU: latency sweeps (output/arc_proposals/latency/), structure-input planning + prediction studies
       (output/arc_proposals/structure_input/); Kaggle (kernel bfloat16/arc-ac-litmus, T4x2, 2 concurrent jobs): actor-critic litmus, lr 3e-4 vs 1e-3.
+
+hazards:
+  - "<condition to watch for>: <what breaks if it's ignored>"  # Example
+  - >
+    src/model/candidates/*.py's MDP-search candidates (variant_5_1,
+    variant_5_4, mdp_branch) route action selection through
+    discretize_embeddings_to_ids's jnp.argmax, which blocks gradient flow
+    from the action-selection loss into that head. Training these three
+    candidates end to end will visibly improve estimated_costs /
+    predicted_next_state / progress / validity (whose heads DO get gradient)
+    but the discretization head itself will not learn from the policy loss
+    alone -- do not report improved action_logits accuracy for these three
+    without checking whether it's coming from somewhere else (e.g. the
+    encoder shifting via the other heads' gradients) rather than a learned
+    discretization.
