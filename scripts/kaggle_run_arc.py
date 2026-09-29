@@ -95,12 +95,8 @@ if __name__ == "__main__":
             time.sleep(300)
         if a.no_wait:
             sys.exit(0)
-        ok = sm.poll_with_live_logs(sm.OUTPUT_DIR / a.run_id, max_wait_s=int(a.max_wait_hours * 3600))
-        print("[RUN] kernel ok" if ok else "[RUN] kernel failed/timeout; fetching anyway")
-    # fetch only result files (checkpoints of long runs are GBs and can fill the disk)
-    out_dir = sm.OUTPUT_DIR / a.run_id
-    out_dir.mkdir(parents=True, exist_ok=True)
-    FILE_PATTERN = r"(summary|index|result|greedy1_reference)\.json$|\.jsonl$|\.log$"
-    sm._base.run_cmd(["kaggle", "kernels", "output", sm.KERNEL_ID, "-p", str(out_dir), "--file-pattern", FILE_PATTERN, "-o"],
-                     check=False)
-    print(f"[FETCH] Retrieved {len([f for f in out_dir.rglob('*') if f.is_file()])} files -> {out_dir}")
+        import kaggle_watch_fetch as kw
+        kw.watch(a.slug, a.run_id, a.max_wait_hours)
+        sys.exit(0)
+    import kaggle_watch_fetch as kw
+    kw.watch(a.slug, a.run_id, 0.0)
