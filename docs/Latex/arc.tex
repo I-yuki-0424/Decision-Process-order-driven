@@ -532,6 +532,28 @@ every horizon. Bootstrapping the WM on the best-surviving (noop-only) episodes o
 MSE on the original random-policy distribution rises from 0.141 to 4.477 at $h{=}8$
 (\texttt{bootstrap.heldout\_mse\_on\_random\_data}).
 
+\subsection{Which crafter\_score numbers above remain uncorrected (stale)}
+
+The auto-reset achievement-counting fix (\S\ref{sec:audit}) was applied retroactively via
+eval-only re-evaluation of saved checkpoints for only 23 of 48 crafter\_score-bearing tags across
+\srcpath{2026-09-25\_convergence}, \srcpath{2026-09-25\_idea6}, and \srcpath{2026-09-26\_rerun}
+(\srcpath{output/experiments/reeval\_v2\_summary.json}, Section~\ref{sec:convergence}). The
+remaining 25 tags have no local checkpoint and no \srcpath{output\_remote/} snapshot and were
+\emph{not} regenerated: \texttt{2026-09-25\_convergence/kaggle} (\texttt{mdp\_branch\_\_reinforce},
+\texttt{variant\_5\_1\_\_reinforce}, \texttt{variant\_5\_4\_\_reinforce} -- 3 tags, Table in
+\S\ref{sec:convergence}, top section, reports only the original numbers for these);
+\texttt{2026-09-25\_idea6/stageB\_kaggle} (\texttt{wm\_hn\_untrained} s0/s1,
+\texttt{wm\_mlp} s0/s1 -- 4 tags); \texttt{2026-09-26\_rerun/kaggle\_mdp} (all 18 tags in the
+Kaggle lr-sweep table above). \textbf{All 30} \srcpath{2026-09-27\_passive\_wm\_v2} result files
+(Stage B, Stage A2, budget-check, pendulum planning -- every number reported in this document's
+Idea-6/noop-anticipation subsections above) are similarly uncorrected: only 3 Stage-A world-model
+checkpoints exist under that experiment directory, zero Stage-B policy checkpoints were ever
+saved, so eval-only re-evaluation is not possible without full retraining. Every crafter\_score /
+mean\_unlocked / achievement\_rate number quoted above from these files is therefore the original,
+auto-reset-inflated measurement -- reported here as the only real number that exists for these
+runs, not silently corrected or omitted, per \srcpath{output/README.md}'s own note: ``treat their
+crafter\_score/mean\_unlocked/achievement\_rates as stale/inflated.''
+
 \subsection{TASK-20260927-011: actor-critic learner handoff}
 \label{sec:task011}
 
