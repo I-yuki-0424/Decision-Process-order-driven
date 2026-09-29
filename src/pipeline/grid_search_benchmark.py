@@ -42,6 +42,7 @@ from src.environment.craftax_env_adapter import (
     NUM_ACHIEVEMENTS,
     ACHIEVEMENT_NAMES,
     calculate_crafter_score,
+    masked_achievements,
 )
 from src.model.transformer_decision_core import (
     init_model_parameters,
@@ -88,8 +89,12 @@ def make_jit_eval_episode(
         num_steps: Number of environment steps per episode.
 
     Returns:
-        eval_episode(params, rng_key) -> (crafter_score, diamond_unlocked, throughput_steps_per_sec,
-                                          progress_rate, cum_cost_vec, context_util_ratio)
+        eval_episode(params, rng_key) -> (final_achievements, mean_progress_rate, context_util_ratio,
+                                          cum_cost_vec). Deliberately returns raw JAX arrays only
+                                          (no Python float()/bool() conversions) so the function stays
+                                          safe to wrap in jax.jit; crafter_score / diamond_unlocked /
+                                          per-achievement milestones are derived from `final_achievements`
+                                          by the caller, after the jitted call returns concrete values.
     """
     num_actions = adapter.num_actions
     num_costs = adapter.num_costs
@@ -107,7 +112,7 @@ def make_jit_eval_episode(
 
         # --- lax.scan episode loop ---
         def scan_body(carry, step_rng):
-            curr_env_state, curr_beam_state, curr_input_n, cum_ach = carry
+            curr_env_state, curr_beam_state, curr_input_n, cum_ach, alive = carry
 
             new_beam_state = beam_search_step(
                 params,
@@ -133,24 +138,28 @@ def make_jit_eval_episode(
                 adapter.raw_env.default_params,
             )
 
-            # Accumulate achievements from environment state
-            step_achievements = jnp.zeros(NUM_ACHIEVEMENTS, dtype=jnp.float32)
-            if hasattr(next_env_state, "achievements"):
-                step_achievements = next_env_state.achievements.astype(jnp.float32)
-
+            # Accumulate achievements from environment state, masked so a post-death
+            # auto-reset life's achievements aren't credited to this episode (FIX item 4).
+            step_achievements = masked_achievements(next_env_state.achievements, done, alive)
             new_cum_ach = jnp.maximum(cum_ach, step_achievements)
+            new_alive = alive * (1.0 - done.astype(jnp.float32))
 
-            # Reconstruct input_n for the next step using the adapter
+            # Reconstruct input_n for the next step using the adapter.
+            # `action_idx` and `new_beam_state.step_count` are traced values here (we are
+            # inside jax.lax.scan, itself inside jax.jit) -- CLAUDE.md forbids int() on
+            # tracers, and adapter.step's `action_idx: int` / `step_count: int` type hints
+            # are just hints (candidate_experiment.py's rollout_one.body passes the traced
+            # `act`/`t` straight through the same way, without int()).
             next_input_n, _, _, _, _ = adapter.step(
                 k_next,
                 next_env_state,
-                int(action_idx),
+                action_idx.astype(jnp.int32),
                 actions_data,
-                step_count=int(new_beam_state.step_count),
+                step_count=new_beam_state.step_count,
                 prev_history=curr_input_n.history,
             )
 
-            new_carry = (next_env_state, new_beam_state, next_input_n, new_cum_ach)
+            new_carry = (next_env_state, new_beam_state, next_input_n, new_cum_ach, new_alive)
             step_out = (done, step_achievements, reward, new_beam_state.beams.progress_rate.mean())
             return new_carry, step_out
 
@@ -158,19 +167,26 @@ def make_jit_eval_episode(
 
         # Warm-up: compile the scan body before timing
         # (lax.scan is JIT-traced on first call; subsequent calls use the cache)
-        (_, final_beam, _, final_achievements), (dones, step_achs, rewards, progress_rates) = (
-            jax.lax.scan(scan_body, (env_state, beam_state, input_n, cumulative_achievements), step_keys)
+        (_, final_beam, _, final_achievements, _), (dones, step_achs, rewards, progress_rates) = (
+            jax.lax.scan(
+                scan_body,
+                (env_state, beam_state, input_n, cumulative_achievements, jnp.array(1.0)),
+                step_keys,
+            )
         )
 
         # --- Metrics ---
-        crafter_score = calculate_crafter_score(
-            [float(final_achievements[i] * 100.0) for i in range(NUM_ACHIEVEMENTS)]
-        )
-        diamond_unlocked = bool(final_achievements[PHASE2_MILESTONES["collect_diamond"]] > 0)
-
-        mean_progress = float(jnp.mean(progress_rates))
+        # This whole function is traced under jax.jit (see `jit_eval = jax.jit(eval_fn)` in
+        # run_grid_search), so `final_achievements` etc. are still tracers here -- calling
+        # float()/bool() on them raises TracerBoolConversionError/ConcretizationTypeError.
+        # Only return raw JAX arrays; crafter_score / diamond_unlocked / milestone booleans
+        # are computed host-side in run_grid_search AFTER this jitted call returns concrete
+        # values.
+        mean_progress = jnp.mean(progress_rates)
 
         # Context window utilization ratio: actual compressed len / raw history len
+        # (z_val/is_causal are static Python ints/bools closed over from make_jit_eval_episode,
+        # not traced, so this Python-level branch is safe under jit.)
         raw_hist_len = 256
         if z_val > 0:
             compressed_len = raw_hist_len // z_val
@@ -180,7 +196,7 @@ def make_jit_eval_episode(
 
         cum_cost_vec = final_beam.beams.cum_cost.mean(axis=0)  # (num_costs,) mean over beams
 
-        return crafter_score, diamond_unlocked, mean_progress, jnp.array(context_util), cum_cost_vec
+        return final_achievements, mean_progress, jnp.array(context_util), cum_cost_vec
 
     return eval_episode
 
@@ -276,7 +292,7 @@ def run_grid_search(
                     # --- Timed evaluation pass ---
                     rng, k_timed = jax.random.split(rng)
                     t0 = time.perf_counter()
-                    crafter_score, diamond_unlocked, mean_progress, context_util, cum_cost = (
+                    final_achievements, mean_progress, context_util, cum_cost = (
                         jit_eval(params, k_timed)
                     )
                     jax.effects_barrier()
@@ -285,22 +301,33 @@ def run_grid_search(
                     elapsed_s = t1 - t0
                     steps_per_sec = num_eval_steps / max(elapsed_s, 1e-9)
 
+                    # `jit_eval` returns raw JAX arrays only (see eval_episode's docstring) --
+                    # every float()/bool() conversion and the crafter_score/diamond/milestone
+                    # derivation happens here, host-side, on now-concrete values.
+                    final_achievements_np = np.asarray(final_achievements)
+                    mean_progress = float(mean_progress)
+                    context_util = float(context_util)
+
+                    crafter_score = calculate_crafter_score(
+                        [float(final_achievements_np[i] * 100.0) for i in range(NUM_ACHIEVEMENTS)]
+                    )
+                    diamond_unlocked = bool(final_achievements_np[PHASE2_MILESTONES["collect_diamond"]] > 0)
+
                     # Achievement milestone checks from the run
                     # (We run a single episode for the benchmark row; multi-episode
                     #  aggregation is done in craftax_benchmark.py)
                     diamond_str = "YES" if diamond_unlocked else "NO"
                     score_str = f"{crafter_score:.2f}"
                     prog_str = f"{mean_progress:.4f}"
-                    ctx_str = f"{float(context_util):.3f}"
+                    ctx_str = f"{context_util:.3f}"
                     tput_str = f"{steps_per_sec:.0f}"
 
-                    # We don't have per-achievement data from the scan output —
-                    # use crafter_score proxy: if score > threshold, milestone likely hit
-                    # For full per-achievement tables use craftax_benchmark.py
-                    wood_ok  = "Y" if crafter_score > 1.0 else "N"
-                    stone_ok = "Y" if crafter_score > 5.0 else "N"
-                    coal_ok  = "Y" if crafter_score > 10.0 else "N"
-                    iron_ok  = "Y" if crafter_score > 20.0 else "N"
+                    # Read real per-achievement unlocks directly from the episode's
+                    # final achievement vector instead of thresholding crafter_score.
+                    wood_ok  = "Y" if bool(final_achievements_np[PHASE2_MILESTONES["collect_wood"]] > 0) else "N"
+                    stone_ok = "Y" if bool(final_achievements_np[PHASE2_MILESTONES["collect_stone"]] > 0) else "N"
+                    coal_ok  = "Y" if bool(final_achievements_np[PHASE2_MILESTONES["collect_coal"]] > 0) else "N"
+                    iron_ok  = "Y" if bool(final_achievements_np[PHASE2_MILESTONES["collect_iron"]] > 0) else "N"
 
                     row = (
                         f"| {cid:<16} | {k:<7} | {z:<6} | {n:<8} | {str(is_causal):<9} "

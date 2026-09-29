@@ -54,6 +54,7 @@ from src.environment.craftax_env_adapter import (
     ACHIEVEMENT_NAMES,
     NUM_ACHIEVEMENTS,
     calculate_crafter_score,
+    masked_achievements,
 )
 from src.model.transformer_decision_core import (
     init_model_parameters,
@@ -259,7 +260,17 @@ beam_state = beam_search_init(
     eval_input_n.state, eval_input_n,
     beam_width=BEAM_WIDTH, num_costs=adapter.num_costs,
 )
+# `cum_ach` accumulates achievements for the CURRENT episode only; it is reset to zero
+# every time a new episode starts (see `if done:` below). `episode_achievements` holds
+# one final vector per completed (or EVAL_STEPS-truncated) episode attempt, exactly like
+# src/pipeline/craftax_benchmark.py's evaluate_craftax_agent, so achievement_rates /
+# crafter_score below are averaged across episode ATTEMPTS rather than "ever unlocked in
+# any of however many auto-reset lives ran during EVAL_STEPS ticks" (TASK-20260928-015
+# blocker item 4).
 cum_ach = np.zeros(NUM_ACHIEVEMENTS, dtype=np.float32)
+alive = 1.0
+cur_ep_ticks = 0
+episode_achievements = []
 rewards_log  = []
 progress_log = []
 
@@ -285,15 +296,31 @@ for i in range(EVAL_STEPS):
         adapter.raw_env.default_params,
     )
 
-    # Accumulate achievements
+    # Accumulate achievements for the CURRENT episode only, masked so a post-death
+    # auto-reset life's achievements aren't credited to it (same leak/fix as item 3).
     if hasattr(next_env_state, "achievements"):
-        step_ach = np.array(next_env_state.achievements, dtype=np.float32)
+        step_ach = np.asarray(
+            masked_achievements(next_env_state.achievements, done, alive), dtype=np.float32
+        )
         np.maximum(cum_ach, step_ach, out=cum_ach)
+    alive = alive * (1.0 - float(done))
+    cur_ep_ticks += 1
 
     rewards_log.append(float(reward))
     progress_log.append(float(beam_state.beams.progress_rate.mean()))
 
     if done:
+        # This episode attempt is over: record its final achievement vector and start a
+        # fresh one. Without this reset, cum_ach would keep accumulating across every
+        # subsequent auto-reset life for the rest of EVAL_STEPS, which is exactly the
+        # "ever unlocked in any life" leak flagged in item 4 -- masking the single step
+        # where done fires is not sufficient by itself since this loop deliberately runs
+        # many sequential episodes over its EVAL_STEPS tick budget.
+        episode_achievements.append(cum_ach.copy())
+        cum_ach = np.zeros(NUM_ACHIEVEMENTS, dtype=np.float32)
+        alive = 1.0
+        cur_ep_ticks = 0
+
         eval_rng, reset_rng = jax.random.split(eval_rng)
         eval_input_n, eval_env_state, eval_actions = adapter.reset(reset_rng)
         beam_state = beam_search_init(
@@ -308,18 +335,39 @@ for i in range(EVAL_STEPS):
             step_count=i % 256, prev_history=eval_input_n.history,
         )
 
+# The final episode attempt may not have hit `done` before EVAL_STEPS ran out (a
+# time-limit truncation, the same kind of valid attempt craftax_benchmark.py's
+# evaluate_craftax_agent counts via its `ep_steps < max_steps_per_ep` loop bound) --
+# include it as long as at least one tick of it actually ran, so it isn't silently
+# dropped from the average.
+if cur_ep_ticks > 0:
+    episode_achievements.append(cum_ach.copy())
+
 t_eval = time.perf_counter() - t_eval_start
 eval_sps = EVAL_STEPS / max(t_eval, 1e-9)
 
 # ── Compute metrics ───────────────────────────────────────────────────────────
-achievement_rates = [float(cum_ach[i] * 100.0) for i in range(NUM_ACHIEVEMENTS)]
+# achievement_rates / crafter_score are averaged over completed-or-truncated EPISODE
+# ATTEMPTS (episode_achievements), not "ever unlocked across the whole EVAL_STEPS tick
+# budget" -- this is what makes the score comparable to the multi-episode Crafter score
+# used elsewhere in the repo (item 4).
+if episode_achievements:
+    achievement_matrix = np.stack(episode_achievements, axis=0)
+    achievement_rates = [
+        float(np.mean(achievement_matrix[:, i]) * 100.0) for i in range(NUM_ACHIEVEMENTS)
+    ]
+else:
+    achievement_rates = [0.0] * NUM_ACHIEVEMENTS
 crafter_score     = calculate_crafter_score(achievement_rates)
 mean_reward       = float(np.mean(rewards_log))  if rewards_log  else 0.0
 mean_progress     = float(np.mean(progress_log)) if progress_log else 0.0
 context_util      = (256 // Z_STEP) / 256.0 if Z_STEP > 0 else 1.0
+num_eval_episodes = len(episode_achievements)
 
+# "Was this milestone reached in at least one evaluated episode attempt" -- derived from
+# the now-fixed per-episode achievement_rates rather than the old single cumulative vector.
 milestone_results = {
-    name: bool(cum_ach[idx] > 0)
+    name: achievement_rates[idx] > 0.0
     for name, idx in MILESTONES.items()
 }
 
@@ -358,6 +406,7 @@ results = {
     },
     "evaluation": {
         "eval_steps":          EVAL_STEPS,
+        "eval_episodes":       num_eval_episodes,
         "eval_time_s":         t_eval,
         "eval_sps":            eval_sps,
         "crafter_score":       crafter_score,
