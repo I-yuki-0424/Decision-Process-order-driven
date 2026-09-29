@@ -843,6 +843,20 @@ Per the operator's explicit instruction, this section covers everything under
 judgment: what each file is, what it claims, why it is (or, where not formally quarantined, why it
 appears to be) fabricated, and the real vs.\ fabricated number ranges.
 
+\textbf{Update, 2026-09-29 (after this document was first compiled):} the operator asked for the
+fabricated files themselves to be deleted from the working tree, judging that leaving them present
+(even quarantined) still risked misleading dependency analyzers, future Claude Code sessions, and
+human readers. \srcpath{output/quarantine\_fabricated/} (all 11 files) and two further
+fully-fabricated files found in the same pass, \srcpath{output/benchmarks/grid\_search\_results.md}
+and \srcpath{output/benchmarks/benchmark\_report.md}, were removed (branch
+\texttt{chore/remove-fabricated-results}, see \srcpath{docs/core/STATE.yaml} TASK-20260928-015 for
+the full record and the exact commit). The \texttt{exposure\_bias\_resilience} field was stripped
+from the otherwise-real \srcpath{output/benchmarks/*.json} files and report in the same pass,
+without deleting those files, since their other fields are real measurements. This section is left
+exactly as originally compiled, as the permanent historical record of what those files contained and
+why each was judged fabricated; the paths it cites no longer exist in the working tree but remain
+recoverable from git history at the commit immediately before that deletion.
+
 \subsection{\texttt{output/quarantine\_fabricated/}: formally quarantined files}
 
 Full text of \srcpath{output/quarantine\_fabricated/README.md}'s evidence table:
