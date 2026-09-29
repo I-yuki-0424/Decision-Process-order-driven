@@ -13,7 +13,7 @@ except the two REINFORCE reference values quoted from arc.tex §2.5.
 | proposal | verdict | key evidence |
 |---|---|---|
 | 1. Structure-as-input world model | **Partly holds, but not for the stated reason.** Feeding a formula as an *input feature* is safe and, on the pendulum, decisive (planning return -204 vs -271 without it; ceiling -196). But the gain comes from an *unbounded, monotone-growing feature* (|q|, q^3, q^4 do as well); the physics content is not needed. Bounded/oscillatory or zero-information features give nothing. Hard-coding a wrong formula is much worse (-450..-540). | §1 below |
-| 2. Actor-critic + oracle_act litmus | **Litmus passes; the leaked signal is not deployable.** With PPO+GAE+critic (lr 1e-3) `oracle_act` beats `base` by +1.0 (12.8k eps) and +1.8 (50k eps), non-overlapping seeds; REINFORCE showed +0.07. A noop-future world model adds nothing beyond random features (even the true noop future is worth only ~+0.2). A *learned* action-reward model (no simulator at policy time) recovers ~25-30% of the leaked gain at 12.8k eps and ~7-14% (n.s.) at 50k eps. | §2 below |
+| 2. Actor-critic + oracle_act litmus | **Litmus passes; the leaked signal is not deployable.** With PPO+GAE+critic (lr 1e-3) `oracle_act` beats `base` by +1.0 (12.8k eps) and +1.8 (50k eps), non-overlapping seeds; REINFORCE showed +0.07. A noop-future world model adds nothing beyond random features (even the true noop future is worth only ~+0.2 at 12.8k eps and nothing at 49.9k). A *learned* action-reward model (no simulator at policy time) recovers ~25-30% of the leaked gain at 12.8k eps and ~7-14% (n.s.) at 50k eps. | §2 below |
 | 3. ChunkPPO delta>0 | **Not supported.** No reproducible benefit of the forecast arms (`wm`, `wm_passive`) over `augment`/`ignore`: the single significant gap (intercept delta=2, +0.66, p=0.003, 12 seeds, config A) vanishes under a second learner config (augment 0.67 vs wm 0.60), a different delta shows a gap there where `ignore` equals `wm`, everything closes at 10M ticks, and on `pendulum_goal` forecast arms are worse (-7..-16, n.s.). | §3 below |
 
 ## 1. Structure-as-input world model (arc.tex §4)
@@ -93,19 +93,20 @@ aggregation `scripts/aggregate_arc_ac.py`. Actor = `transformer_branch`, d=256, 
 (needs lr >= 1e-3; at 3e-4 the gap is marginal).** The learner also improves `base` itself: 3.47 at 12.8k and 4.36 at 49.9k episodes (REINFORCE: ~3.25 at 12.8k). Note the well-known greedy-vs-sampled
 gap persists (base greedy 0.97 vs sampled 3.47).
 
-**Step 2: does the passive (noop) world model help, now that the learner is decisive? (lr 1e-3, 12.8k eps, n=8 seeds each, base n=10):**
+**Step 2: does the passive (noop) world model help, now that the learner is decisive? (lr 1e-3; 12.8k episodes: n=8 seeds each, base n=10; 49.9k episodes: n=2 each, base n=4):**
 
-| arm | return | vs base |
-|---|---|---|
-| base | 3.47 ± 0.08 | - |
-| wm_untrain (random-init WM features, no learned content: control) | 3.62 ± 0.19 | +0.15 |
-| wm_full (trained passive WM) | 3.69 ± 0.16 | +0.22 |
-| oracle (TRUE simulated noop future; upper bound) | 3.67 ± 0.19 | +0.20 |
-| oracle_act (leaked 1-step action rewards; positive control) | 4.49 ± 0.26 (n=6) | +1.02 |
+| arm | 12.8k eps | vs base | 49.9k eps | vs base |
+|---|---|---|---|---|
+| base | 3.47 ± 0.08 | - | 4.36 ± 0.16 | - |
+| wm_untrain (random-init WM features, no learned content: control) | 3.62 ± 0.19 | +0.15 | **4.96** (4.93, 4.99) | **+0.60** |
+| wm_full (trained passive WM) | 3.69 ± 0.16 | +0.22 | 4.38 (4.45, 4.31) | +0.02 |
+| oracle (TRUE simulated noop future; upper bound) | 3.67 ± 0.19 | +0.20 | 4.18 (4.16, 4.20) | -0.18 |
+| oracle_act (leaked 1-step action rewards; positive control) | 4.49 ± 0.26 (n=6) | +1.02 | 6.13 ± 0.17 (n=4) | +1.78 |
 
-`wm_full - wm_untrain` = +0.07 and `oracle - wm_untrain` = +0.05: both within seed noise. **Even perfect knowledge of the noop future is worth at most ~+0.2 over base, and the trained WM is
-indistinguishable from a random network reading the same observation**, so the noop-anticipation proposal is not supported; the small lift over `base` is consistent with extra observation
-information (a random projection of the full 1345-d observation vs the 39-d summary) reaching the policy, not with anticipation. This is a much cleaner negative than the REINFORCE-era "underpowered".
+At 12.8k episodes `wm_full - wm_untrain` = +0.07 and `oracle - wm_untrain` = +0.06, both within seed noise; at 49.9k episodes the trained WM (4.38) and even the true noop future (4.18) are no better than `base`, while the
+random-init WM is the best of the three (4.96, n=2). **Even perfect knowledge of the noop future is worth at most ~+0.2 (12.8k) and nothing at 49.9k, and the trained WM is indistinguishable from or worse than a random network reading
+the same observation**, so the noop-anticipation proposal is not supported; the lift of the random-feature control is consistent with extra observation information (a random projection of the full 1345-d observation vs the 39-d summary
+the actor otherwise sees) reaching the policy, not with anticipation (side observation, n=2 at 49.9k: worth a dedicated test if the 39-d summary bottleneck matters). This is a much cleaner negative than the REINFORCE-era "underpowered".
 
 **Derivative: a deployable version of the oracle_act signal.** `oracle_act` uses the simulator at policy time, so its gain is not attainable as is. `run_action_reward_model.py` trains an MLP on the
 full observation to predict the 17 one-step rewards from *offline* simulator-branched labels (256 random-policy episodes) and serves those predictions in the same feature slots at policy time
