@@ -14,9 +14,13 @@ from collections import defaultdict
 import numpy as np
 
 
-def planning(path):
-    rows = json.load(open(os.path.join(path, "structure_planning_results.json")))
-    ceil = [r["ret"] for r in rows if r["arm"] == "true_model_mpc"]
+def planning(paths):
+    rows = []
+    for path in paths:
+        f = os.path.join(path, "structure_planning_results.json")
+        if os.path.exists(f):
+            rows += json.load(open(f))
+    ceil = [r["ret"] for r in rows if r["arm"] == "true_model_mpc"] or [float("nan")]
     g = defaultdict(list)
     for r in rows:
         if r["arm"] != "true_model_mpc":
@@ -61,12 +65,12 @@ def prediction(path):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--planning")
+    ap.add_argument("--planning", nargs="+")
     ap.add_argument("--prediction")
     ap.add_argument("--out")
     a = ap.parse_args()
     parts = []
-    if a.planning and os.path.exists(os.path.join(a.planning, "structure_planning_results.json")):
+    if a.planning:
         parts.append(planning(a.planning))
     if a.prediction and os.path.exists(os.path.join(a.prediction, "structure_prediction_results.json")):
         parts.append(prediction(a.prediction))
