@@ -956,7 +956,7 @@ tasks:
       0.340) but cannot see the pendulum's OOD lock-in (picks hn in 3/5 seeds), so an ID-only trust gate is insufficient.
       (2) ACTOR-CRITIC / oracle_act LITMUS: PASSES under PPO+GAE+critic (lr 1e-3): oracle_act 4.49±0.26 vs base 3.47±0.08 at 12.8k episodes (+1.02, non-overlapping, n=6/10) and 6.13±0.17 vs 4.36±0.16 at 49.9k
       (+1.78, n=4), vs REINFORCE +0.07; needs lr>=1e-3 (3e-4: +0.28). oracle_act also exceeds the trivial 1-step-greedy reference (3.17). Step 2: passive noop WM adds nothing beyond random features
-      (wm_full 3.69±0.16, wm_untrain 3.62±0.19, true-noop-future oracle 3.67±0.19, base 3.47; n=8); even the true noop future is worth only ~+0.2 at 12.8k eps and nothing at 49.9k (wm_full 4.38, oracle 4.18, wm_untrain 4.96, base 4.36; n=2). Derivative: a learned (deployable) action-reward model
+      (wm_full 3.69±0.16, wm_untrain 3.62±0.19, true-noop-future oracle 3.67±0.19, base 3.47; n=8); even the true noop future is worth only ~+0.2 at 12.8k eps and nothing at 49.9k (wm_full 4.38 n=2, oracle 4.18 n=2, wm_untrain 4.73±0.30 n=4, base 4.36 n=4). Derivative: a learned (deployable) action-reward model
       recovers ~25-30% of the oracle_act gain at 12.8k episodes (3.75±0.18, p=0.003 vs base) and ~7-14% (n.s.) at 49.9k.
       (3) CHUNKPPO delta>0: NOT SUPPORTED. Default 1M-tick config under-trains (pendulum_goal does not learn at all); tuned config A (16 envs x 16 cycles, lr 1e-3, 2M ticks, 8-12 seeds): only intercept delta=2 shows
       wm/wm_passive > augment (+0.66/+0.55, p<=0.004) and the gap vanishes under config B (lr 3e-4: augment 0.67 vs wm 0.60), a different delta (4) shows a gap there where ignore == wm, all gaps close at 10M ticks
