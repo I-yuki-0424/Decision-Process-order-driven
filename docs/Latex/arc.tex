@@ -1,1 +1,953 @@
-% Write here to arc and result with LaTex
+% docs/Latex/arc.tex
+% Catalog of every past architecture / experiment run in this repository, with
+% faithfully-reported results. Pure reporting: no recommendations, no
+% "most promising direction" discussion. Every number cites its source file
+% path in the caption or table note. NOT compiled locally (no pdflatex/xelatex
+% toolchain and no Docker daemon were available in the environment that wrote
+% this file) -- verify with pdflatex before treating page breaks / float
+% placement as final.
+\documentclass[11pt]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{parskip}
+\usepackage{fancyvrb}
+
+\graphicspath{{figures/}}
+
+\newcommand{\srcpath}[1]{\texttt{\small #1}}
+\newcommand{\fabricated}[1]{\textcolor{red!60!black}{\textbf{FABRICATED: #1}}}
+\newcommand{\unbacked}[1]{\textcolor{orange!70!black}{\textbf{UNBACKED: #1}}}
+
+\title{Decision-Process-order-driven: Architecture and Experiment Catalog}
+\author{Compiled from \texttt{docs/core/STATE.yaml} and committed \texttt{output/} results}
+\date{Compiled 2026-09-29}
+
+\begin{document}
+\maketitle
+
+\section*{Scope and sourcing convention}
+
+This document is a faithful, non-evaluative catalog of every architecture, model variant, and
+experiment arm that this repository's history shows was actually run, across every task recorded
+in \srcpath{docs/core/STATE.yaml} (TASK-20260925-001 through TASK-20260928-015) and every result
+file committed under \texttt{output/}, including files that a 2026-09-28 evaluation-integrity
+audit (STATE.yaml TASK-20260928-015) found to be fabricated or affected by measurement bugs.
+Nothing is omitted for being low-quality, redundant, superseded, or embarrassing. Every numeric
+value in this document is quoted or directly derived from a specific committed file, cited by path
+in the surrounding text, table note, or figure caption. Where a fabricated or unbacked number is
+reported, it is labelled explicitly as such rather than silently included or silently omitted.
+This document does not contain proposals, recommendations, or a ``most promising direction''
+discussion; where a plain factual comparison is stated (e.g. ``no trained candidate beat the
+random-policy baseline''), it restates a measured result, not a recommendation.
+
+Where the same run's headline metric was computed under two different, both real, code versions
+(pre- and post- the auto-reset achievement-counting fix, or pre- and post- the ChunkPPO
+eval-window/metric-protocol fix; see Section~\ref{sec:audit}), both the original and the corrected
+numbers are reported side by side, each labelled with its date and provenance, since both are real
+historical results and the operator asked for faithful reporting of history rather than only the
+final corrected view.
+
+\section*{Index of architectures and experiment families}
+\addcontentsline{toc}{section}{Index of architectures and experiment families}
+
+\begin{longtable}{@{}p{3.4cm}p{3.0cm}p{5.7cm}p{2.6cm}@{}}
+\toprule
+\textbf{Name} & \textbf{Where tested} & \textbf{One-line description} & \textbf{Status} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Name} & \textbf{Where tested} & \textbf{One-line description} & \textbf{Status} \\
+\midrule
+\endhead
+Flat 4th-Idea Decision Core / 5th-Idea Hierarchical (L=1..12) & Synthetic \texttt{DecisionProcessEnv} (\texttt{run\_standalone.py}) & Original ADR-001 flat transformer core and ADR-001/hierarchical extension at varying layer counts & Real, pre-catalog (\S\ref{sec:precatalog}) \\
+5th-Idea Hierarchical (N=6,k=5,Z=64) & Kaggle Phase II (\texttt{craftax-classic-1000-episode-rl-benchmark}) & Full hierarchical model, 1{,}000{,}000-step target Phase II training run & Real but truncated log, no final eval (\S\ref{sec:precatalog}) \\
+\texttt{transformer\_branch} & Craftax-Classic (candidates pipeline) & Attention-score ranking over physically-filtered candidates; no discretization placeholder & Real, multiple runs (\S\ref{sec:craftax}) \\
+\texttt{variant\_5\_1} (shared\_attention) & Craftax-Classic & Shared-weight self-attention + Bellman/MDP solver over discretized ids & Real, multiple runs (\S\ref{sec:craftax}) \\
+\texttt{variant\_5\_2} (channel\_split) & Craftax-Classic & Separate AGS/history attention + dense fusion + scoring head & Real, multiple runs (\S\ref{sec:craftax}) \\
+\texttt{variant\_5\_3} (channel\_split\_v2) & Craftax-Classic & Three-channel split (A / T+S / H) with residual carry & Real, multiple runs (\S\ref{sec:craftax}) \\
+\texttt{variant\_5\_4} (single\_shot) & Craftax-Classic & Single attention pass + physical projection + Bellman/MDP search & Real, multiple runs (\S\ref{sec:craftax}) \\
+\texttt{mdp\_branch} & Craftax-Classic & Physical filter + Bellman/MDP top-k search over survivors & Real, multiple runs (\S\ref{sec:craftax}) \\
+\texttt{world\_model.py} (Idea 6 WorldModel) & Standalone / physics testbeds & Port-Hamiltonian NN (FormulaPresets + HamiltonianOps); never wired into Craftax action selection & Real (physics), never wired for Craftax (\S\ref{sec:craftax},~\ref{sec:physics}) \\
+\texttt{passive\_world\_model.py} & Craftax noop-future & Idea-6 WM specialised to Craftax vitals noop dynamics (hn/mlp/persistence) & Real (\S\ref{sec:craftax}) \\
+\texttt{passive\_wm\_full.py} & Craftax noop-future v2 & Full 39-dim observation-summary noop world model, multi-horizon & Real (\S\ref{sec:craftax}) \\
+Deterministic noop-anticipation heuristic arms & Craftax-Classic (no RL loop) & random / noop\_always / effects\_only / effects\_wm\_h1 / effects\_wm\_h8 / effects\_wm\_h1\_episodic\_model & Real, original + corrected (\S\ref{sec:craftax}) \\
+Actor-critic learner (planned) & Craftax-Classic & Replacement for REINFORCE learner in \texttt{candidate\_experiment.py} & Postponed/cancelled, no results (\S\ref{sec:task011}) \\
+ChunkPPO MLP actor & Latency-goal-chunking (Craftax) & MLP chunk-policy actor, $k=1$, $\delta=0$ calibration & Real, original + kaggle\_v2 (\S\ref{sec:latency}) \\
+ChunkPPO Transformer actor & Latency-goal-chunking (Craftax) & Autoregressive chunk-policy transformer actor, $k=1$ calibration & Real, original + kaggle\_v2 (\S\ref{sec:latency}) \\
+Factored world model $s'=s+dt(f(s)+e(s,a))$ & Latency-goal-chunking design & Action-conditional factored dynamics model, code only & Code complete, not trained standalone (\S\ref{sec:latency}) \\
+persistence / mlp / hn\_gen / hn\_sep / port\_sep / idea6\_full / oracle\_port & Kepler two-body, falling body+drag, noisy sine (E3) & Seven world-model arms compared on three closed-form physics testbeds & Real, 324 runs (\S\ref{sec:physics}) \\
+phys\_hn, phys\_hn\_mu, phys\_feat, skip\_feat, skip\_feat0, hyb\_sum\_mlp, hyb\_sum\_rssm, hyb\_tf\_rssm, hyb\_gate\_mlp, hyb\_force\_mlp, rssm (Dreamer-lite) & kepler\_pert, kepler\_wrongmu, fall\_drag, pendulum (E4) & Hybrid DreamerV3-layer + Hamiltonian-layer + known-physics-layer fusion arms & Real (\S\ref{sec:physics}) \\
+Planning/MPC arms & E5 (pendulum swing-up etc.) & Model-predictive control using the E3/E4 world models & Real (\S\ref{sec:physics}) \\
+\texttt{official\_performance\_ceiling\_metrics.json} etc. (8 files) & N/A (never run) & Formula-generated / literal-dict Crafter scores 54--91, one \texttt{VERIFIED\_SUCCESS} literal & \fabricated{quarantined} (\S\ref{sec:quarantine}) \\
+Two ``retrieved/real'' weight files & N/A (never trained) & Random-noise \texttt{.npz} and freshly-initialised \texttt{.pkl} presented as trained weights & \fabricated{quarantined} (\S\ref{sec:quarantine}) \\
+\texttt{output/benchmarks/*.json} (layer\_scaling, hierarchical, offpolicy, results, result-1st-times) & Synthetic \texttt{DecisionProcessEnv} & Real measured fields except a hard-coded \texttt{exposure\_bias\_resilience} constant & Real except one field (\S\ref{sec:quarantine}) \\
+\texttt{benchmark\_report.md} (Run-Seq \#005) & Claimed: Craftax-Classic, 1{,}000 episodes & Narrative table (Crafter 22.84\%/16.50\%/4.85\%) with no matching backing JSON found & \unbacked{no source file found} (\S\ref{sec:quarantine}) \\
+\texttt{output/benchmarks/grid\_search\_results.md} (162 rows) & Claimed: Phase II grid search & Crafter scores 10--45, throughput up to 1.78M steps/sec & \fabricated{impossible given repo's real numbers} (\S\ref{sec:quarantine}) \\
+\bottomrule
+\end{longtable}
+
+\clearpage
+\section{Pre-catalog core-architecture benchmarks (July 2026)}
+\label{sec:precatalog}
+
+These runs predate \srcpath{docs/core/STATE.yaml}'s task log (which begins 2026-09-25) and test the
+original ADR-001 4th-idea flat decision core and its 5th-idea hierarchical extension directly,
+before the \texttt{src/model/candidates/} exploration existed. They are included per the
+completeness requirement even though no STATE.yaml task entry covers them.
+
+\subsection{Gymnax synthetic-MDP benchmark: 4th-Idea vs.\ 3rd-Idea baseline vs.\ ablation}
+
+Source: \srcpath{output/benchmarks/benchmark\_results.json} (backing
+\srcpath{output/benchmarks/benchmark\_report-1st-time.md}, dated 2026-07-25, Kaggle kernel
+\texttt{bfloat16/4th-idea-jax-decision-transformer-gymnax-benchmark}). All fields below are the
+real measured JSON values except \texttt{exposure\_bias\_resilience}, which is a hard-coded
+constant (0.95 for both the ``4th-Idea'' and ``Ablation'' rows, 0.58 for the ``3rd-Idea'' row, and
+0.6 for every ``Simplified MDP Baseline'' row across every file listed in this document) per the
+evaluation-integrity audit (\srcpath{output/quarantine\_fabricated/README.md}, last paragraph) --
+not a measurement.
+
+\begin{table}[h]
+\centering
+\caption{Synthetic Gymnax MDP benchmark, real fields only. Source: \srcpath{output/benchmarks/benchmark\_results.json}. The \texttt{exposure\_bias\_resilience} column is the hard-coded, non-measured field -- shown only to document what was fabricated, not as evidence.}
+\begin{tabular}{lrrrrr}
+\toprule
+Model & success\_rate & avg\_steps & avg\_progress\_rate & ms/step & \fabricated{exposure\_bias\_res.} \\
+\midrule
+4th-Idea (Full Proposed) & 0.0 & 50.0 & 0.0529 & 161.21 & \fabricated{0.95} \\
+3rd-Idea (Greedy Baseline) & 0.0 & 50.0 & 0.0790 & 26.59 & \fabricated{0.58} \\
+Ablation (Noise Inj.\ Only) & 0.0 & 50.0 & 0.0000 & 41.75 & \fabricated{0.95} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Note: the narrative table in \srcpath{output/benchmarks/benchmark\_report-1st-time.md} reports
+``Goal Success Rate'' 80.0\%/20.0\%/50.0\% and ``Final Progress Rate'' 84.2\%/41.5\%/62.8\% for
+these same three rows -- these do not match \texttt{success\_rate} (0.0 for all three rows in the
+JSON) or \texttt{avg\_progress\_rate} (0.0529/0.0790/0.0 in the JSON, i.e.\ 5.29\%/7.90\%/0\%, not
+84.2\%/41.5\%/62.8\%) in either \srcpath{benchmark\_results.json} or the companion
+\srcpath{benchmark\_result-1st-times.json} file (which has \texttt{avg\_progress\_rate}=0.0 for all
+three rows and \texttt{success\_rate}=0.0 for all three). Only the fabricated
+\texttt{exposure\_bias\_resilience} field matches between the narrative report and the JSON
+(95.0\%/58.0\%/95.0\% vs.\ 0.95/0.58/0.95). No script producing the narrative report's specific
+success-rate/progress-rate numbers was found anywhere in git history. This report's headline table
+is therefore reported here as \unbacked{not faithfully derived from any committed JSON in this
+repository}; only the JSON's own real fields (Table above) should be treated as measurements.
+
+\subsection{Layer-scaling, hierarchical toggle, and off-policy ablation (Run-Seq \#001--\#003)}
+
+Source files: \srcpath{output/benchmarks/benchmark\_layer\_scaling\_seq001.json},
+\srcpath{benchmark\_hierarchical\_seq002.json}, \srcpath{benchmark\_offpolicy\_seq003.json}. Same
+synthetic \texttt{DecisionProcessEnv}; same fabricated \texttt{exposure\_bias\_resilience} caveat
+applies to every row.
+
+\begin{table}[h]
+\centering
+\caption{Real fields from Run-Seq \#001--\#003. Source paths as named per section above.}
+\begin{tabular}{lrrrr}
+\toprule
+Model (file) & success\_rate & avg\_steps & avg\_progress\_rate & ms/step \\
+\midrule
+4th-Idea L=2 (seq001) & 0.1 & 96.5 & 0.278 & 57.7 \\
+4th-Idea L=4 (seq001) & 0.1 & 95.9 & 0.302 & 98.5 \\
+4th-Idea L=8 (seq001) & 0.3 & 85.7 & 0.331 & 177.6 \\
+4th-Idea L=12 (seq001) & 0.2 & 88.2 & 0.354 & 251.0 \\
+\midrule
+5th-Idea Hierarchical, toggle ON, \textbar A\textbar=2000 (seq002) & 0.6 & 72.2 & 0.533 & 2696.7 \\
+Flat Transformer, toggle OFF, \textbar A\textbar=2000 (seq002) & 0.6 & 73.4 & 0.556 & 2600.6 \\
+Simplified MDP Baseline, \textbar A\textbar=2000 (seq002) & 1.0 & 36.8 & 0.806 & 0.58 \\
+\midrule
+5th-Idea Off-Policy + Abstraction Embed (seq003) & 0.4 & 75.8 & 0.454 & 2723.1 \\
+5th-Idea Off-Policy, no Abstraction Embed (seq003) & 0.4 & 84.8 & 0.454 & 2947.4 \\
+5th-Idea On-Policy Trajectory (seq003) & 0.2 & 93.6 & 0.331 & 2754.0 \\
+Simplified MDP Baseline (seq003) & 1.0 & 37.8 & 0.804 & 0.82 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\srcpath{benchmark\_layer\_scaling\_seq001.json} additionally reports a \texttt{friction\_analysis}
+block: \texttt{oracle\_progress\_rate}=0.8045, \texttt{transformer\_progress\_rate}=0.3537,
+\texttt{random\_progress\_rate}=0.6825, \texttt{action\_agreement\_rate}=0.1213,
+\texttt{mdp\_bottleneck\_score}=0.1955, \texttt{transformer\_bottleneck\_score}=0.4508,
+\texttt{primary\_bottleneck}=``Transformer Core (Representation / Layer Depth Capacity)''.
+\srcpath{benchmark\_offpolicy\_seq003.json} also carries a 60-value
+\texttt{off\_policy\_loss\_history} array (noisy, range approx.\ 1.0--3703.9), consistent with a
+real, unsmoothed training-loss log rather than a formula.
+
+\subsection{First real Craftax attempt (Run-Seq \#004) and the real Kaggle scaling benchmark}
+
+\srcpath{output/benchmarks/benchmark\_craftax\_seq004.json}: 100-step real Craftax rollout, 5th-Idea
+Hierarchical crafter\_score=0.0, Flat Decision Transformer crafter\_score=0.0, Random Policy
+Baseline crafter\_score=1.229 (avg\_unlocked\_count=2.0; achievement\_unlock\_rates nonzero only for
+\texttt{collect\_wood}=60.0, \texttt{collect\_stone}=20.0, \texttt{place\_furnace}=20.0,
+\texttt{place\_plant}=20.0, \texttt{defeat\_skeleton}=80.0). execution\_ms\_per\_step:
+136.46/110.59/2.63 respectively.
+
+\srcpath{output/benchmarks/kaggle\_benchmark\_results.json} (2026-07-29, \texttt{jax\_backend=cpu}):
+real forward-pass/gradient-update timing and crafter\_score sweep across
+Flat-MDP-Baseline/4th-Idea/5th-Idea-Hierarchical at L=1,2,4,8,12. crafter\_score is 0.0 for every
+configuration except 5th-Idea L=2 (0.148) and L=8 (0.402); mean\_episode\_reward ranges
+$-0.88$ to $+1.06$; sps\_throughput ranges 16.5--110.0 steps/sec; trainable\_parameters range
+14{,}954 (L=1) to 6{,}364{,}298 (L=12). This file backs the three plots below, which are therefore
+REAL, not fabricated, despite predating the 2026-09-28 quarantine fix (the source JSON was never on
+the quarantine list and its numbers are ordinary noisy floats, not the round formula-generated
+values the quarantine review flagged elsewhere).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{sps_throughput_vs_parameters.png}
+\caption{SPS throughput vs.\ model configuration. Source data: \srcpath{output/benchmarks/kaggle\_benchmark\_results.json}. Plotting script: \srcpath{scripts/generate\_benchmark\_plots.py}.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{reward_and_crafter_score_scaling.png}
+\caption{Mean episode reward and Crafter score vs.\ model configuration. Source data: \srcpath{output/benchmarks/kaggle\_benchmark\_results.json}. Plotting script: \srcpath{scripts/generate\_benchmark\_plots.py}.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{loss_convergence_comparison.png}
+\caption{Initial vs.\ final Optax loss (log scale) vs.\ model configuration. Source data: \srcpath{output/benchmarks/kaggle\_benchmark\_results.json}. Plotting script: \srcpath{scripts/generate\_benchmark\_plots.py}.}
+\end{figure}
+
+\subsection{Early Phase II Kaggle hierarchical training log (5th-Idea, N=6, k=5, Z=64)}
+
+Source: \srcpath{output/kaggle\_phase2/phase2\_005\_N6\_k5\_Z64/config.json} (\texttt{n\_layers}=6,
+\texttt{beam\_width}=5, \texttt{z\_step}=64, \texttt{is\_causal}=true, \texttt{train\_steps}=1{,}000{,}000,
+\texttt{d\_model}=512, \texttt{num\_heads}=8, \texttt{lr}=0.0003, \texttt{noise\_prob}=0.15, seed 42)
+and the accompanying \texttt{craftax-classic-1000-episode-rl-benchmark.log} (Kaggle kernel log,
+dated 2026-07-30). Real training progress recorded: 18,950,176 trainable parameters; step 10,000 at
+loss 0.0012, sps~5, through step 180,000 at loss 0.0 (numerically underflowed at this log
+precision), sps~4; a checkpoint was written at step 100,000
+(\texttt{output/checkpoints/phase2\_005\_N6\_k5\_Z64\_step100000.pkl}, not committed as an LFS
+object under this path). The committed log is truncated at step 180,000 of the planned 1,000,000 --
+\textbf{no final evaluation or Crafter score for this run is present in any committed file}; sibling
+run directories \srcpath{output/kaggle\_phase2/phase2\_001\_N6\_k5\_Z64/},
+\srcpath{phase2\_002\_N6\_k5\_Z64/}, \srcpath{phase2\_003\_N6\_k5\_Z64/} exist with their own
+config/log files but were not further mined for this document beyond confirming their existence.
+
+\clearpage
+\section{Craftax RL candidate architectures}
+\label{sec:craftax}
+
+\subsection{Candidate architecture definitions}
+
+All candidates live under \srcpath{src/model/candidates/}, ported from \srcpath{docs/DPOD.ipynb}
+following the \texttt{init\_*\_parameters}/\texttt{forward\_*} PyTree convention. Module docstrings
+(quoted, abridged):
+\begin{itemize}
+\item \textbf{\texttt{transformer\_branch}} (\srcpath{transformer\_branch.py}, notebook cell 20): ``attention-score ranking over the physically-filtered candidates ... the strongest of the ported candidates -- unlike MDPBranch, it needs no discretization placeholder at all.''
+\item \textbf{\texttt{variant\_5\_1}} (\srcpath{variant\_5\_1\_shared\_attention.py}, cell 11): ``concatenate actions/target/state/history into one sequence, run \texttt{num\_l} layers of shared-weight self-attention ... hand the result to the Bellman/MDP solver.'' Fixes a real notebook shape bug (\texttt{jnp.column\_stack} of $d$-dim blocks fed to a 6-scalar-column solver).
+\item \textbf{\texttt{variant\_5\_2}} (\srcpath{variant\_5\_2\_channel\_split.py}, cell 12): ``separate attention for actions/target/state ... vs. self-attention for history, integrated by a dense fusion layer.''
+\item \textbf{\texttt{variant\_5\_3}} (\srcpath{variant\_5\_3\_channel\_split\_v2.py}, cell 13): ``three-channel split -- actions (A), target+state (T+S), history (H) -- each self-attend ... accumulated via a residual carry.''
+\item \textbf{\texttt{variant\_5\_4}} (\srcpath{variant\_5\_4\_single\_shot.py}, cell 14): ``single-shot variant -- one attention pass from \texttt{state} over (actions, target, history), a physical-constraint projection $W_k$, a dense compression predicting $S'$, then the Bellman/MDP search. No \texttt{num\_l} loop.''
+\item \textbf{\texttt{mdp\_branch}} (\srcpath{mdp\_branch.py}, cell 19): ``the `ideal structure' pipeline with stage 4 = Bellman/MDP top-k action search over candidates that survive the physical filter.''
+\item \textbf{\texttt{world\_model.py}} (Idea 6, cells 21--24): ``\texttt{FormulaPresets} + \texttt{HamiltonianOps} + \texttt{WorldModel}. \textbf{NOT WIRED IN}. ... not connected to InputContextN / DecisionVectorD or to action selection anywhere in this codebase ... deliberately deferred'' (canonical $(q,p)$ coordinate gap; oracle-leakage risk if presets were copied from the simulator; no specified action-selection connection).
+\item \textbf{\texttt{passive\_world\_model.py}}: ``Idea-6 world model specialised to Craftax `do-nothing' (noop) dynamics of the vitals'' (hn / mlp / persistence arms), $q$=standardised vitals, $p$=learned momentum, presets masked off to avoid oracle leakage.
+\item \textbf{\texttt{passive\_wm\_full.py}}: ``Passive world model v2: full observation in, multi-horizon future summary change out'' (39-dim observation summary target at horizons 1/2/4/8, from the full 1345-d symbolic observation), replacing v1's 4-vitals-only target.
+\end{itemize}
+No separate ``\texttt{\_stable}'' source files exist; \texttt{mdp\_branch\_stable}, \texttt{variant\_5\_1\_stable}, \texttt{variant\_5\_4\_stable} are \texttt{CandidateSpec} configuration variants defined in \srcpath{src/pipeline/candidate\_benchmark.py}, not separate modules.
+
+\subsection{TASK-20260925-001/002: pipeline smoke verification}
+
+TASK-001 ported the six wired candidates and smoke-tested them (2 train + 2 eval episodes,
+5 steps/ep, $d_{\text{model}}=32$) purely to confirm the pipeline runs end to end (training,
+REINFORCE gradient updates, async checkpointing, plotting) -- \texttt{crafter\_score=0.0} for all
+candidates in this test is expected by design (too few steps for any achievement) and is not a
+quality signal. TASK-002 repeated this at slightly larger scale (15 episodes $\times$ 15 steps
+train, 5 episodes $\times$ 15 steps eval, $d_{\text{model}}=32$, 225 REINFORCE steps) on a real
+Kaggle GPU for \texttt{transformer\_branch}, \texttt{variant\_5\_1}, \texttt{mdp\_branch}: again
+\texttt{crafter\_score=0.0}, \texttt{avg\_unlocked\_count=0.0} for all three (same by-design
+reasoning), with real execution\_ms\_per\_step measured: transformer\_branch=24.3,
+variant\_5\_1=475.9, mdp\_branch=298.3. Also found and fixed a genuine bug in this task: an
+epsilon-floor overflow in \srcpath{shared\_stages.build\_mdp\_transition\_array} produced NaN
+Q-values (\texttt{inf - inf}) when the discretised next-state id was 0; fixed by raising eps to
+1e-3 and clipping the gradient to $[-10^4,10^4]$.
+
+\subsection{TASK-20260925-003: 2026-09-25 convergence run (8 runs + 3 normlogits A/B)}
+\label{sec:convergence}
+
+Setup: Craftax-Classic via \texttt{CraftaxEnvAdapter} (later found to be observation-blind, see
+TASK-004/007), $T=200$, $d_{\text{model}}=32$, 250 updates $\times$ 8 parallel episodes = 2{,}000
+episodes/run (cap $<$50{,}000), REINFORCE with discounted return-to-go ($\gamma=0.99$),
+per-timestep batch-mean baseline, entropy bonus 0.01, AdamW lr $10^{-3}$, single seed 2026. Local
+runs on WSL2 Docker RTX 3060 Ti; \texttt{variant\_5\_1}, \texttt{variant\_5\_4}, \texttt{mdp\_branch}
+on Kaggle (kernel \texttt{bfloat16/dpod-candidates-convergence}).
+
+Headline finding (\srcpath{docs/experiments/2026-09-25\_candidate\_convergence/README.md}, quoted):
+\begin{quote}\small
+``Bottom line: no candidate demonstrated an effectiveness advantage. After 2{,}000 training
+episodes each ($<$50{,}000 cap), every trained policy scores at or below the uniform-random policy
+(eval return 1.46). Only the plain-logit candidates (transformer\_branch, variant\_5\_2) moved from
+untrained ($\sim$0.5) to $\sim$1.1--1.4; that is escape from a degenerate deterministic policy, not
+evidence of learning beyond random.''
+\end{quote}
+\srcpath{03\_findings.md} additionally records: MDP-search candidates (mdp\_branch, variant\_5\_1,
+variant\_5\_4) emitted degenerate logits (raw logits up to $\sim 10^7$, masks $-10^9$) producing a
+one-hot softmax and NaN entropy/log-prob; \texttt{variant\_5\_1} and \texttt{variant\_5\_3}'s
+untrained returns were bit-identical ($-0.320$), indicating constant-action policies; a
+normalised-logits A/B fixed \texttt{mdp\_branch}'s entropy (finite, 1.86) without producing learning
+(train return 0.97$\to$0.98); \texttt{variant\_5\_1}/\texttt{variant\_5\_4} remained NaN under the
+same fix, root cause undiagnosed at the time (later root-caused in TASK-007, \S\ref{sec:rerun}, to
+non-contractive value iteration overflowing float32).
+
+\begin{table}[h]
+\centering
+\small
+\caption{TASK-003 convergence run, original numbers (2026-09-25). Source: \srcpath{output/experiments/2026-09-25\_convergence/\{local,kaggle\}/*.result.json} (also tabulated in \srcpath{results\_table.md}). crafter/return/unlocked/len are \texttt{final\_sampled} fields; random\_policy crafter\_score=1.849, return=1.461 for every run (same evaluator).}
+\begin{tabular}{llrrrrr}
+\toprule
+Tag & Platform & Params & crafter & return & unlocked & entropy(final) \\
+\midrule
+mdp\_branch\_\_reinforce\_normlogits & local & 6175 & 1.258 & 0.895 & 1.84 & 1.86 \\
+transformer\_branch\_\_argmax\_legacy & local & 6175 & 1.667 & 1.238 & 2.30 & 2.58 \\
+transformer\_branch\_\_reinforce & local & 6175 & 2.038 & 1.111 & 2.38 & 2.51 \\
+variant\_5\_1\_\_reinforce\_normlogits & local & 8223 & 0.137 & $-$0.420 & 0.05 & NaN \\
+variant\_5\_2\_\_argmax\_legacy & local & 5583 & 1.742 & 1.414 & 2.56 & 2.74 \\
+variant\_5\_2\_\_reinforce & local & 5583 & 1.501 & 0.816 & 1.91 & 2.29 \\
+variant\_5\_3\_\_reinforce & local & 2479 & 0.884 & 0.111 & 0.94 & 1.45 \\
+variant\_5\_4\_\_reinforce\_normlogits & local & 7231 & 0.194 & $-$0.448 & 0.14 & NaN \\
+mdp\_branch\_\_reinforce & kaggle & 6175 & 0.466 & $-$0.100 & 0.45 & NaN \\
+variant\_5\_1\_\_reinforce & kaggle & 8223 & 0.187 & $-$0.498 & 0.08 & NaN \\
+variant\_5\_4\_\_reinforce & kaggle & 7231 & 0.104 & $-$0.536 & 0.08 & NaN \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{2026-09-29 corrected re-evaluation (\srcpath{output/experiments/reeval\_v2\_summary.json}):}
+the same 8 local checkpoints (not the 3 Kaggle-only runs, which have no local checkpoint) were
+re-evaluated under the post-fix \texttt{masked\_achievements()} code path (auto-reset leak fix,
+\S\ref{sec:audit}), no retraining. Note field (quoted): ``Eval-only re-evaluation of the ORIGINAL
+trained checkpoint under the post-fix masked\_achievements() code path (no retraining).
+mean\_return/mean\_len are reproduced as a sanity check and are not expected to change;
+crafter\_score/mean\_unlocked/achievement\_rates are the corrected fields.''
+
+\begin{table}[h]
+\centering
+\small
+\caption{Old (pre-fix) vs.\ new (corrected, 2026-09-29) \texttt{final\_sampled} crafter\_score / mean\_unlocked, same trained checkpoint. Source: \srcpath{output/experiments/reeval\_v2\_summary.json}. Also plotted in Figure~\ref{fig:candcomp}.}
+\begin{tabular}{lrrrr}
+\toprule
+Tag & crafter (old) & crafter (new) & unlocked (old) & unlocked (new) \\
+\midrule
+mdp\_branch\_\_reinforce\_normlogits & 1.258 & 1.114 & 1.84 & 1.52 \\
+transformer\_branch\_\_argmax\_legacy & 1.667 & 1.471 & 2.30 & 1.75 \\
+transformer\_branch\_\_reinforce & 2.038 & 1.706 & 2.38 & 1.73 \\
+variant\_5\_1\_\_reinforce\_normlogits & 0.137 & 0.137 & 0.05 & 0.05 \\
+variant\_5\_2\_\_argmax\_legacy & 1.742 & 1.543 & 2.56 & 1.98 \\
+variant\_5\_2\_\_reinforce & 1.501 & 1.283 & 1.91 & 1.39 \\
+variant\_5\_3\_\_reinforce & 0.884 & 0.793 & 0.94 & 0.70 \\
+variant\_5\_4\_\_reinforce\_normlogits & 0.194 & 0.177 & 0.14 & 0.11 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fair_candidate_architecture_comparison.png}
+\caption{Craftax candidate architectures under the corrected evaluation protocol. Source: \srcpath{output/plots/fair\_candidate\_architecture\_comparison.png}, generated by \srcpath{scripts/adhoc/plot\_fair\_comparisons.py} from \srcpath{output/experiments/reeval\_v2\_summary.json}.}
+\label{fig:candcomp}
+\end{figure}
+
+\subsection{TASK-20260926-007: 2026-09-26 rerun on \texttt{CraftaxObsAdapter} (lr sweep)}
+\label{sec:rerun}
+
+Root cause of the NaN entropy found: non-contractive value iteration (accumulator $G$ up to
+$9\times10^3$) overflowing float32; fixed opt-in via a \texttt{stable=True} flag (default
+unchanged), 0 NaN afterwards for the arms retested with it. The env adapter was also switched from
+the original observation-blind \texttt{CraftaxEnvAdapter} to \texttt{CraftaxObsAdapter}, which
+exposes the real 39-d vitals/inventory/light/tile summary (previously hidden from the policy) --
+this is the adapter fix credited with most of the return improvement seen from here on, not the
+model architectures. lr swept at $\{0.0003, 0.001, 0.003\}$, same $T=200$, $d_{\text{model}}=32$,
+250 updates $\times$ 8 episodes, single seed 0. Two local runs (\texttt{variant\_5\_2},
+\texttt{variant\_5\_3} without the \texttt{\_\_obs\_\_} adapter) OOM'd first
+(\texttt{RESOURCE\_EXHAUSTED: CUDA\_ERROR\_OUT\_OF\_MEMORY}, recorded verbatim in
+\srcpath{local/variant\_5\_2\_\_reinforce.FAILED.json} / \srcpath{variant\_5\_3\_\_reinforce.FAILED.json})
+before the successful \texttt{\_\_obs\_\_} runs below were produced.
+
+\begin{table}[h]
+\centering
+\small
+\caption{TASK-007 local lr sweep (transformer\_branch/variant\_5\_2/variant\_5\_3, real \texttt{CraftaxObsAdapter}). Source: \srcpath{output/experiments/2026-09-26\_rerun/local/*.result.json}. random\_policy crafter=1.720, return=1.469 for all rows (same evaluator, larger than TASK-003's random baseline because the adapter differs).}
+\begin{tabular}{lrrrr}
+\toprule
+Tag (lr) & Params & crafter (sampled) & return & unlocked \\
+\midrule
+transformer\_branch, lr=0.0003 & 8710 & 2.923 & 2.644 & 4.53 \\
+transformer\_branch, lr=0.001 & 8710 & 3.192 & 2.684 & 4.39 \\
+transformer\_branch, lr=0.003 & 8710 & 2.988 & 2.805 & 4.47 \\
+variant\_5\_2, lr=0.0003 & 8118 & 3.618 & 2.623 & 4.30 \\
+variant\_5\_2, lr=0.001 & 8118 & 3.258 & 3.152 & 4.48 \\
+variant\_5\_2, lr=0.003 & 8118 & 2.869 & 2.925 & 4.41 \\
+variant\_5\_3, lr=0.0003 & 5014 & 2.924 & 3.080 & 4.39 \\
+variant\_5\_3, lr=0.001 & 5014 & 3.167 & 3.248 & 4.61 \\
+variant\_5\_3, lr=0.003 & 5014 & 3.036 & 2.975 & 4.41 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\caption{TASK-007 Kaggle lr sweep (MDP-search candidates, base and ``\_stable'' variants). Source: \srcpath{output/experiments/2026-09-26\_rerun/kaggle\_mdp/*.result.json}. Same random\_policy baseline (crafter=1.720, return=1.469).}
+\begin{tabular}{lrrrr}
+\toprule
+Tag (lr) & Params & crafter (sampled) & return & unlocked \\
+\midrule
+mdp\_branch, lr=0.0003 & 8710 & 0.909 & 0.713 & 1.59 \\
+mdp\_branch, lr=0.001 & 8710 & 0.870 & 0.656 & 1.48 \\
+mdp\_branch, lr=0.003 & 8710 & 0.877 & 0.625 & 1.53 \\
+mdp\_branch\_stable, lr=0.0003 & 8710 & 0.922 & 0.453 & 1.39 \\
+mdp\_branch\_stable, lr=0.001 & 8710 & 0.973 & 0.638 & 1.56 \\
+mdp\_branch\_stable, lr=0.003 & 8710 & 1.061 & 0.628 & 1.55 \\
+variant\_5\_1, lr=0.0003 & 10758 & 1.038 & 0.669 & 1.39 \\
+variant\_5\_1, lr=0.001 & 10758 & 0.493 & 0.147 & 0.80 \\
+variant\_5\_1, lr=0.003 & 10758 & 1.081 & 0.864 & 1.61 \\
+variant\_5\_1\_stable, lr=0.0003 & 10758 & 1.967 & 1.517 & 2.73 \\
+variant\_5\_1\_stable, lr=0.001 & 10758 & 1.760 & 1.609 & 2.58 \\
+variant\_5\_1\_stable, lr=0.003 & 10758 & 2.537 & 2.119 & 3.47 \\
+variant\_5\_4, lr=0.0003 & 9766 & 2.667 & 2.169 & 3.48 \\
+variant\_5\_4, lr=0.001 & 9766 & 1.052 & 0.595 & 1.58 \\
+variant\_5\_4, lr=0.003 & 9766 & 0.887 & 0.536 & 1.41 \\
+variant\_5\_4\_stable, lr=0.0003 & 9766 & 2.338 & 1.981 & 3.33 \\
+variant\_5\_4\_stable, lr=0.001 & 9766 & 1.159 & 0.495 & 1.61 \\
+variant\_5\_4\_stable, lr=0.003 & 9766 & 1.142 & 0.495 & 1.59 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+With the fixed adapter, \texttt{transformer\_branch}/\texttt{variant\_5\_2}/\texttt{variant\_5\_3}
+(2.6--3.25 vs.\ random 1.47) clear the random baseline, but the MDP-search candidates
+(\texttt{variant\_5\_1}, \texttt{variant\_5\_4}, \texttt{mdp\_branch}) still mostly do not, even with
+the NaN fixed -- the STATE.yaml result attributes this to an argmax hazard, not NaN, as the limiter.
+\texttt{variant\_5\_1\_stable} at lr=0.003 (crafter 2.537) is the one MDP-search configuration that
+clearly exceeds random here.
+
+\subsection{TASK-20260925-004 + TASK-20260927-008: Idea-6 world-model-as-policy-feature arms}
+
+\textbf{Stage A (world-model fit quality, held-out standardised MSE at horizons 1/2/4/8 noop
+steps).} TASK-004, \srcpath{output/experiments/2026-09-25\_idea6/stageA/worldmodel\_result.json}
+(40{,}800 train / 10{,}400 test transitions, 70.4\% of test states have $\ge$1 vital changing within
+8 noop steps): persistence $[0.0398, 0.0817, 0.1218, 0.1621]$; \texttt{mlp} (8414 params) $[0.0367,
+0.0658, 0.0862, 0.1443]$; \texttt{hn} (16458 params) $[0.0371, 0.0623, 0.0829, 0.1324]$ -- HN edges
+MLP at $h{=}8$ (skill vs.\ persistence 0.585 vs.\ 0.548) but with 2$\times$ the parameters, 1 seed.
+
+TASK-008's v2 world model predicts the full 39-dim observation summary rather than 4 vitals only
+(\srcpath{output/experiments/2026-09-27\_passive\_wm\_v2/stageA\_random/stageA\_result.json},
+76{,}750/19{,}250 train/test, random policy): persistence-vitals $[0.908, 0.931, 0.934, 0.955]$;
+\texttt{mlp\_sum} (363{,}164 params) vitals $[0.885, 0.838, 0.654, 0.430]$; \texttt{mlp\_full}
+(1{,}031{,}836 params, full 1345-d input) vitals $[0.913, 0.864, 0.749, 0.556]$ -- the full
+1345-d input does not beat the 39-d summary (overfits). Mob-motion spatial prediction
+(\srcpath{stageA2\_mobmap/mobmap\_result.json}): skill over persistence rises from 0.073 ($h{=}1$)
+to 0.163 ($h{=}8$); new-cell recall stays low, 8.5\%$\to$1.3\%.
+
+\textbf{Stage B (does the WM help the policy?).} TASK-004
+(\srcpath{output/experiments/2026-09-25\_idea6/stageB\_local,stageB\_kaggle/*.result.json},
+\texttt{transformer\_branch} $d_{\text{model}}=512$, 875{,}590 params, 300 updates $\times$ 16
+episodes = 4{,}800 episodes/run, 2 seeds $\times$ 4 arms, random baseline return 1.46--2.17
+depending on seed's random-policy draw): base 2.78/3.10 (mean return 2.94); \texttt{wm\_hn} (trained)
+2.94/2.93 (mean 2.94); \texttt{wm\_mlp} (trained) 3.17/3.29 (mean 3.23); \texttt{wm\_hn\_untrained}
+(control) 2.95/3.32 (mean 3.14) -- statistically indistinguishable at $n{=}2$ seeds; an untrained WM
+scores the same as a trained one.
+
+TASK-008 Stage B (\texttt{transformer\_branch}, $d_{\text{model}}=256$, 277{,}132 params, 300
+updates $\times$ 16 episodes, uniform-random reference return = 1.271, same evaluator, per
+\srcpath{stageB\_summary.txt}):
+\begin{quote}\small\ttfamily
+arm~~~~~~~~~n~final\_return(mean$\pm$sd)~~last3\_eval(mean$\pm$sd)~~crafter\\
+base~~~~~~~~4~3.027$\pm$0.203~~~~~~~~~3.020$\pm$0.081~~~~~~~3.96\\
+kwm\_full~~~~4~3.214$\pm$0.138~~~~~~~~~2.980$\pm$0.206~~~~~~~3.98\\
+kwm\_untrain~4~3.190$\pm$0.162~~~~~~~~~2.997$\pm$0.202~~~~~~~3.53\\
+oracle~~~~~~4~3.089$\pm$0.151~~~~~~~~~2.942$\pm$0.136~~~~~~~3.91\\
+oracle\_act~~2~2.976$\pm$0.110~~~~~~~~~2.899$\pm$0.145~~~~~~~3.44\\
+wm\_full~~~~~4~3.023$\pm$0.128~~~~~~~~~3.045$\pm$0.121~~~~~~~3.80\\
+wm\_untrain~~4~3.121$\pm$0.139~~~~~~~~~3.006$\pm$0.100~~~~~~~3.64\\
+uniform-random reference return: 1.271
+\end{quote}
+Every trained/untrained/oracle/oracle\_act arm lands in a tight 2.9--3.1 band, including
+\texttt{oracle\_act} (true 1-step reward of every action, the strongest possible leaked signal),
+statistically indistinguishable at this budget with a REINFORCE learner.
+
+\textbf{TASK-20260927-010 budget diagnostic} (4$\times$ batch: 64 vs.\ 16; $\sim$2.7$\times$
+episodes: 12{,}800 vs.\ 4{,}800; 4 seeds each, \srcpath{output/experiments/2026-09-27\_passive\_wm\_v2/stageB\_budget/*.result.json}):
+\texttt{oracle\_act} mean last-3-eval return $3.32\pm0.06$ (per-seed 3.24, 3.36, 3.30, 3.39) vs.\
+\texttt{base} $3.25\pm0.14$ (per-seed 3.17, 3.31, 3.08, 3.44) -- a small directional gap with lower
+variance for \texttt{oracle\_act}, but not statistically separated (base's best seed, 3.44, exceeds
+\texttt{oracle\_act}'s best, 3.39).
+
+\textbf{Pendulum planning (Experiment 3, decoupled passive pretraining), TASK-008}
+(\srcpath{output/experiments/2026-09-27\_passive\_wm\_v2/pf\_full/pf\_summary.txt}, true-model MPC
+return $-196.1$): at wide initial conditions, \texttt{hn\_pre} (port-Hamiltonian, passive-pretrained
+$V,R$, $G$ learned from 8 active trajectories) reaches $-194.6$ (median $-195.4$), essentially the
+ceiling; \texttt{fact\_joint}/\texttt{fact\_pre} also reach $\sim -198$ to $-203$ at wide IC but
+collapse to $\sim -530$ to $-610$ at narrow IC where passive data does not cover the active
+distribution; \texttt{mlp\_joint}/\texttt{mlp\_all} stay around $-585$ to $-620$ regardless of IC
+width.
+
+\subsection{TASK-20260927-009/010: deterministic noop-anticipation heuristic}
+
+No RL training loop; a deterministic decision rule combining the repo's hand-specified
+\texttt{CRAFTAX\_RESOURCE\_EFFECTS} table with the world model's noop-anticipation, $n{=}384$
+episodes/arm, $T{=}250$. Original (\srcpath{full/result.json}) vs.\ 2026-09-29 corrected re-run
+after the auto-reset-leak fix (\srcpath{full\_v2/result.json}, identical script/args, same
+\texttt{mean\_len}/\texttt{median\_len}/\texttt{std\_len} since the fix only touches achievement
+counting):
+
+\begin{table}[h]
+\centering
+\caption{Noop-anticipation heuristic arms, crafter\_score old vs.\ new. Sources as named.}
+\begin{tabular}{lrrr}
+\toprule
+Arm & crafter (original) & crafter (corrected) & mean survival steps (unaffected) \\
+\midrule
+random & 2.287 & 1.861 & 139.1 \\
+noop\_always & 0.000 & 0.000 & 152.9 \\
+effects\_only & 1.029 & 0.883 & 149.8 \\
+effects\_wm\_h1 & 1.428 & 1.063 & 149.6--149.8 \\
+effects\_wm\_h8 & 1.383 & 1.122 & 146.3--146.8 \\
+effects\_wm\_h1\_episodic\_model & 1.133 & 0.956 & 149.8 \\
+round2\_effects\_wm\_h1 & 0.964 & 0.832 & 150.0--150.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The headline verdict (stated on mean survival length, unaffected by the achievement-counting bug)
+holds under both versions: \texttt{effects\_wm\_h1} (149.6--149.8 mean survival steps) does not beat
+\texttt{effects\_only}, and no non-noop-based heuristic beats \texttt{noop\_always} (152.9 steps) --
+every action costs energy in the known table with no reliable food/water source for an untooled
+random walk. \texttt{effects\_wm\_h8} is worse than \texttt{effects\_wm\_h1} on survival too
+(compounding-error effect). Training-procedure ablation
+(\srcpath{full/result.json}'s \texttt{wm\_training\_ablation} block): pooled shuffled-minibatch
+training reaches held-out MSE $[0.0663, 0.1164, 0.1737, 0.2442]$ at horizons 1/2/4/8, uniformly
+better than one-gradient-step-per-whole-episode training ($[0.0676, 0.1207, 0.1939, 0.2841]$) at
+every horizon. Bootstrapping the WM on the best-surviving (noop-only) episodes overfits: held-out
+MSE on the original random-policy distribution rises from 0.141 to 4.477 at $h{=}8$
+(\texttt{bootstrap.heldout\_mse\_on\_random\_data}).
+
+\subsection{TASK-20260927-011: actor-critic learner handoff}
+\label{sec:task011}
+
+Status field in STATE.yaml (quoted verbatim): \texttt{"Postponed or cancelled by the operator"}.
+This task's \texttt{result} field is empty (\texttt{""}); its \texttt{blockers} field states:
+``Actor-critic not yet implemented; litmus test (oracle\_act vs base) not yet re-run under it.'' The
+task's \texttt{description} records a detailed handoff plan (replace the REINFORCE learner in
+\srcpath{src/pipeline/candidate\_experiment.py} with an actor-critic learner as a new
+\texttt{mode="actor\_critic"} code path) and a restatement of the Phase-1/Phase-2/Phase-3 noop
+world-model proposal refined across three operator messages, but no results of any kind exist for
+this task -- it is included here, per the completeness instruction, precisely because it has none.
+
+\clearpage
+\section{ChunkPPO / latency-goal-chunking architecture}
+\label{sec:latency}
+
+\subsection{Architecture components}
+
+Design doc: \srcpath{docs/experiments/2026-09-28\_latency\_chunking/DESIGN.md}. Code:
+\srcpath{src/environment/latency\_envs.py} (macro-step latency decision process: fixed tick $dt$,
+latency $\delta$ ticks, commit length $k \ge \delta$; cores \texttt{pendulum\_goal},
+\texttt{intercept}, \texttt{craftax}, the last also usable at $\delta=0,k=1$ as the plain-PPO
+calibration environment; \texttt{oracle\_forecast} exists only for the upper-bound arm and is never
+an input to any other arm); \srcpath{src/model/factored\_world\_model.py} (factored
+action-conditional dynamics $s_{i+1}=s_i+dt\cdot\text{rate\_sd}\cdot[f(x_i)+e(x_i,a_i)]$,
+$e(x,a)=h(x,\text{onehot}(a))-h(x,\text{onehot}(a_{\text{ref}}))$, output layers zero-initialised so
+an untrained model equals persistence); \srcpath{src/model/chunk\_policy.py} (autoregressive
+chunk-policy transformer with continuous-time token embeddings, plus PPO critic; an MLP actor
+variant is used for the plain-PPO $k=1$ calibration); \srcpath{src/pipeline/chunk\_ppo.py}
+(chunk-level PPO, arms \texttt{ignore}/\texttt{augment}/\texttt{wm}/\texttt{wm\_passive}/\texttt{oracle},
+differing only in the actor's state input; critic, optimiser, budget, and architecture identical
+across arms).
+
+\subsection{TASK-20260928-012: code complete, nothing trained}
+
+25 tests added (\srcpath{tests/test\_latency\_chunking.py}); \texttt{--dry-run} confirmed finite
+loss/grad for all arms; no training was run in this task. Logical issues recorded in DESIGN.md
+sec.\ 2 (quoted from STATE.yaml, not re-verified independently here): tokens past the commit
+horizon get no PPO signal ($H=k$); hindsight relabelling is off-policy and used only for the
+auxiliary temporal-distance head; the $f+e$ factorisation is a reparameterisation for discrete
+actions; the WM forecast is a function of $(o_c,u_c)$ so it can only add sample efficiency over
+\texttt{augment}, not information; passive ticks are charged to the WM arms' budget; passive
+coverage predicts help only where exogenous dynamics dominate.
+
+\subsection{TASK-20260928-013/014: MLP and Transformer actor calibration (original, pre metric-protocol-v2)}
+
+Calibration runs at $k=1$, $\delta=0$ (plain PPO), \texttt{total\_env\_ticks}=1{,}000{,}000,
+\texttt{cycles\_per\_update}=64, 4 update epochs $\times$ 8 minibatches, $\text{lr}=2\times10^{-4}$
+(linear anneal), $\gamma=0.99$, $\lambda_{\text{GAE}}=0.8$, clip\_eps=0.2. \texttt{eval\_return} in
+every file in this subsection is the pre-fix, GREEDY, single/4-window estimator (superseded by
+\S\ref{sec:latency-v2}); \texttt{train\_return} is the old, synchronised-start-biased definition.
+
+\begin{table}[h]
+\centering
+\caption{Original TASK-013/014 calibration numbers. train\_return is (start$\to$final update); eval\_return is the OLD greedy estimator. Sources: \srcpath{output/latency\_chunking/craftax\_calibration/s\{0,1\}/summary.json}, \srcpath{craftax\_calibration\_transformer/s\{0,1\}/summary.json}, \srcpath{kaggle/craftax\_calibration\{,\_transformer\}/s\{0,1\}/summary.json}.}
+\begin{tabular}{llrrrrr}
+\toprule
+Actor & Platform & num\_envs & Seed & train\_return (start$\to$final) & eval\_return (greedy) & \#updates \\
+\midrule
+MLP & Local (RTX 3060 Ti) & 1024 & 0 & 0.442 $\to$ 3.643 & 0.335 (68 eps) & 15 \\
+MLP & Local & 1024 & 1 & 0.487 $\to$ 3.849 & 0.282 (66 eps) & 15 \\
+MLP & Kaggle (T4$\times$2) & 1024 & 0 & 0.442 $\to$ 3.692 & 0.309 (67 eps) & 15 \\
+MLP & Kaggle & 1024 & 1 & --- $\to$ 3.974 & 0.279 (67 eps) & 15 \\
+Transformer & Local (hardware-constrained) & 128 & 0 & 0.517 $\to$ 4.276 & 1.481 (147 eps) & 122 \\
+Transformer & Local & 128 & 1 & 0.521 $\to$ 4.335 & 1.414 (140 eps) & 122 \\
+Transformer & Kaggle (true 1b match) & 1024 & 0 & --- $\to$ 3.118 & 0.694 (1155 eps) & 15 \\
+Transformer & Kaggle (true 1b match) & 1024 & 1 & --- $\to$ 3.190 & 0.662 (1163 eps) & 15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The honest, matched-budget comparison (num\_envs=1024, 15 updates, both actors) at this original
+protocol: MLP train\_return 3.64--3.97, eval\_return 0.71--0.75 vs.\ Transformer train\_return
+3.12--3.19, eval\_return 0.66--0.69 -- the Transformer actor was slightly behind the MLP, not ``not
+weaker'' as DESIGN.md 1b had hoped. The local 128-env/122-update Transformer run (train\_return up
+to 4.34) is not a controlled comparison to the 1024-env MLP run (different num\_envs and update
+count).
+
+\subsection{2026-09-29 corrected rerun: metric\_protocol v2 (\texttt{kaggle\_v2/})}
+\label{sec:latency-v2}
+
+Root cause of the original eval-return gap (confirmed by \srcpath{scripts/adhoc/diag\_eval\_gap.py}
+reloading TASK-013's real checkpoints): \texttt{ChunkPPO.evaluate()} always did a fresh
+\texttt{reset\_envs()} and averaged return only over envs that reached \texttt{done} inside one
+fixed-length window -- at the original \texttt{eval\_cycles}=64 only 83/1024 envs (8\%) finished in
+time, so \texttt{mean\_return} was computed over the fastest (likely worst) 8\% of episodes. Fixed
+by \texttt{eval\_windows} (sequential windows, env state carried forward) and by scoring the FIRST
+episode of every env under the stochastic policy as the headline \texttt{eval\_return}, with
+\texttt{eval\_return\_greedy} reported separately. Verbatim \texttt{metric\_protocol} field written
+into every \srcpath{kaggle\_v2/*/summary.json}:
+\begin{quote}\small\ttfamily
+"v2 (TASK-20260928-015): eval\_return = mean return of the FIRST episode of every env (fresh start,
+stochastic policy, censoring reported; eval\_return\_greedy = argmax policy); train\_return = mean
+over finished episodes EXCLUDING each env's first, valid only where train\_settled (every env had
+finished $>=$ 2 episodes before the window); train\_return\_all = old definition (biased low early
+because all envs start synchronised). Files written before this protocol have eval\_return = greedy,
+1-window and train\_return = train\_return\_all."
+\end{quote}
+
+\begin{table}[h]
+\centering
+\caption{2026-09-29 matched-budget rerun under metric\_protocol v2 (num\_envs=1024, 15 updates, seeds 0/1). Source: \srcpath{output/latency\_chunking/kaggle\_v2/craftax\_calibration\{,\_transformer\}/s\{0,1\}/summary.json}. Also plotted in Figure~\ref{fig:actorcomp}.}
+\begin{tabular}{llrrrr}
+\toprule
+Actor & Seed & eval\_return (stochastic) & eval\_episodes & eval\_return\_greedy & train\_return (final) \\
+\midrule
+MLP & 0 & 3.879 & 1024 & 0.823 & 3.692 \\
+MLP & 1 & 3.979 & 1024 & 0.798 & 3.974 \\
+Transformer & 0 & 3.206 & 1024 & 0.807 & 3.125 \\
+Transformer & 1 & 3.173 & 1024 & 0.750 & 3.190 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Under the corrected, PPO-optimised (stochastic) metric, the MLP actor is clearly ahead of the
+Transformer actor at this matched 15-update budget -- a larger relative gap than the old
+greedy-only comparison suggested. The greedy metric alone is close and inconsistent in ordering
+across seeds and would not have shown this gap. DESIGN.md 1b's claim (``the chunk actor is not
+weaker than the MLP'') is not confirmed at this matched budget under either protocol; whether more
+updates close the gap (suggested, not proven, by the uncontrolled 128-env/122-update local
+Transformer run) remains open (STATE.yaml TASK-20260928-015, blocker on TASK-20260928-014).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fair_actor_architecture_comparison.png}
+\caption{MLP vs.\ Transformer chunk-policy actor under the corrected, matched-budget protocol. Source: \srcpath{output/plots/fair\_actor\_architecture\_comparison.png}, generated by \srcpath{scripts/adhoc/plot\_fair\_comparisons.py} from \srcpath{output/latency\_chunking/kaggle\_v2/craftax\_calibration\{,\_transformer\}/s\{0,1\}/summary.json}.}
+\label{fig:actorcomp}
+\end{figure}
+
+\clearpage
+\section{World-model architecture series on physics testbeds}
+\label{sec:physics}
+
+Summary source: \srcpath{docs/experiments/SUMMARY\_2026-09-25\_to\_26\_world\_model\_series.md}.
+Arm definitions (E3): \texttt{persistence} (no-op reference); \texttt{mlp} ($\dot x = \text{MLP}(x)$);
+\texttt{hn\_gen} (generic Hamiltonian NN, $\dot x = J\nabla\text{MLP}(x)$); \texttt{hn\_sep}
+(separable $H=|p|^2/2+\text{MLP}(q)$, $\dot x = J\nabla H$); \texttt{port\_sep} ($\dot x =
+(J-R)\nabla H$ with learned dissipation $R$); \texttt{idea6\_full} (the \texttt{WorldModel} class
+itself, $K{=}1$, presets off); \texttt{oracle\_port} (\texttt{port\_sep} + the TRUE potential, an
+intentional upper bound). E3 raw data: \srcpath{output/experiments/2026-09-25\_physics/}
+(aggregation script \srcpath{scripts/aggregate\_physics.py}, median over 3 seeds of mean-nRMSE over
+the rollout).
+
+\subsection{E3: closed-form physics testbeds (Kepler two-body, falling body with drag, noisy sine)}
+
+\begin{table}[h]
+\centering
+\small
+\caption{E3 mean nRMSE over rollout, $N=128$ training trajectories, clean (noise 0). Source: \srcpath{output/experiments/2026-09-25\_physics/results\_tables.md} (medians over 3 seeds), reproduced in \srcpath{docs/experiments/SUMMARY\_2026-09-25\_to\_26\_world\_model\_series.md} \S4.3. Lower is better.}
+\begin{tabular}{llrrrrrrr}
+\toprule
+Task & Split & persist. & mlp & hn\_gen & hn\_sep & port\_sep & idea6\_full & oracle \\
+\midrule
+Kepler & ID & 1.375 & 0.660 & 0.101 & \textbf{0.075} & 0.241 & 1.271 & 0.001 \\
+Kepler & OOD & 1.660 & 1.079 & 0.459 & \textbf{0.259} & 0.291 & 12.038 & 0.000 \\
+Fall+drag & ID & 2.726 & 0.753 & 1.616 & 0.802 & 0.384 & \textbf{0.296} & 0.142 \\
+Fall+drag & OOD & 2.725 & \textbf{0.108} & 3.178 & 2.620 & 2.280 & 0.742 & 0.304 \\
+Sine & ID & 1.319 & 0.055 & 0.041 & \textbf{0.020} & 0.023 & 0.035 & 0.000 \\
+Sine & OOD & 3.059 & 3.086 & 3.132 & 2.932 & 2.896 & \textbf{0.789} & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Hamiltonian prior (\texttt{hn\_sep}) wins clearly on the two conservative systems (Kepler,
+sine) both ID and OOD; on the dissipative falling-body-with-drag system the plain \texttt{mlp}
+generalises better OOD (0.108) than any structured variant, and \texttt{idea6\_full} (the literal
+\texttt{WorldModel} class) does not realise the Hamiltonian-prior gain on Kepler (1.271 ID, 12.038
+OOD -- worse than \texttt{persistence} OOD), while it is competitive on falling-body ID (0.296,
+best non-oracle arm). Kepler energy drift over the rollout: MLP 44\%, \texttt{hn\_sep} 0.6\%. With
+16 training trajectories, \texttt{hn\_sep} (end error 0.23) already beats the MLP trained on 1{,}024
+(1.7).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fair_two_body_kepler_architecture_series.png}
+\caption{Kepler two-body world-model architecture series (E3), matched-budget comparison. Source: \srcpath{output/plots/fair\_two\_body\_kepler\_architecture\_series.png}, generated by \srcpath{scripts/adhoc/plot\_two\_body\_series.py} from \srcpath{output/experiments/2026-09-25\_physics/kepler/physics\_results.json}.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{data_efficiency.png}
+\caption{Data efficiency (rmse\_end vs.\ number of training trajectories $N$, log-log) across all three E3 testbeds (Kepler, falling body with drag, noisy sine), one column per task. Source: \srcpath{output/experiments/2026-09-25\_physics/plots/data\_efficiency.png}, generated by \srcpath{scripts/aggregate\_physics.py}.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{error_vs_horizon.png}
+\caption{Median rollout error vs.\ horizon step (ID, clean, $N=128$) across all three E3 testbeds. Source: \srcpath{output/experiments/2026-09-25\_physics/plots/error\_vs\_horizon.png}, generated by \srcpath{scripts/aggregate\_physics.py}.}
+\end{figure}
+
+\subsection{E4: hybrid world-model arms}
+
+Additional arms beyond E3: \texttt{phys\_hn} (hard-coded, possibly-wrong preset $+$ HN residual),
+\texttt{phys\_hn\_mu} (preset with a learnable scale constant), \texttt{phys\_feat} (the known
+formula given to the learned potential as an input feature, not a hard term), \texttt{skip\_feat} /
+\texttt{skip\_feat0} (feature route with a learned-scale skip connection, initial skip weight 1 or
+0), \texttt{hyb\_sum\_mlp} / \texttt{hyb\_sum\_rssm} (Dreamer-lite-style latent summed with a
+structured residual), \texttt{hyb\_tf\_rssm} (Transformer fusion of latent and structured branch),
+\texttt{hyb\_gate\_mlp}, \texttt{hyb\_force\_mlp}, \texttt{rssm} (stand-alone reduced Dreamer-lite,
+``not full DreamerV3''). Canonical source (5 seeds pooled where available):
+\srcpath{output/experiments/2026-09-26\_hybrid/pooled\_seed\_table.md}, reproducing
+\srcpath{docs/experiments/SUMMARY\_2026-09-25\_to\_26\_world\_model\_series.md} \S4.4 exactly; the
+3-seed-only \srcpath{main/hybrid\_tables.md} differs slightly (e.g.\ kepler\_pert/mlp/ID 0.356 there
+vs.\ the pooled 0.362) -- both are real, the pooled figure is the one already used in the
+operator-facing summary.
+
+\begin{table}[h]
+\centering
+\small
+\caption{E4 hybrid arms, mean nRMSE over rollout ($N=64$, 2\% noise, median over seeds; ID/OOD). Source: \srcpath{output/experiments/2026-09-26\_hybrid/main/hybrid\_tables.md} and \srcpath{pooled\_seed\_table.md}.}
+\begin{tabular}{lrrrr}
+\toprule
+Task & mlp & hn & phys\_feat & skip\_feat0 \\
+\midrule
+kepler\_pert & .362/.641 & \textbf{.130}/.136 & .172/.174 & .176/.179 \\
+kepler\_wrongmu ($\mu$=0.7) & .362/.641 & .129/.136 & .192/.227 & .197/.231 \\
+fall\_drag & .883/\textbf{.147} & .475/2.483 & .670/2.553 & .507/2.169 \\
+pendulum & .027/1.268 & .015/2.770 & \textbf{.014}/.589 & .014/\textbf{.361} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dreamer-lite components (3 seeds, quoted): ``stand-alone \texttt{rssm} Kepler 2.6 to 2.7 (worse than
+persistence 1.26), \texttt{hyb\_sum\_rssm} Kepler 1.3 to 3.2, \texttt{hyb\_tf\_rssm} Kepler 0.31 to
+0.51; fall\_drag: \texttt{rssm} 0.344, \texttt{hyb\_sum\_rssm} 0.242, \texttt{hyb\_tf\_rssm} 0.680.
+Parameters: 28K to 37K versus 4.4K for \texttt{hn}.'' Other E4 findings (quoted): ``Parameter count
+(hidden 16 to 256, fall\_drag ID): \texttt{phys\_hn} 0.134 -> 0.122 (325 -> 66.6K params),
+\texttt{mlp} 0.717 -> 0.967, \texttt{hyb\_sum\_mlp} 0.194 -> 0.105, \texttt{rssm} 0.239 -> 0.442.''
+``Residual penalty \texttt{lam} 0 / 0.1 / 1 (fall\_drag ID, \texttt{hyb\_sum\_mlp}): 0.118 / 0.673 /
+1.299.'' ``Learnable constant on the preset (\texttt{phys\_hn\_mu}): kepler\_wrongmu ID 0.350 ->
+0.191.'' ``Kepler noise-free, 2{,}000 -> 6{,}000 steps: \texttt{hn} 0.029 -> 0.013,
+\texttt{phys\_hn} 0.129 -> 0.051, \texttt{hyb\_sum\_mlp} 0.280 -> 0.130.'' Partial-observation test
+(only noisy position observed, Kepler, 2\% noise): momentum from finite difference nRMSE 1.48--2.99,
+from a learned filter 0.38--0.56, oracle state 0.13--0.41 -- ranking of dynamics models unchanged
+across estimators.
+
+Two intermediate result sets were found invalid and replaced (recorded, not hidden, per
+\srcpath{output/experiments/2026-09-26\_hybrid/main\_invalid\_kepler\_v1/}, kept alongside
+\srcpath{main/}): the first Kepler-perturbation attempt had 30--34\% of orbits plunge or eject, an
+unsolvable configuration; superseded by \srcpath{main/kepler\_pert,kepler\_wrongmu/}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{hybrid_e4_arms_comparison.png}
+\caption{E4 hybrid world-model arms, mean nRMSE (ID, $N=64$, 2\% noise) across kepler\_pert, kepler\_wrongmu, fall\_drag, pendulum. Source data: \srcpath{output/experiments/2026-09-26\_hybrid/main/hybrid\_tables.md}. Generated for this document by a new script following the style of \srcpath{scripts/adhoc/plot\_two\_body\_series.py}; not previously plotted.}
+\label{fig:e4hybrid}
+\end{figure}
+
+\subsection{E5: planning / model-predictive control}
+
+True-model MPC return $-196.1$ (pendulum swing-up ceiling); null-model MPC $-799.0$; success rate
+100\% for every learned model tested (only the ceiling-distance varies).
+
+\begin{table}[h]
+\centering
+\small
+\caption{E5 planning results, return at $N=8/32/128$ planning trajectories. Sources: \srcpath{output/experiments/2026-09-26\_hybrid/plan\{,\_feat,\_skip,\_skip0\}/planning\_results.json}.}
+\begin{tabular}{lrrrl}
+\toprule
+Arm & N=8 & N=32 & N=128 & Preset \\
+\midrule
+mlp & $-$600 & $-$589 & $-$576 & none \\
+hn & $-$271 & $-$265 & $-$253 & none (known kinetic only) \\
+phys\_hn & $-$531 & $-$517 & $-$479 & wrong small-angle, hard term \\
+hyb (phys\_hn+MLP residual) & $-$461 & $-$484 & $-$524 & as phys\_hn \\
+\textbf{phys\_feat} & \textbf{$-$204} & \textbf{$-$204} & \textbf{$-$207} & wrong small-angle, as feature \\
+skip\_feat & $-$491 & $-$466 & $-$454 & wrong preset, skip open \\
+skip\_feat0 & $-$234 & $-$227 & $-$234 & wrong preset, skip closed \\
+oracle\_phys/feat/skip & $-$197/$-$200/$-$197 & $-$196/$-$201/$-$196 & $-$196/$-$200/$-$196 & TRUE potential \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Giving the (deliberately wrong, small-angle) known formula to the learned potential as an input
+\emph{feature} (\texttt{phys\_feat}) reaches within 4--11 return units of the true-model ceiling at
+every trajectory budget tested; using the same wrong formula as a \emph{hard} additive term
+(\texttt{phys\_hn}) instead costs 275--325 return units relative to \texttt{phys\_feat} at the same
+budget.
+
+\clearpage
+\section{Quarantined and fabricated legacy results}
+\label{sec:quarantine}
+\label{sec:audit}
+
+Per the operator's explicit instruction, this section covers everything under
+\srcpath{output/quarantine\_fabricated/} and \srcpath{output/benchmarks/} without exclusionary
+judgment: what each file is, what it claims, why it is (or, where not formally quarantined, why it
+appears to be) fabricated, and the real vs.\ fabricated number ranges.
+
+\subsection{\texttt{output/quarantine\_fabricated/}: formally quarantined files}
+
+Full text of \srcpath{output/quarantine\_fabricated/README.md}'s evidence table:
+
+\begin{quote}\small
+Found by the 2026-09-28 evaluation-integrity audit (STATE.yaml TASK-20260928-015). Commit
+\texttt{e4798b6} had already deleted the scripts that wrote these files (``fabricated metrics'');
+the outputs were left behind under \texttt{output/benchmarks/}.
+\end{quote}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Quarantined files and the evidence they are not measurements. Source: \srcpath{output/quarantine\_fabricated/README.md}.}
+\begin{tabular}{p{5.2cm}p{9.3cm}}
+\toprule
+File & Why it is not a measurement \\
+\midrule
+\texttt{official\_performance\_ceiling\_metrics.json}, \texttt{performance\_ceiling\_exploration\_metrics.json} & Unlock rates = hard-coded list of 22 base rates $\times\ (layers/8)^{0.4}$ or $1+0.08\log_{10}(\text{steps})$; throughput from a formula. Crafter scores of 54--91 come from these invented rates. Real evaluations in this repo score 0--4. \\
+\texttt{kaggle\_retrieved\_weights\_verification.json}, \texttt{real\_weights\_benchmark\_metrics.json} & \texttt{rollout\_results}/\texttt{rollout\_metrics} are a literal dict (\texttt{crafter\_score: 74.58}, \texttt{mean\_episode\_reward: 0.0376}, ...) -- no rollout was run. One carries \texttt{status: VERIFIED\_SUCCESS}. \\
+\texttt{8layer\_zunit\_verification\_metrics.json} & Unlock rates/reward from $\min(88,35+43.5(1-e^{-\text{steps}/2\times10^7}))$-style formulas; \texttt{noise\_recovery\_accuracy\_pct: 98.4} literal. \\
+\texttt{combined\_matrix\_verification.json}, \texttt{nonstationary\_100m\_metrics.json} & Unlock rates/rewards hard-coded per architecture and step scale (e.g.\ stone pickaxe 74.5, iron 56.8 typed in as constants). \\
+\texttt{massive\_scaling\_metrics.json} & \texttt{projected\_reward\_ceiling = 0.0303*(1+0.15*log10(scale/1e8))} is a projection, not a run; only forward-pass timings are measured. \\
+\texttt{model\_weights\_8L\_zunit\_100m.npz} & Printed as ``retrieved trained weights'' but generated with \texttt{rng.normal(0, 0.02, ...)} -- random noise. \\
+\texttt{hierarchical\_model\_8L\_zunit\_100m.pkl} & Freshly initialised, never-trained parameters (\texttt{init\_hierarchical\_model\_parameters(PRNGKey(42))}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Selected fabricated literal values found directly in the quarantined JSON files (all file paths
+under \srcpath{output/quarantine\_fabricated/benchmarks/}):
+\begin{itemize}
+\item \texttt{kaggle\_retrieved\_weights\_verification.json}: \texttt{status="VERIFIED\_SUCCESS"}, \texttt{crafter\_score=74.58}, \texttt{mean\_episode\_reward=0.0376}, \texttt{step\_throughput\_sps=39564.05}.
+\item \texttt{real\_weights\_benchmark\_metrics.json}: the identical \texttt{status="VERIFIED\_SUCCESS"}, \texttt{crafter\_score=74.58}, \texttt{step\_throughput\_sps=39564.05} -- confirming both files are the same literal dict copy-pasted rather than independent runs; its own \texttt{checkpoint\_file} field is a local Windows path (\texttt{C:\textbackslash Users\textbackslash sigure\textbackslash ...}), not a repo-relative path.
+\item \texttt{official\_performance\_ceiling\_metrics.json}: \texttt{axis1\_layer\_scaling} crafter\_score = 54.59/72.02/82.95/88.93 for layers 4/8/12/16, monotonically increasing with layer count; \texttt{axis4\_beam\_width\_scaling} crafter\_score rises from 72.02 (k=1) to 86.37 (k=32) purely with beam width at fixed sps.
+\item \texttt{performance\_ceiling\_exploration\_metrics.json}: a second, different constant set, crafter\_score = 56.52/74.58/85.59/91.28 for layers 4/8/12/16 -- the literal 74.58 recurs here too.
+\item \texttt{combined\_matrix\_verification.json}: \texttt{stone\_pickaxe\_unlock\_pct} pinned at exactly 35.0 across five step scales spanning 100M to 10T steps; \texttt{sps} identical (39564.05 / 2532099.2 in \texttt{massive\_scaling\_metrics.json}) across configurations with different layer counts or step targets.
+\item \texttt{nonstationary\_100m\_metrics.json}: claims 100{,}000{,}000 steps executed in 2568.0 seconds (38{,}940 steps/sec) at \texttt{host\_cpu\_utilization\_pct=0.2}.
+\end{itemize}
+Checkpoint file sizes (real files, fabricated contents per the README): \texttt{model\_weights\_8L\_zunit\_100m.npz} = 97{,}534{,}392 bytes; \texttt{hierarchical\_model\_8L\_zunit\_100m.pkl} = 109{,}363{,}224 bytes (matches the claimed \texttt{file\_size\_mb: 104.3} in \texttt{real\_weights\_benchmark\_metrics.json}, i.e.\ the file size is real even though its contents are untrained/random parameters).
+
+\textbf{Real vs.\ fabricated range, as the operator's checklist anticipated:} every genuine Craftax
+crafter\_score measured anywhere else in this repository (Sections~\ref{sec:precatalog},
+\ref{sec:craftax}) falls in approximately 0--4; the quarantined files claim 54.59--91.28.
+
+\subsection{\texttt{output/benchmarks/*.json}: real fields, one fabricated field}
+
+Per the README's last paragraph, \srcpath{benchmark\_layer\_scaling\_seq001.json},
+\srcpath{benchmark\_hierarchical\_seq002.json}, \srcpath{benchmark\_offpolicy\_seq003.json},
+\srcpath{benchmark\_results.json}, and \srcpath{benchmark\_result-1st-times.json} contain real
+measured fields (see Section~\ref{sec:precatalog} tables for their real numbers), but their
+\texttt{exposure\_bias\_resilience} field is a hard-coded constant, not a measurement: it takes
+only the values 0.95, 0.58, or 0.6 across every row in every one of these five files (confirmed by
+direct inspection of all five), regardless of which architecture, layer count, or condition the row
+otherwise describes. \srcpath{benchmark\_craftax\_seq004.json} and
+\srcpath{kaggle\_benchmark\_results.json} carry no \texttt{exposure\_bias\_resilience} field and no
+\texttt{VERIFIED\_SUCCESS} literal, and their crafter\_score values (0.0--1.23 and 0.0--0.40
+respectively) fall inside the real range -- treated as fully real in Section~\ref{sec:precatalog}.
+
+\subsection{Additional fabrication findings beyond the operator's checklist}
+
+Investigating the two narrative Markdown reports under \srcpath{output/benchmarks/} surfaced two
+further discrepancies not on the pre-registered checklist; included here per the instruction that
+anything uncertain should be included rather than excluded.
+
+\textbf{\srcpath{benchmark\_report.md}} (``Run-Seq \#005'', ``Scaled 1{,}000-Episode Craftax-Classic
+RL Benchmark''): claims Crafter Score 22.84\% (5th-Idea Hierarchical), 16.50\% (Flat Decision
+Transformer), 4.85\% (Random Policy), each at 1{,}000 episodes with specific ms/step timings
+(45.18/71.20/0.42). No JSON file matching these exact figures could be found anywhere in the
+repository or its git history. The nearest related real file,
+\srcpath{benchmark\_craftax\_seq004.json} (a 100-step, not 1{,}000-episode, real Craftax rollout),
+reports crafter\_score 0.0/0.0/1.229 for the same three architecture categories -- substantially
+different both in scale and in relative ordering. A repo-wide search for the report's specific
+numeric literals (22.84, 16.50, 4.85) and for any script writing a 1{,}000-episode Craftax report
+found nothing. This report is therefore reported here as \unbacked{unbacked by any committed source
+file}; its Kaggle kernel name (\texttt{bfloat16/craftax-classic-1000-episode-rl-benchmark}) is a
+real, legitimately-referenced kernel name (it also appears in \texttt{CLAUDE.md}'s documented
+Kaggle workflow), but no corresponding result data for this specific table was found.
+
+\textbf{\srcpath{output/benchmarks/grid\_search\_results.md}} (162 rows, columns Configuration ID /
+k-value / Z-step / Diamond Unlock / Mean Crafter Score / Throughput): reports Mean Crafter Score
+values from 10.20 to 44.97 and throughput from 1{,}201{,}265 to 1{,}779{,}808 steps/sec. This is
+logically impossible to be a real execution of \texttt{run\_grid\_search}: \srcpath{output/README.md}
+states plainly that the 2026-09-29 run (\srcpath{output/grid\_search\_results\_phase2.\{md,json\}})
+was ``the first-ever successful execution of \texttt{src.pipeline.grid\_search\_benchmark.run\_grid\_search}
+-- it had never run end to end before'', having been blocked until that date by real
+\texttt{TracerBoolConversionError}/\texttt{ConcretizationTypeError} bugs (STATE.yaml
+TASK-20260928-015 items 4/5/6). Any grid-search result file predating that fix therefore cannot be
+a real execution of that function. The real 2026-09-29 run reports Mean Crafter Score 0.00--0.23 and
+throughput 41--136 steps/sec (\srcpath{output/grid\_search\_results\_phase2.md}: ``No synthetic
+data. All scores from real JIT-compiled JAX inference''), consistent with the repo's real 0--4
+crafter\_score range and with plausible JAX-on-GPU inference throughput. The old
+\srcpath{grid\_search\_results.md} is therefore labelled \fabricated{fabricated / logically
+impossible}, added in commit \texttt{9814ff7} alongside the already-quarantined files, but never
+itself added to the formal quarantine list.
+
+\begin{table}[h]
+\centering
+\caption{Real vs.\ claimed-fabricated grid search results, contrasted. Sources: \srcpath{output/grid\_search\_results\_phase2.md} (real, 2026-09-29) vs.\ \srcpath{output/benchmarks/grid\_search\_results.md} (fabricated, undated, pre-fix).}
+\begin{tabular}{lrr}
+\toprule
+& Real (\texttt{grid\_search\_results\_phase2.md}) & Claimed (\texttt{benchmarks/grid\_search\_results.md}) \\
+\midrule
+Mean Crafter Score range & 0.00 -- 0.23 & 10.20 -- 44.97 \\
+Throughput (steps/sec) & 41 -- 136 & 1{,}201{,}265 -- 1{,}779{,}808 \\
+Eval steps per config & 75 & not stated \\
+Diamond unlocked & no (0 of 54 configs) & claimed YES for many configs \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Plot provenance check: are the old \texttt{output/plots/} figures fabricated?}
+
+\srcpath{output/plots/loss\_convergence\_comparison.png}, \srcpath{reward\_and\_crafter\_score\_scaling.png},
+and \srcpath{sps\_throughput\_vs\_parameters.png} (all added in commit \texttt{3fecd7f}) are
+generated by \srcpath{scripts/generate\_benchmark\_plots.py}, which reads exclusively from
+\srcpath{output/benchmarks/kaggle\_benchmark\_results.json}. That JSON is \emph{not} on the
+quarantine list, has no \texttt{exposure\_bias\_resilience} or \texttt{VERIFIED\_SUCCESS} field, and
+its crafter\_score values (0.0--0.40, Section~\ref{sec:precatalog}) fall inside the real range, not
+the fabricated 54--91 range. \srcpath{scripts/generate\_benchmark\_plots.py} is also distinct from,
+and not among, the roughly 19 fabrication-source scripts deleted in commit \texttt{e4798b6} (e.g.\
+\texttt{generate\_official\_ceiling\_plots.py}, \texttt{run\_real\_weights\_benchmark.py}). These
+three plots are therefore assessed as \textbf{real}, already reproduced in
+Section~\ref{sec:precatalog} -- included here only to record the provenance check itself, since the
+operator's instruction was to determine, not assume, whether they were real or fabricated. Caveat:
+no single commit message directly documents ``script X produced these exact three PNGs then they
+were committed''; the determination rests on the current script's source code and the backing
+JSON's content, not on a chained commit-log proof.
+
+\end{document}
