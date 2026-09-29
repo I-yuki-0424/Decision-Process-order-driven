@@ -13,7 +13,7 @@ except the two REINFORCE reference values quoted from arc.tex §2.5.
 | proposal | verdict | key evidence |
 |---|---|---|
 | 1. Structure-as-input world model | **Partly holds, but not for the stated reason.** Feeding a formula as an *input feature* is safe and, on the pendulum, decisive (planning return -204 vs -271 without it; ceiling -196). But the gain comes from an *unbounded, monotone-growing feature* (|q|, q^3, q^4 do as well); the physics content is not needed. Bounded/oscillatory or zero-information features give nothing. Hard-coding a wrong formula is much worse (-450..-540). | §1 below |
-| 2. Actor-critic + oracle_act litmus | **Litmus passes; the leaked signal is not deployable.** With PPO+GAE+critic (lr 1e-3) `oracle_act` beats `base` by +1.0 (12.8k eps) and +1.8 (50k eps), non-overlapping seeds; REINFORCE showed +0.07. A noop-future world model adds nothing beyond random features (even the true noop future is worth only ~+0.2). A *learned* action-reward model (no simulator at policy time) recovers ~25-30% of the leaked gain at 12.8k eps and none at 50k eps. | §2 below |
+| 2. Actor-critic + oracle_act litmus | **Litmus passes; the leaked signal is not deployable.** With PPO+GAE+critic (lr 1e-3) `oracle_act` beats `base` by +1.0 (12.8k eps) and +1.8 (50k eps), non-overlapping seeds; REINFORCE showed +0.07. A noop-future world model adds nothing beyond random features (even the true noop future is worth only ~+0.2). A *learned* action-reward model (no simulator at policy time) recovers ~25-30% of the leaked gain at 12.8k eps and ~7-14% (n.s.) at 50k eps. | §2 below |
 | 3. ChunkPPO delta>0 | **Not supported.** No reproducible benefit of the forecast arms (`wm`, `wm_passive`) over `augment`/`ignore`: the single significant gap (intercept delta=2, +0.66, p=0.003, 12 seeds, config A) vanishes under a second learner config (augment 0.67 vs wm 0.60), a different delta shows a gap there where `ignore` equals `wm`, everything closes at 10M ticks, and on `pendulum_goal` forecast arms are worse (-7..-16, n.s.). | §3 below |
 
 ## 1. Structure-as-input world model (arc.tex §4)
@@ -87,10 +87,10 @@ aggregation `scripts/aggregate_arc_ac.py`. Actor = `transformer_branch`, d=256, 
 | AC lr 3e-4, 12.8k eps (n=2) | 3.40 ± 0.03 | 3.68 ± 0.28 | +0.28 | non-overlapping, small |
 | **AC lr 1e-3, 12.8k eps (n=10 / n=6)** | **3.47 ± 0.08** | **4.49 ± 0.26** | **+1.02** | non-overlapping (min 4.10 vs max 3.59) |
 | AC lr 3e-3, 12.8k eps (n=4) | 3.90 ± 0.13 | 5.41 ± 0.23 | +1.51 | non-overlapping |
-| **AC lr 1e-3, 49.9k eps (n=2)** | 4.48 | **6.25** (crafter 8.8 vs 4.8) | +1.77 | non-overlapping |
+| **AC lr 1e-3, 49.9k eps (n=4)** | 4.36 ± 0.16 | **6.13 ± 0.17** (crafter 8.2 vs 4.8) | +1.78 | non-overlapping (min 5.96 vs max 4.50) |
 
 `oracle_act` also exceeds the 1-step-greedy reference (3.17) by 1.3-3.1, so the learner is exploiting the signal beyond greedy use. **Verdict: under actor-critic the litmus passes decisively
-(needs lr >= 1e-3; at 3e-4 the gap is marginal).** The learner also improves `base` itself: 3.47 at 12.8k and 4.48 at 49.9k episodes (REINFORCE: ~3.25 at 12.8k). Note the well-known greedy-vs-sampled
+(needs lr >= 1e-3; at 3e-4 the gap is marginal).** The learner also improves `base` itself: 3.47 at 12.8k and 4.36 at 49.9k episodes (REINFORCE: ~3.25 at 12.8k). Note the well-known greedy-vs-sampled
 gap persists (base greedy 0.97 vs sampled 3.47).
 
 **Step 2: does the passive (noop) world model help, now that the learner is decisive? (lr 1e-3, 12.8k eps, n=8 seeds each, base n=10):**
@@ -118,14 +118,14 @@ A larger model (1,024 random-policy episodes, 117k train states, 20k steps; `out
 
 | arm | 12.8k eps | 49.9k eps |
 |---|---|---|
-| base | 3.47 ± 0.08 (n=10) | 4.48 (n=2) |
-| wm_act_untrain (control) | 3.52 ± 0.08 (n=8) | 4.35 (n=2) |
-| **wm_act** (small model) | **3.75 ± 0.18 (n=8)**; +0.28 vs base (Welch p=0.003), +0.23 vs control (p=0.008) | 4.44 ± 0.13 (n=3) |
-| wm_act (big model) | 3.78 ± 0.10 (n=4) | PENDING_BIGLONG |
-| oracle_act (leaked; upper bound) | 4.49 ± 0.26 (n=6) | 6.25 (n=2) |
+| base | 3.47 ± 0.08 (n=10) | 4.36 ± 0.16 (n=4) |
+| wm_act_untrain (control) | 3.52 ± 0.08 (n=8) | 4.30 ± 0.09 (n=4) |
+| **wm_act** (small model) | **3.75 ± 0.18 (n=8)**; +0.28 vs base (Welch p=0.003), +0.23 vs control (p=0.008) | 4.49 ± 0.14 (n=4); +0.13 vs base (p=0.25) |
+| wm_act (big model) | 3.78 ± 0.10 (n=4) | 4.61 ± 0.03 (n=2); +0.25 vs base (p=0.04, n=2) |
+| oracle_act (leaked; upper bound) | 4.49 ± 0.26 (n=6) | 6.13 ± 0.17 (n=4) |
 
-At 12.8k episodes the *deployable* learned signal is statistically real but recovers only ~25-30% of the leaked-signal gain (+0.28 of +1.02; the larger model did not improve the policy despite better held-out R²), and at 50k episodes
-it is indistinguishable from base (4.44 vs 4.48) — again a sample-efficiency effect that the learner closes by itself. Most of the `oracle_act` gap (+1.8 at 50k episodes) is therefore not obtainable from a model that only reads the observation; a plausible (untested) reason is that the leaked value is the simulator's exact answer, including the
+At 12.8k episodes the *deployable* learned signal is statistically real but recovers only ~25-30% of the leaked-signal gain (+0.28 of +1.02; the larger model did not improve the policy at this budget despite better held-out R²), and at 50k episodes
+it keeps only a small, not clearly significant edge (+0.13 small model, +0.25 big model with n=2, i.e. ~7-14% of the +1.78 gap) — mostly a sample-efficiency effect that the learner closes by itself. Most of the `oracle_act` gap (+1.8 at 50k episodes) is therefore not obtainable from a model that only reads the observation; a plausible (untested) reason is that the leaked value is the simulator's exact answer, including the
 sparse, adjacency-dependent rewards that the learned model recovers only partially (R² 0.5-0.6).
 
 ## 3. ChunkPPO with delta > 0 (arc.tex §3, DESIGN.md §4 steps 2-3)
