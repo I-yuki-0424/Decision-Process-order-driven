@@ -9,7 +9,7 @@
 <goal>
   <objective>
     Develop an unprecedented task generation model leveraging Transformer architectures and Markov Decision Processes (MDP).
-    idea images in japanese is in /docs/jp-ideas
+    idea images in japanese is in /docs/
   </objective>
   
   <strategy>
