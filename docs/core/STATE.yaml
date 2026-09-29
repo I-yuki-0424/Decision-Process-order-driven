@@ -835,6 +835,35 @@ tasks:
         assuming safety). Full suite re-run after all three fixes: scripts/pre_commit_ban_check.py passed;
         tests.test_architecture_fixes + tests.test_latency_chunking + tests.test_score_integrity = 37/37 OK
         (docker, CPU).
+      - >
+        item 1/2 follow-up (2026-09-29, operator request "delete all results that are clearly
+        fabricated... and all remaining files generating them... from their original locations"):
+        the 2026-09-28 fix quarantined-and-documented fabricated files rather than deleting them, on
+        the reasoning that history should stay auditable. The operator judged that leaving them
+        present (even quarantined) still risked misleading dependency analyzers, future Claude Code
+        sessions, and humans, and asked for deletion instead now that the audit trail has migrated
+        to docs/Latex/arc.tex (PR #10, merged to main) which quotes every fabricated number inline,
+        clearly labelled. Actioned on branch chore/remove-fabricated-results (off latest main,
+        PR pending): `git rm -r output/quarantine_fabricated/` (8 fabricated JSONs, 2 fake weight
+        files, their README -- generator scripts for all of these were already deleted in commit
+        e4798b6, verified nothing regenerates them: grep for exposure_bias_resilience/
+        noise_recovery_rate/VERIFIED_SUCCESS in src/ and scripts/ now only matches
+        scripts/pre_commit_ban_check.py's own guard). Two MORE fully-fabricated files not on the
+        original quarantine list were found and deleted: output/benchmarks/grid_search_results.md
+        (Crafter score 10-45, throughput up to 1.78M steps/sec -- impossible given this repo's real
+        numbers, and the file predates the 2026-09-29 fix that made run_grid_search able to execute
+        at all; no generating script found in git history, likely hand-written/hallucinated rather
+        than script output) and output/benchmarks/benchmark_report.md (claimed 1,000-episode Craftax
+        Crafter scores 22.84%/16.50%/4.85% with NO matching backing JSON anywhere in the repo,
+        verified by grepping every output/**/*.json for those exact values). Distinct from full
+        deletion: the 5 output/benchmarks/*.json files and benchmark_report-1st-time.md that were
+        real measurements EXCEPT their hard-coded exposure_bias_resilience field/column were NOT
+        deleted (real data) -- instead the fabricated field was stripped in place (17 field
+        instances removed across 5 JSON files via a small script; the markdown report's dependent
+        "Exposure Bias Elimination" finding, built entirely on that one fabricated metric, was
+        removed too, table column and note updated, findings renumbered). output/README.md updated
+        to reflect all of the above. No existing Python symbol was modified (data files only), so no
+        scip-neo4j check was needed. scripts/pre_commit_ban_check.py passes after all changes.
     blockers:
       - >
         item-3 consequence, PARTIALLY REGENERATED (2026-09-29, follow-up task "evaluation-re-executions"):
