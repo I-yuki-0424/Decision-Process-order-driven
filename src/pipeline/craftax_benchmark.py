@@ -131,7 +131,7 @@ def train_craftax_rl_agent(
             )
             act_idx = int(jnp.argmax(decision_d.action_logits))
 
-            next_input_n, env_state, reward, done, _ = adapter.step(
+            next_input_n, env_state, reward, done, info = adapter.step(
                 k_env, env_state, act_idx, actions_data, step_count=step, prev_history=input_n.history
             )
 

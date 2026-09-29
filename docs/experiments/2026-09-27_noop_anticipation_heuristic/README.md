@@ -102,6 +102,27 @@ Cause: the `--out /kaggle/working/exp` argument was silently mangled by Git Bash
 to a garbled-but-harmless nested path on Kaggle's Linux filesystem; the data was recovered by listing kernel output files
 directly via the `kagglesdk` client and stripping the bogus prefix, rather than through `kaggle kernels output`.
 
+## Addendum (2026-09-29): corrected crafter_score after the auto-reset-leak fix
+STATE.yaml TASK-20260928-015 item 3 found that Craftax `step()` auto-resets on death and the achievement-accumulation
+code in this script (before it was patched in place by fix commit `5f5db96`) credited a post-death life's achievements
+to the life being scored, inflating `crafter_score`. The table above is the ORIGINAL (pre-fix) run, kept as evidence.
+A real re-run with identical arguments (`--envs 384 --eval-envs 384 --steps 250 --seed 0 --train-steps 4000
+--episodic-epochs 3`) against the now-fixed script is at `output/experiments/2026-09-27_noop_anticipation_heuristic/full_v2/`:
+
+| arm | crafter_score (old) | crafter_score (new) |
+|---|---|---|
+| random | 2.29 | 1.86 |
+| noop_always | 0.00 | 0.00 |
+| effects_only | 1.03 | 0.88 |
+| effects_wm_h1 | 1.43 | 1.06 |
+| effects_wm_h8 | 1.38 | 1.12 |
+| effects_wm_h1 (episodic model) | 1.13 | 0.96 |
+| round2 effects_wm_h1 (bootstrapped) | 0.96 | 0.83 |
+
+`mean_len`/`median_len`/`std_len` (the survival-length numbers the headline verdict above is actually based on) are
+unaffected by this fix and reproduce within ordinary run-to-run GPU noise. The headline verdict ("effects_wm_h1 does
+not beat effects_only", judged on survival length) is unchanged; only the secondary crafter_score column was stale.
+
 ## Blockers / limits
 - Single behaviour seed for data collection and heuristic evaluation (episode-level variance is already captured via n=384,
   but a second full replicate was not run).

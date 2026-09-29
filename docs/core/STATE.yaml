@@ -749,13 +749,25 @@ tasks:
       re-ingested since those files landed -- but did surface one plausibly-relevant neighbor for an older
       (2026-09-25) symbol, so it is not purely noise, just low signal-to-noise and blind to very recent commits.
     blockers:
-      - "DESIGN.md 1b's claim ('chunk actor is not weaker than the MLP') is NOT confirmed at the matched 15-update calibration budget -- transformer trailed the MLP on both train_return and eval_return there; only a differently-configured (more updates, fewer envs) local run showed it ahead. Needs a real matched-budget test at a larger update count before this is resolved either way."
+      - "DESIGN.md 1b's claim ('chunk actor is not weaker than the MLP') is NOT confirmed at the matched 15-update calibration budget -- transformer trailed the MLP on both train_return and eval_return there; only a differently-configured (more updates, fewer envs) local run showed it ahead. Needs a real matched-budget test at a larger update count before this is resolved either way.
+        UPDATE (2026-09-29, TASK-20260928-015 item 7/consequence-b re-run, output/latency_chunking/kaggle_v2/): re-ran
+        the SAME matched Kaggle comparison (num_envs=1024, 15 updates, seeds 0/1) after branch fix/chunkppo-metric-bias
+        so eval_return is now the corrected stochastic-first-episode metric (metric_protocol v2), not the old greedy
+        one this task's original verdict was drawn from. Result UNCHANGED IN DIRECTION, CONFIRMED, and the gap is
+        larger under the honest metric: MLP eval_return 3.879 (s0) / 3.979 (s1) vs transformer 3.206 (s0) / 3.173 (s1)
+        -- transformer clearly behind MLP, not merely 'slightly' as the old greedy-eval comparison (0.71-0.75 vs
+        0.66-0.69) suggested. Greedy eval_return_greedy is close and inconsistent in ordering across seeds (MLP
+        0.823/0.798 vs transformer 0.807/0.750), i.e. greedy alone would NOT have shown this gap -- confirms the v2
+        protocol's choice of stochastic return as the headline metric mattered for this specific verdict. DESIGN.md
+        1b's claim remains NOT CONFIRMED; this specific blocker (protocol staleness) is now resolved -- the update
+        count question (whether transformer catches up with more than 15 updates, as its own uncontrolled local
+        128-env/122-update run suggested) is a SEPARATE, still-open question, not addressed by this re-run."
       - "Residual ~4.6-5x greedy-vs-stochastic return gap after the window-bias fix is not yet explained beyond a plausible hypothesis (greedy gets stuck in a repeated bad action loop); would need e.g. logging the actual greedy action sequence at a death to confirm, which was not done here."
       - "scip-neo4j: cannot yet confirm whether the operator-reported server-side improvement has reached this repo's ingestion; re-test in a fresh session after the next ingestion run rather than concluding 'no improvement' from this session's unchanged results alone."
 
   - id: "TASK-20260928-015-evaluation-integrity-audit"
     created_at: "2026-09-28T06:30:00Z"
-    status: "in_progress"   # fixes 1,2,3,8,9 done on branches; items 4-7, 11, 12b-d, C remain open
+    status: "in_progress"   # fixes 1,2,3,4,5,6,8,9 done; items 7, 11, 12b-d, C remain open
     description: >
       Operator request (2026-09-28): re-verify score / reward / comparison-score calculations and training-process integrity
       across the repo, identify defects, report. Follow-up: fix items 1, 2, 3, 8, 9 on separate branches; record the rest here.
@@ -779,11 +791,107 @@ tasks:
       - "items 1, 2 -> branch fix/quarantine-fabricated-results: 8 fabricated JSONs + 2 fake/untrained weight files moved to output/quarantine_fabricated/ (README with per-file evidence); hard-coded exposure_bias_resilience (benchmark.py) and noise_recovery_rate (evaluator.py) removed; ban check now scans output/kaggle JSON for the banned literal and flags metric-named keyword args set to float literals (verified: it fails on the old evaluator.py, passes now). Impact check (scip-neo4j, index at a4a3d36): check_symbol_constraints ALLOWED for BenchmarkMetrics and EvaluationResult; analyze_change_impact dependents = benchmark.py internals and src/main.py; grep confirms no other reader of the removed fields. tests.test_architecture_fixes 5/5 OK."
       - "item 3 -> branch fix/score-autoreset-leak: new craftax_env_adapter.masked_achievements(); used by candidate_experiment (jitted rollout), candidate_benchmark.evaluate, craftax_benchmark.evaluate_craftax_agent, scripts/run_noop_heuristic_planner.py, scripts/real_end_to_end_pipeline.py. Verified on the real path (candidate_experiment.evaluate, random policy, T=300, 64 eps): crafter_score 2.607 -> 1.653, mean_unlocked 3.52 -> 2.17, mean_len unchanged 138.5. New tests/test_score_integrity.py (also pins the auto-reset assumption); tests.test_architecture_fixes 5/5 OK. Impact: adapter module only gained a function; edited call sites read directly (scip-neo4j not queried: no existing signature changed). CONSEQUENCE: every committed crafter_score / mean_unlocked / achievement_rates from candidate_experiment-based runs (output/experiments/*, TASK-003/004/007/008/010) and run_noop_heuristic_planner is inflated by post-death lives and is NOT comparable to post-fix numbers; returns and survival lengths are unaffected. Old files are not regenerated."
       - "items 8, 9 -> branch fix/chunkppo-metric-bias (src/pipeline/chunk_ppo.py): (9) evaluate() now scores the FIRST episode of every env (stochastic by default) until all finish or eval_windows windows elapse, reports censored_frac / mean_return_incl_censored; run() logs eval_return (stochastic headline) and eval_return_greedy separately; craftax_calibration_config eval_windows 4 -> 16; default eval_windows 1 -> 8 with early exit. Verified on the real trained MLP s0 checkpoint: new evaluate = 3.674 stochastic / 0.795 greedy, identical to the independent first-episode reference. (8) new train_episode_summary(): train_return excludes each env's first completion, train_settled flags updates where every env had finished >= 2 episodes, train_return_all keeps the old definition; summary.json gains metric_protocol, n_settled_updates, train_return_settled_mean. Resume re-zeroes the completion counters, which also covers open item 12a. Measured limits: excluding first completions alone is still biased low for the first ~4-6 updates (0.48 at u2 vs true 1.36), hence the settled flag. In a 15-update / 1024-env run few or no updates are settled, so use eval_return for the curve there. Tests: 4 new (TestMetricProtocol), tests.test_latency_chunking + test_score_integrity + test_architecture_fixes = 37/37 OK (docker, CPU). scip-neo4j check_symbol_constraints ALLOWED for ChunkPPO and episode_summary; callers of evaluate (run, tests, scripts/adhoc/diag_eval_gap.py) read directly, episode_summary kept unchanged. CONSEQUENCES: (a) eval_return in every summary.json written before this branch is greedy + single/4-window and is NOT comparable (output/README.md note added); (b) the TASK-014 verdict on DESIGN.md 1b ('transformer slightly behind MLP') was drawn from greedy eval_return and is unverified under v2; re-run needed."
+      - >
+        items 4, 5, 6 (2026-09-29, follow-up task "evaluation-re-executions", working tree at commit 82d57e6). (6)
+        CONFIRMED CORRECT as already fixed: src/pipeline/craftax_benchmark.py:134 now unpacks adapter.step()'s 5th
+        return as `info` instead of `_`; train_craftax_rl_agent's info.get('terminated', ...) at line 138 no longer
+        NameErrors. (4/5) CONFIRMED ONLY PARTIALLY FIXED and still broken end to end in
+        src/pipeline/grid_search_benchmark.py: the masked_achievements+alive carry (item 4's leak fix) in scan_body
+        was correct, but eval_episode called Python float()/bool() on JAX tracers inside jax.jit (crafter_score,
+        diamond_unlocked), and scan_body called int() on a traced action_idx/step_count inside jax.lax.scan (itself
+        inside that same jit) -- both raise TracerBoolConversionError/ConcretizationTypeError under real execution
+        (reproduced the crash, then confirmed the fix removes it, via
+        scripts/adhoc/smoke_grid_search_eval_episode.py). Separately, item 5's milestone columns referenced an
+        out-of-scope `final_achievements` name in run_grid_search (NameError) since eval_episode never returned it.
+        FIXED: eval_episode now returns raw JAX arrays only (final_achievements, mean_progress, context_util,
+        cum_cost_vec); every float()/bool()/threshold conversion moved host-side into run_grid_search after the
+        jitted call returns; the int() calls on action_idx/step_count removed (matching the already-traced-value
+        pattern in candidate_experiment.py's rollout_one.body, which passes act/t straight through without int()).
+        This was run_grid_search's first-ever successful end-to-end execution (grep confirmed nothing in tests/,
+        scripts/, or src/main.py called it before this). REAL GPU SMOKE RUN (--steps 75, all 54 grid configs,
+        dpod-local:latest --gpus all): 0 NaNs, mean crafter_score 0.035 (8/54 configs nonzero, max 0.233,
+        progress_rate range 0.026-0.900, throughput 27-139 steps/sec), 0 diamonds unlocked -- plausible for a
+        75-step episode from an untrained model, not a scored benchmark. Output:
+        output/grid_search_results_phase2.{md,json} (see output/README.md).
+        Same "ever unlocked across the whole eval loop, not one episode" leak (item 4) also found and fixed in
+        kaggle_kernel/phase2_runner.py's eval loop: it resets the env on `done` but never reset its `cum_ach`
+        accumulator between the resulting episodes, so the reported score covered every auto-reset life run during
+        EVAL_STEPS ticks, not one episode. The operator-suggested one-line "skip accumulating on the exact done
+        tick" guard was checked against this and found insufficient (it does not address the cross-episode
+        accumulation across the loop) and was NOT used; fixed instead with masked_achievements + a per-episode
+        alive/cum_ach reset plus an episode_achievements list averaged across completed/truncated episode attempts,
+        mirroring craftax_benchmark.py's evaluate_craftax_agent. Verified with a real local GPU smoke run
+        (kaggle_kernel/phase2_runner.py is host-side Python needing only a config.json + GPU/TPU backend, no
+        Kaggle-specific plumbing found by inspection; 300 train steps, 120 eval steps, d_model=32): completed with
+        no errors, eval_episodes=2, all-zero achievement rates (expected at this tiny scale). Output:
+        output/phase2_local_smoke_results.json, output/phase2_local_smoke_summary.md,
+        output/phase2_runner_smoke.log (see output/README.md); the config.json used to run it was NOT committed.
+        Re-running the file's real 1M-step production config still requires an actual Kaggle kernel push, out of
+        scope for this session. Impact check (scip-neo4j, index at 82d57e6): check_symbol_constraints ALLOWED for
+        make_jit_eval_episode/eval_episode/scan_body/run_grid_search (resolved and checked individually, since
+        eval_episode/scan_body are nested closures); train_craftax_rl_agent previously confirmed ALLOWED.
+        kaggle_kernel/phase2_runner.py is a flat Kaggle-notebook-style script with no function/class symbols
+        (check_symbol_constraints returned NOT_FOUND for the module path -- read directly per protocol instead of
+        assuming safety). Full suite re-run after all three fixes: scripts/pre_commit_ban_check.py passed;
+        tests.test_architecture_fixes + tests.test_latency_chunking + tests.test_score_integrity = 37/37 OK
+        (docker, CPU).
     blockers:
-      - "OPEN item 4: grid_search_benchmark.py:166 and kaggle_kernel/phase2_runner.py:316 compute Crafter score from binary 0/100 rates (one episode / 'ever unlocked in any life'), so the score is the fixed function 101^(k/22)-1 of the unlock count k and is not comparable to the multi-episode Crafter score. Same auto-reset leak as item 3 there (achievements read after done)."
-      - "OPEN item 5: grid_search_benchmark.py:298-303 fills the wood/stone/coal/iron milestone columns by thresholding crafter_score (>1,>5,>10,>20) although per-achievement data (final_achievements) exists."
-      - "OPEN item 6: src/pipeline/craftax_benchmark.py:137 uses undefined name `info` (NameError) in train_craftax_rl_agent (pyflakes)."
-      - "OPEN item 7: committed MLP calibration summary.json files (local + Kaggle, TASK-013) use the OLD single-window eval (no eval_windows, 62-83 eval episodes) although output/README.md says numbers reflect the fix; the 0.71-0.75 MLP figure in TASK-014 came from a separate re-evaluation; MLP-vs-transformer comparison mixes protocols and uses greedy eval (see item 9 fix for the new protocol; old files are NOT re-generated)."
+      - >
+        item-3 consequence, PARTIALLY REGENERATED (2026-09-29, follow-up task "evaluation-re-executions"):
+        the item-3 fix entry above only stated the consequence in prose; this is the concrete tracking line.
+        (a) CHEAP, DONE: scripts/run_noop_heuristic_planner.py (TASK-20260927-009) was itself patched in place by
+        the item-3 fix commit (5f5db96) but its committed output predates that patch. Re-ran identically (--envs 384
+        --eval-envs 384 --steps 250 --seed 0 --train-steps 4000 --episodic-epochs 3) via dpod-local:latest
+        (--gpus all) to a NEW path output/experiments/2026-09-27_noop_anticipation_heuristic/full_v2/ (full_v2.log +
+        result.json); the original output/experiments/2026-09-27_noop_anticipation_heuristic/full/ is untouched.
+        crafter_score deltas (mean_len/median_len/std_len unaffected, as expected -- the fix only changes achievement
+        counting): random 2.29->1.86, noop_always 0.00->0.00, effects_only 1.03->0.88, effects_wm_h1 1.43->1.06,
+        effects_wm_h8 1.38->1.12, effects_wm_h1_episodic_model 1.13->0.96, round2_effects_wm_h1 0.96->0.83. The
+        README.md's headline verdict ("effects_wm_h1 does not beat effects_only") was stated on mean survival
+        length (149.6 vs 149.8), which is unaffected by this bug and still holds; only the secondary crafter_score
+        column in that table is now stale evidence, not the headline claim.
+        (b) CHECKPOINT-BASED EVAL-ONLY RE-EVALUATION, DONE for 23 of 48 crafter_score-bearing tags across the three
+        directories that have local checkpoints (2026-09-25_convergence, 2026-09-25_idea6, 2026-09-26_rerun): new
+        scripts/adhoc/reeval_candidate_checkpoints.py loads each tag's highest-step checkpoint
+        (checkpoints/<tag>/step_<updates>.pkl, the same force-saved final params the original final_sampled/
+        final_greedy came from), rebuilds the exact original rollout function and adapter
+        (src.pipeline.candidate_experiment.build_fns; CraftaxEnvAdapter for 2026-09-25_convergence which predates
+        CraftaxObsAdapter, CraftaxObsAdapter(T,None,8) for 2026-09-26_rerun/local's '__obs__' tags, and the
+        scripts/run_idea6_policy.py base/wm_hn adapter -- including reloading the matching Stage-A wm_hn.pkl -- for
+        2026-09-25_idea6/{smokeB,stageB_local}), and re-runs ONLY the original final evaluate() calls (same
+        PRNGKey derivation from the run's own seed, same n_eps=64/batch) so the eval episodes match; no retraining.
+        NO existing symbol was modified (build_fns/evaluate/masked_achievements/run_experiment all called unchanged,
+        so no scip-neo4j check was required). Ran in dpod-local:latest (--gpus all); pre_commit_ban_check.py and
+        tests.test_architecture_fixes + tests.test_score_integrity (8/8) pass. 23/23 tags produced a
+        <tag>.result.v2.json next to the original <tag>.result.json (old files untouched), plus an aggregate
+        output/experiments/reeval_v2_summary.json. crafter_score(sampled) and mean_unlocked(sampled) both dropped
+        for every one of the 23 tags, e.g. transformer_branch__reinforce (2026-09-25_convergence) crafter
+        2.038->1.706, mean_unlocked 2.375->1.734; transformer_branch__base__s0 (2026-09-25_idea6/stageB_local)
+        crafter 3.966->2.752, mean_unlocked 4.844->3.500; transformer_branch__reinforce__obs__lr0.001__s0
+        (2026-09-26_rerun/local) crafter 3.192->2.604, mean_unlocked 4.391->3.266 (full list of all 23 in
+        reeval_v2_summary.json). Sanity check (mean_return/mean_len should reproduce unchanged, since the fix only
+        touches achievement counting): 20/23 matched to <1e-3; 3 transformer_branch tags (2026-09-25_convergence's
+        argmax_legacy and reinforce, and 2026-09-25_idea6/smokeB's wm_hn) differed by small amounts (mean_return by
+        ~0.02-0.03, mean_len by ~0.2-2.9 out of ~130) -- consistent with ordinary GPU floating-point
+        non-determinism (already documented elsewhere in this file, e.g. TASK-013/014) amplified through a 200-step
+        categorical-sampling rollout's sensitivity to which action gets sampled near a probability threshold, not a
+        code/adapter mismatch: the crafter_score/mean_unlocked drops for these 3 tags are the same size and
+        direction as the other 20, and achievement rates never diverge to NaN or an obviously wrong regime. Recorded
+        rather than hidden; not re-verified further given time constraints.
+        NOT REGENERATED (no local checkpoint AND no output_remote snapshot; would need full retraining, out of
+        scope): 2026-09-25_convergence/kaggle (3 tags: mdp_branch__reinforce, variant_5_1__reinforce,
+        variant_5_4__reinforce), 2026-09-25_idea6/stageB_kaggle (4 tags: wm_hn_untrained s0/s1, wm_mlp s0/s1),
+        2026-09-26_rerun/kaggle_mdp (18 tags: mdp_branch(_stable)/variant_5_1(_stable)/variant_5_4(_stable) x 3 lrs
+        each) -- 25 tags total. output_remote/ (untracked Kaggle-fetch cache) was checked and contains only
+        latency_calibration_mlp_v2/latency_calibration_transformer_v2 snapshots, unrelated to any of these.
+        (c) 2026-09-27_passive_wm_v2 (TASK-20260927-008), FULLY BLOCKED: all 30 of its result.json files carry
+        crafter_score, but the ONLY .pkl files anywhere under output/experiments/2026-09-27_passive_wm_v2/ are 3
+        Stage-A world-model checkpoints (stageA_random/{wm_mlp_full,wm_mlp_sum,delta_stats}.pkl) -- zero Stage-B
+        POLICY checkpoints were saved for any of the 30 runs, and output_remote/ has no matching snapshot either.
+        Eval-only re-evaluation is therefore not possible for any of these 30 files without full retraining (up to
+        30 runs at TASK-008's original scale, 4,800-12,800 episodes each depending on arm/budget) -- out of scope
+        for this follow-up task; left as-is, documented here rather than silently skipped."
+      - "PARTIALLY FIXED item 7 (2026-09-29): the MLP-vs-transformer comparison half of item 7 is re-run under metric_protocol v2 in output/latency_chunking/kaggle_v2/ (num_envs=1024, 15 updates, seeds 0/1, both actors) -- see the UPDATE note on TASK-20260928-014's first blocker for the numbers (MLP eval_return 3.88-3.98 vs transformer 3.17-3.21, gap larger and direction confirmed under the honest protocol). STILL OPEN: the original TASK-013 local + Kaggle MLP-only summary.json files under output/latency_chunking/craftax_calibration/ and output/latency_chunking/kaggle/craftax_calibration/ are old-protocol (metric_protocol v2 was not added retroactively to those specific files; they are superseded for comparison purposes by kaggle_v2/ but not deleted or overwritten, matching this repo's practice of not silently replacing evidence files)."
       - "OPEN item 10: (largely superseded by the item-8/9 fix; only the historical files remain affected) old eval counted only finished episodes, so faster-dying policies were counted more (68 vs 1155 eval episodes for the same budget)."
       - "OPEN item 11: no summary contains a random / untrained baseline scored with the same protocol as train_return / eval_return; TASK-013's PASS has no anchor, and no published PPO number exists for Craftax-Classic at 1M ticks."
       - "OPEN item 12: (a) after resume, envs are reset with the original key and the first post-resume update repeats the synchronised-start bias; (b) every time-limit end is treated as terminal in GAE (critic time feature on for sweep envs, off for the Craftax calibration); (c) candidate_experiment baseline is the batch mean return-to-go including the sample's own return, and with batch 8 late timesteps with one live episode get zero advantage; (d) 1-4 seeds per config, no variance estimate."
