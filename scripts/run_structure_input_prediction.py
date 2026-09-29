@@ -68,6 +68,8 @@ def main():
     ap.add_argument("--noises", nargs="+", type=float, default=[0.02])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2, 3, 4])
     ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--variants", nargs="+", default=None, help="restrict Vp variants (e.g. preset true)")
+    ap.add_argument("--no-refs", action="store_true", help="skip the hn / mlp reference arms")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     print("backend", jax.default_backend(), flush=True)
@@ -79,7 +81,7 @@ def main():
         for split, ood in (("id", False), ("ood", True)):
             x0 = base.ic(rng, 64, ood)
             test[split] = (x0, base.simulate(x0, base.test_h)[:, 1:])
-        jobs = [("hn", "none"), ("mlp", "none")] + [(arm, v) for v in VARIANTS[tn] for arm in a.arms]
+        jobs = ([] if a.no_refs else [("hn", "none"), ("mlp", "none")]) +                [(arm, v) for v in VARIANTS[tn] if a.variants is None or v in a.variants for arm in a.arms]
         for arm, variant in jobs:
             task = SwapTask(tn, "preset" if variant == "none" else variant)
             for n_traj in a.sizes:

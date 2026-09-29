@@ -12,7 +12,7 @@ from collections import defaultdict
 import numpy as np
 
 
-def load(root):
+def load(root, at_ticks=None):
     rows = []
     for f in glob.glob(os.path.join(root, "**", "summary.json"), recursive=True):
         d = json.load(open(f))
@@ -23,6 +23,13 @@ def load(root):
             continue
         last = ev[-1]
         settled = [r["train_return"] for r in recs if r.get("train_settled")][-5:]
+        if at_ticks:  # learning-curve read-out: mean settled train_return within +-8% of `at_ticks` env ticks
+            w = [r["train_return"] for r in recs if r.get("train_settled") and r["train_return"] == r["train_return"]
+                 and abs(r["env_ticks"] - at_ticks) <= 0.08 * at_ticks]
+            if not w:
+                continue
+            last = dict(last, eval_return=float(np.mean(w)))
+            settled = [float(np.mean(w))]
         rows.append(dict(env=c["env"], delta=c["delta"], arm=c["arm"], seed=c["seed"], ticks=c["total_env_ticks"],
                          eval=last["eval_return"], eval_greedy=last.get("eval_return_greedy", np.nan),
                          cens=last.get("eval_censored_frac", np.nan), train=float(np.mean(settled)) if settled else np.nan,
@@ -39,9 +46,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("roots", nargs="+")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--at-ticks", type=int, default=None, help="replace eval by settled train_return around this many ticks")
     ap.add_argument("--metric", default="eval", choices=["eval", "train", "eval_greedy"])
     a = ap.parse_args()
-    rows = [r for root in a.roots for r in load(root)]
+    rows = [r for root in a.roots for r in load(root, a.at_ticks)]
     out = []
     for env in sorted({r["env"] for r in rows}):
         for ticks in sorted({r["ticks"] for r in rows if r["env"] == env}):

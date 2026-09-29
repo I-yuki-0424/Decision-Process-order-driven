@@ -5,7 +5,7 @@ of every action) now clearly beat `base` once the REINFORCE learner is replaced 
   python scripts/run_actor_critic_litmus.py --out ... --greedy1-ref   # score the 'argmax leaked 1-step reward' policy
 
 Arms: base (zeros), oracle_act (positive control, answer leakage by design), oracle (true noop future, upper bound),
-wm_full / wm_untrain (need --wm-dir with the Stage-A checkpoints).
+wm_full / wm_untrain (need --wm-dir with the Stage-A checkpoints), wm_act / wm_act_untrain (learned 1-step action-reward model, --ar-dir).
 """
 import argparse
 import json
@@ -23,7 +23,16 @@ from src.pipeline.candidate_actor_critic import build_greedy1_rollout, run_ac_ex
 from src.pipeline.candidate_experiment import evaluate  # noqa: E402
 
 
-def make_adapter(arm, wm_dir, T):
+def make_adapter(arm, wm_dir, T, ar_dir="output/arc_proposals/actreward"):
+    if arm in ("wm_act", "wm_act_untrain"):  # LEARNED (deployable) 1-step action-reward model in the oracle_act slot layout
+        from src.environment.craftax_actreward_adapter import CraftaxActRewardAdapter
+        from src.model.candidates import action_reward_model as ar
+        tr = jax.tree_util.tree_map(jnp.asarray, pickle.load(open(f"{ar_dir}/ar_full.pkl", "rb")))
+        if arm == "wm_act_untrain":  # control: same architecture/input stats, random init (no learned content)
+            p = ar.init_params(jax.random.PRNGKey(123), tr["w1"].shape[0], tr["w1"].shape[1])
+            p["mu"], p["sd"] = tr["mu"], tr["sd"]
+            tr = p
+        return CraftaxActRewardAdapter(T, tr)
     if arm == "base":
         return CraftaxFutureAdapter(T, "zeros")
     if arm == "oracle_act":
@@ -46,6 +55,7 @@ def main():
     ap.add_argument("--arms", nargs="+", default=["base", "oracle_act"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0])
     ap.add_argument("--candidate", default="transformer_branch")
+    ap.add_argument("--ar-dir", default="output/arc_proposals/actreward")
     ap.add_argument("--wm-dir", default="output/experiments/2026-09-27_passive_wm_v2/stageA_random")
     ap.add_argument("--updates", type=int, default=200)
     ap.add_argument("--batch", type=int, default=64)
@@ -71,7 +81,7 @@ def main():
         print("greedy1 reference", {k: v for k, v in ev.items() if k != "achievement_rates"}, flush=True)
     for seed in a.seeds:
         for arm in a.arms:
-            run_ac_experiment(a.candidate, a.out, make_adapter(arm, a.wm_dir, a.T),
+            run_ac_experiment(a.candidate, a.out, make_adapter(arm, a.wm_dir, a.T, a.ar_dir),
                               tag=f"{a.candidate}__{arm}__ac{a.tag_suffix}__s{seed}", updates=a.updates, batch=a.batch,
                               T=a.T, d_model=a.d_model, lr=a.lr, ent_coef=a.ent_coef, gae_lambda=a.gae_lambda,
                               epochs=a.epochs, minibatches=a.minibatches, eval_every=a.eval_every, seed=seed)
