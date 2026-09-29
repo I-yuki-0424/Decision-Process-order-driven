@@ -10,6 +10,7 @@ feature that extrapolates polynomially helps a tanh-MLP potential'. Falsifiable 
   feat:poly4       q^4/4 (extrapolating polynomial with WRONG shape)
   feat:hifreq      sin(5q+0.7) (bounded, non-extrapolating, unrelated)
   feat:zero        0 (identical architecture, no information: capacity/extra-input control)
+  feat:abs/cubic/q2q4/cos2  generic physics-free bases: |q|, q^3/3, the even polynomial pair [q^2/2, q^4/4], and -cos(2q)
   skip0:/skip1:<f> feature + learned-scale direct skip a*f (a starts 0 / 1);  hard:<f>  feature as a fixed additive term
   hn, mlp          references without any preset
 Decision rule: the STRUCTURE claim is supported only if feat:smallangle (and feat:scaled) clearly beat feat:poly4/hifreq/zero and hn;
@@ -39,6 +40,11 @@ FEATS = {
     "poly4": lambda q: 0.25 * q ** 4,
     "hifreq": lambda q: jnp.sin(5.0 * q + 0.7),
     "zero": lambda q: 0.0 * q,
+    # generic, physics-free bases (added after the first controls: the 'wrong' small-angle preset is itself just a quadratic)
+    "abs": lambda q: jnp.abs(q),
+    "cubic": lambda q: q ** 3 / 3.0,
+    "q2q4": lambda q: jnp.stack([0.5 * q ** 2, 0.25 * q ** 4]),
+    "cos2": lambda q: -jnp.cos(2.0 * q),
 }
 _orig_init, _orig_field = W.init, W.model_field
 
@@ -48,7 +54,8 @@ def init2(arm, key):
         return _orig_init(arm, key)
     kind, _ = arm.split(":")
     k = jax.random.split(key, 3)
-    P = dict(v=HamiltonianOps.init_parameters(k[0], 1 if kind == "hard" else 2, W.HID),
+    nf = int(jnp.atleast_1d(FEATS[arm.split(":")[1]](jnp.zeros(()))).shape[0])
+    P = dict(v=HamiltonianOps.init_parameters(k[0], 1 if kind == "hard" else 1 + nf, W.HID),
              L=jax.random.normal(k[1], (2, 2)) * 0.01, G=jnp.zeros(2))
     P["a"] = jnp.ones(()) if kind == "skip1" else jnp.zeros(())
     return P
@@ -64,9 +71,9 @@ def field2(arm, P, x, u):
         q, p = z[:1], z[1:]
         kin = 0.5 * jnp.sum(p ** 2)
         if kind == "hard":
-            return kin + HamiltonianOps.mlp_scalar(P["v"], q) + f(q[0])
-        h = kin + HamiltonianOps.mlp_scalar(P["v"], jnp.concatenate([q, f(q[0])[None]]))
-        return h + P["a"] * f(q[0]) if kind in ("skip0", "skip1") else h
+            return kin + HamiltonianOps.mlp_scalar(P["v"], q) + jnp.sum(f(q[0]))
+        h = kin + HamiltonianOps.mlp_scalar(P["v"], jnp.concatenate([q, jnp.atleast_1d(f(q[0]))]))
+        return h + P["a"] * jnp.sum(f(q[0])) if kind in ("skip0", "skip1") else h
 
     R = HamiltonianOps.dissipation_matrix(P["L"])
     return (W.J - R) @ jax.grad(H)(x) + P["G"] * u

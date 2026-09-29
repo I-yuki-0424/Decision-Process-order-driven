@@ -19,3 +19,7 @@ kaggle_logs/
 .ruff_cache/
 *.egg-info/
 .env
+
+# arc-proposals runs: checkpoints are large and resumable state only
+output/arc_proposals/**/checkpoints/
+kaggle_kernel_arc_*/
