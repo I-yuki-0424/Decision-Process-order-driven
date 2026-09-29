@@ -1,8 +1,8 @@
 # Fdb version 4
-["pdflatex"] 1790663467.21228 "r:/Decision-Process-order-driven/docs/Latex/arc.tex" "arc.pdf" "arc" 1790663470.20771 0
-  "arc.aux" 1790663470 16023 26ddf19f6986709480f7172f04783ed2 "pdflatex"
-  "arc.out" 1790663470 10519 dd00edc40a53112d7fc120db09f9d150 "pdflatex"
-  "arc.tex" 1790658039 70751 85712d9a2fa728ea86a7ef840fb96897 ""
+["pdflatex"] 1790665103.06877 "r:/Decision-Process-order-driven/docs/Latex/arc.tex" "arc.pdf" "arc" 1790665106.1056 0
+  "arc.aux" 1790665105 16023 0902f8673ff785e7b2a5ab0362373dcb "pdflatex"
+  "arc.out" 1790665105 10519 dd00edc40a53112d7fc120db09f9d150 "pdflatex"
+  "arc.tex" 1790665099 71988 ff29e9e81bd2a57f489b778607c0260e ""
   "c:/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1790658878 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "c:/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1790659620 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "c:/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm" 1790659298 1536 02c06700a42be0f5a28664c7273f82e7 ""
@@ -111,7 +111,7 @@
   "figures/loss_convergence_comparison.png" 1790658039 223905 df1d691f84baeee2f00bbdacc26889f2 ""
   "figures/reward_and_crafter_score_scaling.png" 1790658039 247237 1b237bc08dbc7c713330743d4af93142 ""
   "figures/sps_throughput_vs_parameters.png" 1790658039 216780 9b352cc122e55ea0bf53f462b8130661 ""
-  "r:/Decision-Process-order-driven/docs/Latex/arc.tex" 1790658039 70751 85712d9a2fa728ea86a7ef840fb96897 ""
+  "r:/Decision-Process-order-driven/docs/Latex/arc.tex" 1790665099 71988 ff29e9e81bd2a57f489b778607c0260e ""
   (generated)
   "arc.aux"
   "arc.log"

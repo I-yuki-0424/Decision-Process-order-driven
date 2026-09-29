@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.29)  29 SEP 2026 15:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.29)  29 SEP 2026 15:58
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1465,178 +1465,191 @@ Overfull \hbox (29.75623pt too wide) in paragraph at lines 841--845
  []
 
 
-Underfull \hbox (badness 3168) in paragraph at lines 859--859
+Overfull \hbox (64.19374pt too wide) in paragraph at lines 846--859
+\OT1/cmr/m/n/10.95 found in the same pass, \OT1/cmtt/m/n/10 output/benchmarks/grid[]search[]results.md \OT1/cmr/m/n/10.95 and \OT1/cmtt/m/n/10 output/benchmarks/benchmark[]report.md\OT1/cmr/m/n/10.95 ,
+ []
+
+
+Overfull \hbox (22.36024pt too wide) in paragraph at lines 846--859
+\OT1/cmr/m/n/10.95 were re-moved (branch \OT1/cmtt/m/n/10.95 chore/remove-fabricated-results\OT1/cmr/m/n/10.95 , see \OT1/cmtt/m/n/10 docs/core/STATE.yaml \OT1/cmr/m/n/10.95 TASK-20260928-
+ []
+
+
+Underfull \hbox (badness 3168) in paragraph at lines 873--873
 []\OT1/cmr/m/n/10.95 Table 14: |Quar-an-tined files and the ev-i-dence they are not mea-sure-ments. Source:
  []
 
 
-Overfull \hbox (65.66167pt too wide) in paragraph at lines 864--864
+Overfull \hbox (65.66167pt too wide) in paragraph at lines 878--878
 []|\OT1/cmtt/m/n/10 official[]performance[]ceiling[]metrics.json\OT1/cmr/m/n/10 ,
  []
 
 
-Overfull \hbox (78.63374pt too wide) in paragraph at lines 864--864
+Overfull \hbox (78.63374pt too wide) in paragraph at lines 878--878
 \OT1/cmtt/m/n/10 performance[]ceiling[]exploration[]metrics.json| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 864--865
+Underfull \hbox (badness 10000) in paragraph at lines 878--879
 []|\OT1/cmr/m/n/10 Unlock rates = hard-coded list of 22 base rates
  []
 
 
-Underfull \hbox (badness 6078) in paragraph at lines 864--865
+Underfull \hbox (badness 6078) in paragraph at lines 878--879
 \OMS/cmtt/m/n/10 ^^B \OT1/cmr/m/n/10 (\OML/cmm/m/it/10 layers=\OT1/cmr/m/n/10 8)[]$ or $1 + 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 08 [][]([])$; through-put
  []
 
 
-Overfull \hbox (70.91162pt too wide) in paragraph at lines 865--865
+Overfull \hbox (70.91162pt too wide) in paragraph at lines 879--879
 []|\OT1/cmtt/m/n/10 kaggle[]retrieved[]weights[]verification.json\OT1/cmr/m/n/10 ,
  []
 
 
-Overfull \hbox (31.38416pt too wide) in paragraph at lines 865--865
+Overfull \hbox (31.38416pt too wide) in paragraph at lines 879--879
 \OT1/cmtt/m/n/10 real[]weights[]benchmark[]metrics.json| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 865--866
+Underfull \hbox (badness 10000) in paragraph at lines 879--880
 []|\OT1/cmtt/m/n/10 rollout[]results\OT1/cmr/m/n/10 /\OT1/cmtt/m/n/10 rollout[]metrics \OT1/cmr/m/n/10 are a lit-eral dict
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 865--866
+Underfull \hbox (badness 10000) in paragraph at lines 879--880
 \OT1/cmr/m/n/10 (\OT1/cmtt/m/n/10 crafter[]score: 74.58\OT1/cmr/m/n/10 , \OT1/cmtt/m/n/10 mean[]episode[]reward:
  []
 
 
-Overfull \hbox (47.13402pt too wide) in paragraph at lines 866--866
+Overfull \hbox (47.13402pt too wide) in paragraph at lines 880--880
 []|\OT1/cmtt/m/n/10 8layer[]zunit[]verification[]metrics.json| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 866--867
+Underfull \hbox (badness 10000) in paragraph at lines 880--881
 []|\OT1/cmr/m/n/10 Unlock rates/reward from $[](88\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 35 +
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 866--867
+Underfull \hbox (badness 10000) in paragraph at lines 880--881
 \OT1/cmr/m/n/10 43\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 5(1 \OMS/cmtt/m/n/10 ^^@ \OML/cmm/m/it/10 e[]\OT1/cmr/m/n/10 ))$-style for-mu-las;
  []
 
 
-Overfull \hbox (25.13203pt too wide) in paragraph at lines 867--867
+Overfull \hbox (25.13203pt too wide) in paragraph at lines 881--881
 []|\OT1/cmtt/m/n/10 combined[]matrix[]verification.json\OT1/cmr/m/n/10 ,
  []
 
 
-Overfull \hbox (11.85434pt too wide) in paragraph at lines 867--867
+Overfull \hbox (11.85434pt too wide) in paragraph at lines 881--881
 \OT1/cmtt/m/n/10 nonstationary[]100m[]metrics.json| 
  []
 
 
-Overfull \hbox (42.1966pt too wide) in paragraph at lines 868--869
+Overfull \hbox (42.1966pt too wide) in paragraph at lines 882--883
 []|\OT1/cmtt/m/n/10 projected[]reward[]ceiling = 0.0303*(1+0.15*log10(scale/1e8))
  []
 
 
-Overfull \hbox (8.91434pt too wide) in paragraph at lines 869--869
+Overfull \hbox (8.91434pt too wide) in paragraph at lines 883--883
 []|\OT1/cmtt/m/n/10 model[]weights[]8L[]zunit[]100m.npz| 
  []
 
 
-Overfull \hbox (35.16411pt too wide) in paragraph at lines 870--870
+Overfull \hbox (35.16411pt too wide) in paragraph at lines 884--884
 []|\OT1/cmtt/m/n/10 hierarchical[]model[]8L[]zunit[]100m.pkl| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 870--871
+Underfull \hbox (badness 10000) in paragraph at lines 884--885
 []|\OT1/cmr/m/n/10 Freshly ini-tialised, never-trained pa-ram-e-ters
  []
 
 
-Overfull \hbox (57.74281pt too wide) in paragraph at lines 878--879
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+Overfull \hbox (57.74281pt too wide) in paragraph at lines 892--893
 []\OT1/cmtt/m/n/10.95 kaggle[]retrieved[]weights[]verification.json\OT1/cmr/m/n/10.95 : \OT1/cmtt/m/n/10.95 status="VERIFIED[]SUCCESS"\OT1/cmr/m/n/10.95 , \OT1/cmtt/m/n/10.95 crafter[]score=74.58\OT1/cmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (78.03123pt too wide) in paragraph at lines 879--880
+Overfull \hbox (78.03123pt too wide) in paragraph at lines 893--894
 []\OT1/cmtt/m/n/10.95 real[]weights[]benchmark[]metrics.json\OT1/cmr/m/n/10.95 : the iden-ti-cal \OT1/cmtt/m/n/10.95 status="VERIFIED[]SUCCESS"\OT1/cmr/m/n/10.95 , \OT1/cmtt/m/n/10.95 crafter[]score=74.58\OT1/cmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (77.00075pt too wide) in paragraph at lines 879--880
+Overfull \hbox (77.00075pt too wide) in paragraph at lines 893--894
 \OT1/cmr/m/n/10.95 rather than in-de-pen-dent runs; its own \OT1/cmtt/m/n/10.95 checkpoint[]file \OT1/cmr/m/n/10.95 field is a lo-cal Win-dows path (\OT1/cmtt/m/n/10.95 C:\OMS/cmtt/m/n/10.95 n\OT1/cmtt/m/n/10.95 Users\OMS/cmtt/m/n/10.95 n\OT1/cmtt/m/n/10.95 sigure\OMS/cmtt/m/n/10.95 n\OT1/cmtt/m/n/10.95 ...\OT1/cmr/m/n/10.95 ),
  []
 
 
-Overfull \hbox (90.67374pt too wide) in paragraph at lines 880--881
+Overfull \hbox (90.67374pt too wide) in paragraph at lines 894--895
 []\OT1/cmtt/m/n/10.95 official[]performance[]ceiling[]metrics.json\OT1/cmr/m/n/10.95 : \OT1/cmtt/m/n/10.95 axis1[]layer[]scaling \OT1/cmr/m/n/10.95 crafter[]score = 54.59/72.02/82.95/88.93
+ []
+
+
+Overfull \hbox (19.34274pt too wide) in paragraph at lines 895--896
+[]\OT1/cmtt/m/n/10.95 performance[]ceiling[]exploration[]metrics.json\OT1/cmr/m/n/10.95 : a sec-ond, dif-fer-ent con-stant set, crafter[]score
+ []
+
+
+Overfull \hbox (32.16367pt too wide) in paragraph at lines 899--900
+\OT1/cmr/m/n/10.95 Checkpoint file sizes (real files, fab-ri-cated con-tents per the README): \OT1/cmtt/m/n/10.95 model[]weights[]8L[]zunit[]100m.npz
  []
 
 [22
 
 ]
-Overfull \hbox (19.34274pt too wide) in paragraph at lines 881--882
-[]\OT1/cmtt/m/n/10.95 performance[]ceiling[]exploration[]metrics.json\OT1/cmr/m/n/10.95 : a sec-ond, dif-fer-ent con-stant set, crafter[]score
- []
-
-
-Overfull \hbox (32.16367pt too wide) in paragraph at lines 885--886
-\OT1/cmr/m/n/10.95 Checkpoint file sizes (real files, fab-ri-cated con-tents per the README): \OT1/cmtt/m/n/10.95 model[]weights[]8L[]zunit[]100m.npz
- []
-
-
-Overfull \hbox (61.3508pt too wide) in paragraph at lines 893--904
+Overfull \hbox (61.3508pt too wide) in paragraph at lines 907--918
 \OT1/cmr/m/n/10.95 Per the README's last para-graph, \OT1/cmtt/m/n/10 benchmark[]layer[]scaling[]seq001.json\OT1/cmr/m/n/10.95 , \OT1/cmtt/m/n/10 benchmark[]hierarchical[]seq002.json\OT1/cmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (45.81638pt too wide) in paragraph at lines 893--904
+Overfull \hbox (45.81638pt too wide) in paragraph at lines 907--918
 \OT1/cmr/m/n/10.95 con-tain real mea-sured fields (see Sec-tion []1[] ta-bles for their real num-bers), but their \OT1/cmtt/m/n/10.95 exposure[]bias[]resilience
  []
 
 
-Overfull \hbox (25.03621pt too wide) in paragraph at lines 893--904
+Overfull \hbox (25.03621pt too wide) in paragraph at lines 907--918
 \OT1/cmr/m/n/10.95 and \OT1/cmtt/m/n/10 kaggle[]benchmark[]results.json \OT1/cmr/m/n/10.95 carry no \OT1/cmtt/m/n/10.95 exposure[]bias[]resilience \OT1/cmr/m/n/10.95 field and no \OT1/cmtt/m/n/10.95 VERIFIED[]SUCCESS
  []
 
 [23]
-Overfull \hbox (10.76978pt too wide) in paragraph at lines 925--941
+Overfull \hbox (10.76978pt too wide) in paragraph at lines 939--955
 \OT1/cmr/m/n/10.95 hav-ing been blocked un-til that date by real \OT1/cmtt/m/n/10.95 TracerBoolConversionError\OT1/cmr/m/n/10.95 /\OT1/cmtt/m/n/10.95 ConcretizationTypeError
  []
 
 
-Overfull \hbox (31.34367pt too wide) in paragraph at lines 925--941
+Overfull \hbox (31.34367pt too wide) in paragraph at lines 939--955
 \OT1/cmr/m/n/10.95 crafter[]score range and with plau-si-ble JAX-on-GPU in-fer-ence through-put. The old \OT1/cmtt/m/n/10 grid[]search[]results.md
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 944--944
+Underfull \hbox (badness 10000) in paragraph at lines 958--958
 []\OT1/cmr/m/n/10.95 Table 15: |Real vs. claimed-fabricated grid search re-sults, con-trasted.
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 944--944
+Underfull \hbox (badness 10000) in paragraph at lines 958--958
 \OT1/cmr/m/n/10.95 Sources: \OT1/cmtt/m/n/10 output/grid[]search[]results[]phase2.md \OT1/cmr/m/n/10.95 (real, 2026-09-29) vs.
  []
 
 
-Overfull \hbox (121.2716pt too wide) in paragraph at lines 945--955
+Overfull \hbox (121.2716pt too wide) in paragraph at lines 959--969
  [][] 
  []
 
 
-Overfull \hbox (134.24533pt too wide) in paragraph at lines 959--974
+Overfull \hbox (134.24533pt too wide) in paragraph at lines 973--988
 \OT1/cmtt/m/n/10 output/plots/loss[]convergence[]comparison.png\OT1/cmr/m/n/10.95 , \OT1/cmtt/m/n/10 reward[]and[]crafter[]score[]scaling.png\OT1/cmr/m/n/10.95 , and \OT1/cmtt/m/n/10 sps[]throughput[]vs[]parameters.png
  []
 
 
-Overfull \hbox (104.82295pt too wide) in paragraph at lines 959--974
+Overfull \hbox (104.82295pt too wide) in paragraph at lines 973--988
 \OT1/cmr/m/n/10.95 val-ues (0.0--0.40, Sec-tion []1[]) fall in-side the real range, not the fab-ri-cated 54--91 range. \OT1/cmtt/m/n/10 scripts/generate[]benchmark[]plots.py
  []
 
-[24] (./arc.aux)
+[24] [25] (./arc.aux)
  ***********
 LaTeX2e <2026-06-01>
 L3 programming layer <2026-09-09>
@@ -1649,18 +1662,18 @@ Package rerunfilecheck Info: File `arc.out' has not changed.
 (rerunfilecheck)             Checksum: DD00EDC40A53112D7FC120DB09F9D150;10519.
  ) 
 Here is how much of TeX's memory you used:
- 12405 strings out of 467050
- 198115 string characters out of 5410550
+ 12406 strings out of 467050
+ 198122 string characters out of 5410550
  663370 words of memory out of 5000000
  41579 multiletter control sequences out of 15000+600000
  635673 words of font info for 66 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  74i,14n,79p,650b,598s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on arc.pdf (24 pages, 1879768 bytes).
+Output written on arc.pdf (25 pages, 1881125 bytes).
 PDF statistics:
- 423 PDF objects out of 1000 (max. 8388607)
- 337 compressed objects within 4 object streams
- 79 named destinations out of 1000 (max. 500000)
+ 428 PDF objects out of 1000 (max. 8388607)
+ 341 compressed objects within 4 object streams
+ 80 named destinations out of 1000 (max. 500000)
  278 words of extra memory for PDF output out of 10000 (max. 10000000)
 
