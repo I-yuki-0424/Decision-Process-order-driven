@@ -13,8 +13,8 @@ except the two REINFORCE reference values quoted from arc.tex §2.5.
 | proposal | verdict | key evidence |
 |---|---|---|
 | 1. Structure-as-input world model | **Partly holds, but not for the stated reason.** Feeding a formula as an *input feature* is safe and, on the pendulum, decisive (planning return -204 vs -271 without it; ceiling -196). But the gain comes from an *unbounded, monotone-growing feature* (|q|, q^3, q^4 do as well); the physics content is not needed. Bounded/oscillatory or zero-information features give nothing. Hard-coding a wrong formula is much worse (-450..-540). | §1 below |
-| 2. Actor-critic + oracle_act litmus | **Litmus passes.** With PPO+GAE+critic (lr 1e-3) `oracle_act` beats `base` by +1.0 (12.8k eps) and +1.8 (50k eps), non-overlapping seeds; REINFORCE showed +0.07. A noop-future world model adds nothing beyond random features (see §2), even the true noop future adds only ~+0.2. | §2 below |
-| 3. ChunkPPO delta>0 | **Not supported as a general claim.** Forecast arms (`wm`, `wm_passive`) beat `augment` on `intercept` only at delta=2 (+0.66, p=0.003, 8 seeds, 2M ticks) and not at delta=1/4/8; on `pendulum_goal` they are worse (-7..-16, n.s.). The 10M-tick checks are in §3. | §3 below |
+| 2. Actor-critic + oracle_act litmus | **Litmus passes; the leaked signal is not deployable.** With PPO+GAE+critic (lr 1e-3) `oracle_act` beats `base` by +1.0 (12.8k eps) and +1.8 (50k eps), non-overlapping seeds; REINFORCE showed +0.07. A noop-future world model adds nothing beyond random features (even the true noop future is worth only ~+0.2). A *learned* action-reward model (no simulator at policy time) recovers ~25-30% of the leaked gain at 12.8k eps and none at 50k eps. | §2 below |
+| 3. ChunkPPO delta>0 | **Not supported.** No reproducible benefit of the forecast arms (`wm`, `wm_passive`) over `augment`/`ignore`: the single significant gap (intercept delta=2, +0.66, p=0.003, 12 seeds, config A) vanishes under a second learner config (augment 0.67 vs wm 0.60), a different delta shows a gap there where `ignore` equals `wm`, everything closes at 10M ticks, and on `pendulum_goal` forecast arms are worse (-7..-16, n.s.). | §3 below |
 
 ## 1. Structure-as-input world model (arc.tex §4)
 
@@ -110,7 +110,23 @@ information (a random projection of the full 1345-d observation vs the 39-d summ
 **Derivative: a deployable version of the oracle_act signal.** `oracle_act` uses the simulator at policy time, so its gain is not attainable as is. `run_action_reward_model.py` trains an MLP on the
 full observation to predict the 17 one-step rewards from *offline* simulator-branched labels (256 random-policy episodes) and serves those predictions in the same feature slots at policy time
 (no simulator at policy time). Held-out episodes: R² of the action-dependent part 0.49; among the 18% of states where actions differ, argmax(prediction) hits a best action in 86% of states
-(uniform 12%, "always the globally best action" 64%). PENDING_ACTREWARD
+(uniform 12%, "always the globally best action" 64%). 
+
+A larger model (1,024 random-policy episodes, 117k train states, 20k steps; `output/arc_proposals/actreward_big`) improves the held-out numbers (R² of the action-dependent part 0.62, best-action hit rate 87%).
+
+**Actor-critic with the learned action-reward features** (lr 1e-3; `wm_act_untrain` = same architecture, random init, the control for "extra input dims"):
+
+| arm | 12.8k eps | 49.9k eps |
+|---|---|---|
+| base | 3.47 ± 0.08 (n=10) | 4.48 (n=2) |
+| wm_act_untrain (control) | 3.52 ± 0.08 (n=8) | 4.35 (n=2) |
+| **wm_act** (small model) | **3.75 ± 0.18 (n=8)**; +0.28 vs base (Welch p=0.003), +0.23 vs control (p=0.008) | 4.44 ± 0.13 (n=3) |
+| wm_act (big model) | 3.78 ± 0.10 (n=4) | PENDING_BIGLONG |
+| oracle_act (leaked; upper bound) | 4.49 ± 0.26 (n=6) | 6.25 (n=2) |
+
+At 12.8k episodes the *deployable* learned signal is statistically real but recovers only ~25-30% of the leaked-signal gain (+0.28 of +1.02; the larger model did not improve the policy despite better held-out R²), and at 50k episodes
+it is indistinguishable from base (4.44 vs 4.48) — again a sample-efficiency effect that the learner closes by itself. Most of the `oracle_act` gap (+1.8 at 50k episodes) is therefore not obtainable from a model that only reads the observation; a plausible (untested) reason is that the leaked value is the simulator's exact answer, including the
+sparse, adjacency-dependent rewards that the learned model recovers only partially (R² 0.5-0.6).
 
 ## 3. ChunkPPO with delta > 0 (arc.tex §3, DESIGN.md §4 steps 2-3)
 
@@ -136,7 +152,7 @@ oracle-augment = -0.06/+0.03/+0.17/+0.39. **No forecast-arm claim can be made at
 | intercept 8 | -0.68 | -0.59 ± 0.50 | -0.45 | -0.42 | 0.03 (p=0.005) |
 | pendulum_goal 1 / 2 / 4 / 8 (augment) | | -90.6 / -92.0 / -97.7 / -99.2 | -107 / -103 / -104 / -111 | -106 / -108 / -110 / -118 | -92 / -90.5 / -94 / -101 |
 
-Reading: (i) on `intercept` at delta=2 the forecast arms match the perfect-foresight `oracle` (0.65) while `augment` is unreliable (sd 0.57: some seeds learn, some fail) — the sample-efficiency
+Reading (config A only; see the robustness checks below): (i) on `intercept` at delta=2 (pooled 12 seeds: wm 0.64 ± 0.08 vs augment -0.02 ± 0.56, 12/12 vs 4/12 seeds above 0.4) the forecast arms match the perfect-foresight `oracle` (0.65) while `augment` is unreliable (sd 0.57: some seeds learn, some fail) — the sample-efficiency
 form of the claim (DESIGN.md issue 4), and `wm_passive` (the original no-op proposal) captures most of it (0.52) because the exogenous target dynamics dominate there, as issue 6 predicted;
 (ii) the effect is **not** present at delta=1, 4 or 8, and `oracle` beats causal arms at delta=8 only because it sees unpredictable future noise (not a bar a forecaster can reach);
 (iii) on `pendulum_goal` forecast arms are worse than `augment` (-7..-16, n.s.) and nothing separates `augment` from `ignore`, `oracle`, i.e. the task is not latency-limited in this range;
