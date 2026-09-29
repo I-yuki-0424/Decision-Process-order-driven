@@ -16,16 +16,16 @@ def main():
     for root in a.roots:
         for f in glob.glob(os.path.join(root, "**", "*.result.json"), recursive=True):
             d = json.load(open(f)); c = d["config"]; arm = d["tag"].split("__")[1]
-            g[(c["lr"], arm)].append((c["seed"], d["final_sampled"]["mean_return"], d["final_sampled"]["crafter_score"],
+            g[(c["lr"], c["episodes"], arm)].append((c["seed"], d["final_sampled"]["mean_return"], d["final_sampled"]["crafter_score"],
                                       d["final_greedy"]["mean_return"], d["random_policy"]["mean_return"], c["episodes"]))
         for f in glob.glob(os.path.join(root, "**", "greedy1_reference.json"), recursive=True):
             greedy.append(json.load(open(f)))
     out = [f"{REF}\n"]
     if greedy: out.append(f"Trivial reference policy 'argmax of the leaked 1-step reward': return {greedy[0]['mean_return']:.2f}, crafter {greedy[0]['crafter_score']:.2f}\n")
-    out += ["| lr | arm | n | return (sampled) mean ± sd | per seed | crafter mean | greedy return | random |", "|---|---|---|---|---|---|---|---|"]
-    for (lr, arm), v in sorted(g.items()):
+    out += ["| lr | episodes | arm | n | return (sampled) mean ± sd | per seed | crafter mean | greedy return | random |", "|---|---|---|---|---|---|---|---|---|"]
+    for (lr, eps, arm), v in sorted(g.items()):
         v.sort(); r = np.array([x[1] for x in v]); cr = np.array([x[2] for x in v])
-        out.append(f"| {lr:g} | {arm} | {len(v)} | {r.mean():.2f} ± {r.std(ddof=1) if len(r) > 1 else 0:.2f} | "
+        out.append(f"| {lr:g} | {eps} | {arm} | {len(v)} | {r.mean():.2f} ± {r.std(ddof=1) if len(r) > 1 else 0:.2f} | "
                    f"{', '.join(f'{x:.2f}' for x in r)} | {cr.mean():.2f} | {np.mean([x[3] for x in v]):.2f} | {np.mean([x[4] for x in v]):.2f} |")
     for lr in sorted({k[0] for k in g}):
         if (lr, "base") in g and (lr, "oracle_act") in g:

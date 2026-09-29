@@ -77,7 +77,7 @@ def main():
     st = opt.init(params)
 
     @jax.jit
-    def step(p, st, idx):
+    def step(p, st, X, Y, idx):  # data passed as arguments (closing over it would bake the whole dataset into the executable)
         def loss(p):
             return ((jax.vmap(lambda x: arm.predict(p, x))(X[idx]) - Y[idx]) ** 2).mean()
         l, g = jax.value_and_grad(loss)(p)
@@ -86,7 +86,7 @@ def main():
 
     rng = np.random.default_rng(a.seed)
     for s in range(1, a.train_steps + 1):
-        params, st, l = step(params, st, jnp.asarray(rng.integers(0, len(X), 512)))
+        params, st, l = step(params, st, X, Y, jnp.asarray(rng.integers(0, len(X), 512)))
         if s % 1000 == 0:
             print(f"step {s} loss {float(l):.5f}", flush=True)
     pred = np.concatenate([np.asarray(jax.vmap(lambda x: arm.predict(params, x))(jnp.asarray(te[0][i:i + 4096])))

@@ -141,7 +141,35 @@ form of the claim (DESIGN.md issue 4), and `wm_passive` (the original no-op prop
 (ii) the effect is **not** present at delta=1, 4 or 8, and `oracle` beats causal arms at delta=8 only because it sees unpredictable future noise (not a bar a forecaster can reach);
 (iii) on `pendulum_goal` forecast arms are worse than `augment` (-7..-16, n.s.) and nothing separates `augment` from `ignore`, `oracle`, i.e. the task is not latency-limited in this range;
 (iv) `augment` never beats `ignore` significantly (delta>=1), so the committed-prefix input itself carries little usable information for this learner.
-PENDING_10M
+**Robustness check: same sweep under a second learner config (config B: 32 envs x 16 cycles, lr 3e-4, ent 0.003; intercept, 2M ticks, 6 seeds, `summary_tunedB_2M_intercept.md`).**
+
+| delta | ignore | augment | wm | wm_passive | oracle |
+|---|---|---|---|---|---|
+| 1 | 0.73 | 0.74 ± 0.06 | 0.72 | 0.74 | 0.75 |
+| 2 | 0.65 | 0.67 ± 0.05 | 0.60 ± 0.09 | 0.67 | 0.72 |
+| 4 | 0.42 ± 0.13 | 0.17 ± 0.25 | **0.46 ± 0.09** (p=0.02 vs augment) | 0.41 | 0.67 ± 0.03 |
+| 8 | -0.18 | -0.11 ± 0.07 | -0.06 | -0.28 | 0.20 ± 0.30 |
+
+The delta=2 advantage seen under config A **vanishes** here (`augment` 0.67 ± 0.05, n=6; it was 0.03 ± 0.57 at lr 1e-3), while a different delta (4) shows a gap, and there `ignore` (0.42) is as good as `wm`
+(0.46). So in both configs the "forecast advantage" is `augment` failing to optimise at one particular delta, not `wm` beating a no-forecast baseline (`wm` never beats `ignore` significantly under
+config B; under config A `wm` 0.64 vs `ignore` 0.30 ± 0.58 at delta=2 is the only such cell).
+
+**10M-tick budget check (Kaggle, config A, intercept, 3 seeds; delta=2 and 4, plus the delta=8 run):** (`output/arc_proposals/latency/kaggle_10M*`)
+
+| delta (10M ticks) | ignore | augment | wm | wm_passive | oracle |
+|---|---|---|---|---|---|
+| 2 | 0.73 ± 0.12 | 0.72 ± 0.13 | 0.73 ± 0.03 | 0.70 ± 0.04 | 0.79 ± 0.04 |
+| 4 | 0.56 ± 0.11 | 0.59 ± 0.10 | 0.58 ± 0.06 | 0.59 ± 0.06 | 0.76 ± 0.05 |
+| 8 (intercept) | 0.15 ± 0.22 | -0.05 ± 0.06 | -0.07 ± 0.20 | -0.11 ± 0.34 | 0.66 ± 0.05 |
+| 8 (pendulum_goal) | -99.7 ± 16.6 | -96.1 ± 15.4 | -89.3 ± 15.6 | -93.1 ± 16.6 | -95.7 ± 18.3 |
+
+With 5x the budget the gaps that existed at 2M **close completely** (delta=2: all causal arms 0.70-0.73; delta=4: 0.56-0.59), exactly as DESIGN.md issue 4 predicted (a forecast is a function of
+(o_c, u_c): it can only add sample efficiency). `oracle` stays higher at delta=4/8 only because it sees unpredictable future noise, so it is not a bar a forecaster can reach.
+
+**Verdict for proposal 3.** No reproducible benefit of `wm` / `wm_passive` over `augment`/`ignore`: apparent gaps are config- and delta-specific optimisation failures of `augment`, disappear under a
+second learner config and at 10M ticks, and on `pendulum_goal` the forecast arms are slightly worse. The one structural observation that is robust is that the raw committed-prefix input (`augment`) is no better
+than `ignore` (not significantly better in any of the 8 config x delta cells at 2M ticks; significantly worse only at config B delta=4, p=0.049), i.e. this learner extracts little from `u_c`; a forecast merely repackages the same information. What the sweep does establish is the
+cost of latency itself: for the best causal arm the achievable intercept return falls from ≈0.7-0.8 (delta=0) to ≈0.7 (delta 1-2), ≈0.5-0.6 (delta=4) and ≈0-0.15 (delta=8).
 
 ## 4. Deviations, mistakes and caveats (kept for transparency)
 
