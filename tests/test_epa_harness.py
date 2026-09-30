@@ -49,6 +49,22 @@ class TestArms(unittest.TestCase):
             total, dep = arm.param_counts(p)
             self.assertTrue(0 < dep <= total)
 
+    def test_separate_critic_and_wmq_variants(self):
+        for arm in (TFArm(d=32, layers=1, hist=2, critic="mlp"),
+                    TFArm(d=32, layers=1, hist=2, wm_mode="trained", wm_hidden=32, critic="mlp", wmq=True),
+                    TFArm(d=32, layers=1, hist=2, wm_mode="random", wm_hidden=32, critic="mlp", wmq=True)):
+            p = arm.init(jax.random.PRNGKey(1))
+            logits, value, _ = arm.step(p, arm.init_carry(3), self.obs)
+            self.assertEqual((logits.shape, value.shape), ((3, N_ACT), (3,)))
+            total, dep = arm.param_counts(p)
+            self.assertLess(dep, total)          # the critic is not deployed
+        # world-model features are stop-gradient: the policy-gradient path must not move the WM or (via features) the critic
+        arm = TFArm(d=32, layers=1, hist=2, wm_mode="trained", wm_hidden=32, critic="mlp", wmq=True)
+        p = arm.init(jax.random.PRNGKey(2))
+        g = jax.grad(lambda q: arm.step(q, arm.init_carry(3), self.obs)[0].sum())(p)
+        self.assertEqual(max(float(jnp.abs(x).max()) for x in jax.tree_util.tree_leaves(g["wm"])), 0.0)
+        self.assertEqual(max(float(jnp.abs(x).max()) for x in jax.tree_util.tree_leaves(g["pi"]["critic"])), 0.0)
+
     def test_history_window_and_reset(self):
         arm = TFArm(d=32, layers=1, hist=3)
         c = arm.init_carry(2)

@@ -177,11 +177,15 @@ def wm_loss(wm, obs, act, rew, nobs, done):
 # Pure Transformer (+ optional world-model features)
 # ----------------------------------------------------------------------------------------------------------------------
 class TFArm(Arm):
-    def __init__(self, d=64, layers=2, heads=4, hist=4, wm_mode="none", wm_hidden=256, wm_coef=1.0):
-        assert wm_mode in ("none", "trained", "random")
+    def __init__(self, d=64, layers=2, heads=4, hist=4, wm_mode="none", wm_hidden=256, wm_coef=1.0, critic="shared",
+                 wmq=False, gamma=0.99):
+        assert wm_mode in ("none", "trained", "random") and critic in ("shared", "mlp")
+        assert not wmq or (wm_mode != "none" and critic == "mlp"), "wmq needs a world model and a separate critic"
+        self.critic, self.wmq, self.gamma = critic, wmq, gamma
         self.d, self.layers, self.heads, self.hist_len = d, layers, heads, hist
         self.wm_mode, self.wm_hidden, self.wm_coef = wm_mode, wm_hidden, wm_coef
-        self.name = f"tf{d}x{layers}h{hist}" + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
+        self.name = (f"tf{d}x{layers}h{hist}" + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
+                     + ("+sc" if critic == "mlp" else "") + ("+q" if wmq else ""))
 
     def init(self, key):
         d, H = self.d, self.hist_len
@@ -199,8 +203,11 @@ class TFArm(Arm):
               "blocks": blocks, "lnf_g": jnp.ones((d,)), "lnf_b": jnp.zeros((d,)),
               "logit": _dense(next(k), d, 1, 0.01), "value": _dense(next(k), d, 1, 1.0)}
         out = {"pi": pi}
+        if self.critic == "mlp":   # separate tanh-MLP critic on the raw observation, as in the MLP/GRU baselines
+            pi["critic"] = _mlp(next(k), [OBS_DIM, 512, 512, 512, 1], 1.0)
+            del pi["value"]
         if self.wm_mode != "none":
-            pi["wm_feat"] = _dense(next(k), self.wm_hidden + 1, d)
+            pi["wm_feat"] = _dense(next(k), self.wm_hidden + 1 + int(self.wmq), d)
             out["wm"] = init_world_model(next(k), self.wm_hidden)
         return out
 
@@ -225,7 +232,14 @@ class TFArm(Arm):
         cand = pi["cand"]
         if self.wm_mode != "none":
             ha_wm, r_hat = wm_candidates(jax.lax.stop_gradient(params["wm"]), obs)
-            feats = jax.lax.stop_gradient(jnp.concatenate([ha_wm, r_hat[:, None]], -1))
+            feats = jnp.concatenate([ha_wm, r_hat[:, None]], -1)
+            if self.wmq:   # imagined one-step lookahead: q_a = r^_a + gamma V(obs + delta^_a) - V(obs), V = the PPO critic (stop-grad)
+                crit = jax.lax.stop_gradient(pi["critic"])
+                d_hat = _ap(jax.lax.stop_gradient(params["wm"])["head_obs"], ha_wm)
+                v_next = _tanh_mlp(crit, obs[None] + d_hat)[:, 0]
+                q = r_hat + self.gamma * v_next - _tanh_mlp(crit, obs)[0]
+                feats = jnp.concatenate([feats, q[:, None]], -1)
+            feats = jax.lax.stop_gradient(feats)
             cand = cand + _ap(pi["wm_feat"], feats)
         toks = [_ap(pi["tile"], tiles) + pi["tile_pos"] + typ[0], (_ap(pi["extra"], obs[MAP_DIM:]) + typ[1])[None]]
         valid = [jnp.ones((N_TILE + 1,), jnp.bool_)]
@@ -248,6 +262,8 @@ class TFArm(Arm):
             x = x + _ap(b["fc2"], jax.nn.gelu(_ap(b["fc1"], h)))
         x = _ln(x, pi["lnf_g"], pi["lnf_b"])
         logits = _ap(pi["logit"], x[L - 1 - N_ACT:L - 1])[:, 0]
+        if self.critic == "mlp":
+            return logits, _tanh_mlp(pi["critic"], obs)[0]
         return logits, _ap(pi["value"], x[L - 1])[0]
 
     def step(self, params, carry, obs):
@@ -266,7 +282,7 @@ class TFArm(Arm):
     def param_counts(self, params):
         total = n_params(params)
         pi = params["pi"]
-        deployed = n_params({k: v for k, v in pi.items() if k != "value"}) + n_params(params.get("wm", {}))
+        deployed = n_params({k: v for k, v in pi.items() if k not in ("value", "critic")}) + n_params(params.get("wm", {}))
         return total, deployed
 
 
@@ -287,4 +303,6 @@ ARM_BUILDERS = {
     "tf": lambda **kw: TFArm(wm_mode="none", **kw),
     "tf_wm": lambda **kw: TFArm(wm_mode="trained", **kw),
     "tf_wm_random": lambda **kw: TFArm(wm_mode="random", **kw),
+    "tf_wmq": lambda **kw: TFArm(wm_mode="trained", critic="mlp", wmq=True, **kw),
+    "tf_wmq_random": lambda **kw: TFArm(wm_mode="random", critic="mlp", wmq=True, **kw),
 }
