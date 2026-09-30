@@ -18,14 +18,27 @@ Check in particular for these problems:
 
 The "strictness" rule below means "don't invent components the operator didn't specify." It does **not** mean "implement flawed specs without comment." When refuting, state the flaw concisely, show the simplified form that exposes it, and propose a fix or an experiment that would decide the question if one exists. Record the objection in the task's `STATE.yaml` entry.
 
-## Operating protocol (`docs/core/MASTER_GUIDANCE.xml`, v9)
+## Operating protocol (`docs/core/MASTER_GUIDANCE.xml`, v10)
 
-- Read `docs/core/STATE.yaml` at session start. Every task is tracked there with the fields `id`, `created_at`, `status` (queued/in_progress/blocked/done), `description`, `spec_ref`, `validation_commands`, `result`, and `blockers`. Update status and result as soon as either changes. Record material assumptions in the task entry. Quote fields directly and report missing ones as missing.
+The role is a careful senior engineer working autonomously: correct first, minimal diff, verifiable, and ask only when genuinely blocked.
+
+- **STATE.yaml:** it is the only file under `docs/core/` besides the guidance. At session start read only its metadata and the task entries relevant to the current task. Do not load or summarize unrelated entries unless a dependency, a status conflict, or an explicit audit needs them. Every task has the fields `id`, `created_at`, `status` (queued/in_progress/blocked/done), `description`, `spec_ref`, `validation_commands`, `result`, and `blockers`. Update status and result the moment either changes; do not batch. Record material assumptions in the entry. Quote fields directly and report missing ones as missing. Store specs too long to inline as a path/URL in `spec_ref` and read only the needed sections.
 - **Strictness:** do not implement unconfirmed components based on your own assumptions. Follow the idea docs, the ADRs in `docs/DECISIONS/`, and `docs/LOGS/DESIGN_HINTS_AND_FAILURE_LOG.md`, subject to the critical review section above.
-- Verification means running the task's own `validation_commands`. There is no default smoke path.
-- Commit at natural checkpoints and push after each commit.
-- Use Docker only when a task needs an isolated or reproducible environment. Never require a GPU to start a session.
-- Long GPU training runs need operator authorization. ADR-002 authorizes Phase II runs of 1M–10M steps on Craftax-Classic via Kaggle. Its conditions are checkpoints every 100K steps, resumability, and a 24h limit per config.
+- **Verification:** run the task's own `validation_commands` (supplied by the operator) and record the result. No default data source or smoke path exists.
+- **Git:** commit at natural checkpoints, not per minor edit, and push after each commit. For the scip-neo4j graph to reflect the latest code, work on a branch and commit and push per task set.
+- **Compute:** use Docker only when a task needs an isolated or reproducible environment. Request CUDA only for tasks that use it, and never require a GPU to start a session. Keep logging at INFO and low-noise unless debugging.
+- **Authorization:** long GPU training runs need operator authorization. ADR-002 authorizes Phase II runs of 1M–10M steps on Craftax-Classic via Kaggle. Its conditions are checkpoints every 100K steps, resumability, and a 24h limit per config.
+- **Stop when** the task is done, no further work is implied, or external input is required. Record the blocker and stop.
+
+### Roadmap (`<roadmap>` in MASTER_GUIDANCE, added in v10)
+
+Read the XML for the exact gates before any roadmap task. Structure and rules that are easy to get wrong:
+- **Only the gates of `current_phase` (currently 1) are pursued.** Phases 2–4 are locked, and their thresholds are fixed in advance so they cannot be adjusted after seeing results. Phase 1 gates are G1.0 (baseline calibration), G1.1 and G1.2 (surpass the reference on both metrics), and G1.S (EP-B screening). A phase closes only when every gate passes under EP-A. Record the gate id and the quoted numbers in the task's `result`.
+- **Two protocols are never mixed.** EP-A is gating and is the only one comparable to papers: Craftax-Classic with default episode length and no T cap, one declared input modality (63x63x3 image or 1345-d symbolic; the 39-d adapters are *not* EP-A observations), at most 1M env steps counted across every copy including passive and offline data, 10 seeds with every seed listed, sampled policy over at least 256 fresh envs per seed, final checkpoint only, and tuning on disjoint seeds with the same budget as the baseline. EP-B is internal screening only (39-d adapter, T=250, PPO actor-critic; tuned base return 4.36) and never closes a gate or gets quoted next to paper numbers.
+- **Metrics:** `reward_pct` is the mean of (distinct achievements / 22) x 100, counted via `masked_achievements()` in `src/environment/craftax_env_adapter.py`, not the env return. `score_pct` is the Crafter score, exp(mean ln(1+s_i)) − 1, implemented as `calculate_crafter_score` in the same file. Before the first gate run, verify both in code and record it (`metric_check`). Results from before the 2026-09-29 auto-reset fix are ineligible.
+- **Prohibited (P1–P12):** no fabricated or constant result fields, no untrained weights presented as trained, no simulator access or counterfactual simulator-branching labels at decision time (oracle arms only as labelled upper-bound controls, never counting toward a gate), no hand-specified game knowledge (achievement hierarchy, tech tree, reward shaping) in gate runs, no use of quarantined or pre-fix results, no training/tuning/selection on evaluation seeds or episodes, no unequal effort against the baseline, no uncounted env steps, no parameter shortcuts (gates use `params_total`), and no paper number without its source id and caveat ids.
+- **Reference values** are quoted from cited papers (Dedieu et al. 2025 Table 1 and others). Do not edit them from memory. Changing one needs a new citation. Values marked `basis="to_measure"` are missing and must not be invented.
+- Every result file must record the fields listed in the roadmap's `<reporting>` block (phase, gate_id, protocol, commits, modality, `env_steps_total`, seeds, per-seed metrics with mean and SE, `params_total`, `params_deployed`, tuning budget).
 
 ### Dependency impact checks (scip-neo4j MCP server)
 
