@@ -16,6 +16,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 ROLLOUTS = [(16, 32), (64, 64)]
+DEFAULT_ARMS = ("ppo_mlp", "ppo_gru", "tf", "tf_wm", "tf_wm_random", "chunkppo_k1")
+REDUCED = [(64, 64, 3e-4), (64, 64, 1e-3)]   # exploratory variants only: 2 of the 6 grid points (the best region for every arm)
 LRS = [3e-4, 1e-3, 3e-3]
 ARMS = {   # name -> (script, extra args, name of the rollout-length flag)
     "ppo_mlp": ("run_epa_mini", ["--arm", "ppo_mlp"], "--num-steps"),
@@ -26,6 +28,13 @@ ARMS = {   # name -> (script, extra args, name of the rollout-length flag)
     "tf_sc": ("run_epa_mini", ["--arm", "tf", "--arm-kwargs", '{"critic": "mlp"}'], "--num-steps"),
     "tf_wm_sc": ("run_epa_mini", ["--arm", "tf_wm", "--arm-kwargs", '{"critic": "mlp"}'], "--num-steps"),
     "tf_wm_random_sc": ("run_epa_mini", ["--arm", "tf_wm_random", "--arm-kwargs", '{"critic": "mlp"}'], "--num-steps"),
+    # exploratory variants (reduced grid, see --reduced)
+    "tf_d128": ("run_epa_mini", ["--arm", "tf", "--arm-kwargs", '{"d": 128, "layers": 3}'], "--num-steps"),
+    "tf_h0": ("run_epa_mini", ["--arm", "tf", "--arm-kwargs", '{"hist": 0}'], "--num-steps"),
+    "tf_aux0.1": ("run_epa_mini", ["--arm", "tf_aux", "--arm-kwargs", '{"aux_coef": 0.1}'], "--num-steps"),
+    "tf_aux1": ("run_epa_mini", ["--arm", "tf_aux", "--arm-kwargs", '{"aux_coef": 1.0}'], "--num-steps"),
+    "tf_wmq": ("run_epa_mini", ["--arm", "tf_wmq"], "--num-steps"),
+    "tf_wmq_random": ("run_epa_mini", ["--arm", "tf_wmq_random"], "--num-steps"),
     "chunkppo_k1": ("run_epa_chunkppo", ["--k", "1", "--hist", "4"], "--cycles"),
     "chunkppo_k4": ("run_epa_chunkppo", ["--k", "4", "--hist", "4"], "--cycles"),   # informational (Phase 3)
 }
@@ -36,15 +45,20 @@ def cfg_name(n, t, lr):
 
 
 def build_jobs(a):
-    root = f"output/phase1/{a.stage}_{a.steps // 1000}k"
-    arms = a.arms.split(",") if a.arms else [x for x in ARMS if x not in ("chunkppo_k4", "tf_sc", "tf_wm_sc", "tf_wm_random_sc")]
+    suffix = f"_{a.tag}" if a.tag else ""
+    root = f"output/phase1/{a.stage}_{a.steps // 1000}k{suffix}"
+    arms = a.arms.split(",") if a.arms else [x for x in ARMS if x in DEFAULT_ARMS]
     seeds = a.seeds
     jobs, sel = [], None
     if a.stage == "final":
-        sel = json.load(open(f"output/phase1/tune_{a.steps // 1000}k/selection.json"))
+        sel = json.load(open(f"output/phase1/tune_{a.steps // 1000}k{suffix}/selection.json"))
     for arm in arms:
         script, extra, tflag = ARMS[arm]
         grid = [(n, t, lr) for (n, t) in ROLLOUTS for lr in LRS] if a.stage == "tune" else [tuple(sel[arm]["config"])]
+        if a.reduced:
+            grid = REDUCED
+        if a.grid:   # explicit points "n,t,lr;n,t,lr" (grid extension applied to every arm)
+            grid = [(int(g.split(",")[0]), int(g.split(",")[1]), float(g.split(",")[2])) for g in a.grid.split(";")]
         for n, t, lr in grid:
             k = 4 if arm == "chunkppo_k4" else 1
             t_eff = t // k if script == "run_epa_chunkppo" and k > 1 else t   # keep steps/update equal across k
@@ -52,8 +66,7 @@ def build_jobs(a):
             out = f"{root}/{name}.json"
             cmd = ["python", f"scripts/{script}.py", *extra, "--seeds", seeds, "--steps", str(a.steps),
                    "--num-envs", str(n), tflag, str(t_eff), "--lr", str(lr), "--role", "tune" if a.stage == "tune" else "final",
-                   "--out", out, "--tuning-budget", "6 configs x 3 tuning seeds (seeds 1000-1002), equal grid for every arm; "
-                   "selection metric = mean reward_pct on tuning seeds",
+                   "--out", out, "--tuning-budget", a.tuning_budget,
                    "--protocol", a.protocol]
             jobs.append((name, out, cmd, root))
     return jobs
@@ -90,6 +103,11 @@ def main():
     ap.add_argument("--arms", default="")
     ap.add_argument("--seeds", default=None)
     ap.add_argument("--protocol", default="EP-A-mini")
+    ap.add_argument("--tag", default="", help="output directory suffix (exploratory sweeps)")
+    ap.add_argument("--grid", default="", help="explicit grid points 'n,t,lr;n,t,lr' overriding the default grid")
+    ap.add_argument("--tuning-budget", default="6 configs x 3 tuning seeds (1000-1002), equal grid for every arm; "
+                    "selection metric = mean reward_pct on tuning seeds")
+    ap.add_argument("--reduced", action="store_true", help="exploratory variants: 2 grid points instead of 6 (NOT an equal-effort comparison)")
     ap.add_argument("--memfrac", type=float, default=0.25)
     a = ap.parse_args()
     a.seeds = a.seeds or ("1000,1001,1002" if a.stage == "tune" else "0,1,2,3,4,5,6,7,8,9")

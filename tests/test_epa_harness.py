@@ -65,6 +65,25 @@ class TestArms(unittest.TestCase):
         self.assertEqual(max(float(jnp.abs(x).max()) for x in jax.tree_util.tree_leaves(g["wm"])), 0.0)
         self.assertEqual(max(float(jnp.abs(x).max()) for x in jax.tree_util.tree_leaves(g["pi"]["critic"])), 0.0)
 
+    def test_candidate_token_aux_loss_reaches_trunk(self):
+        arm = TFArm(d=32, layers=1, hist=2, aux_coef=0.5)
+        cfg = eh.PPOConfig(total_steps=2 * 4 * 4, num_envs=4, num_steps=4, minibatches=2)
+        tr = eh.Trainer(arm, cfg)
+        st = tr.init(jax.random.PRNGKey(4))
+        _, _, _, _, traj, _ = tr._rollout(st["params"], st, jax.random.PRNGKey(5))
+        mb = jax.tree_util.tree_map(lambda x: x.reshape((-1,) + x.shape[2:]), dict(traj))
+
+        def wl(p):
+            return arm.train_forward(p, mb)[2]
+
+        val, g = jax.value_and_grad(wl)(st["params"])
+        self.assertTrue(float(val) > 0.0 and np.isfinite(float(val)))
+        # the auxiliary loss trains the shared trunk (it is not a stop-gradient side channel) ...
+        self.assertGreater(float(jnp.abs(g["pi"]["blocks"][0]["qkv"]["w"]).max()), 0.0)
+        self.assertGreater(float(jnp.abs(g["pi"]["aux_obs"]["w"]).max()), 0.0)
+        # ... and only the executed action's token supplies the target (one action per state, no counterfactual labels)
+        self.assertEqual(float(jnp.abs(g["pi"]["value"]["w"]).max()), 0.0)
+
     def test_history_window_and_reset(self):
         arm = TFArm(d=32, layers=1, hist=3)
         c = arm.init_carry(2)

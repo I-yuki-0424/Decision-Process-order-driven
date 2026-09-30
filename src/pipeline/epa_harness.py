@@ -179,9 +179,8 @@ class Trainer:
         return pg + cfg.vf * vl - cfg.ent * ent, jnp.stack([pg, vl, ent])
 
     def _loss_flat(self, params, mb):
-        logits, value, _ = self.arm.step(params, mb["carry"], mb["obs"])
+        logits, value, wl = self.arm.train_forward(params, mb)
         loss, aux = self._ppo_terms(logits, value, mb)
-        wl = self.arm.aux_loss(params, mb)
         return loss + wl, jnp.concatenate([aux, wl[None]])
 
     def _loss_rec(self, params, mb):

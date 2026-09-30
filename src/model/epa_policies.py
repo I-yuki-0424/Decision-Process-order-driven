@@ -80,6 +80,11 @@ class Arm:
     def aux_loss(self, params, batch):
         return jnp.zeros(())
 
+    def train_forward(self, params, mb):
+        """(logits, value, auxiliary loss) for a flat minibatch; one forward pass."""
+        logits, value, _ = self.step(params, mb["carry"], mb["obs"])
+        return logits, value, self.aux_loss(params, mb)
+
     def frozen(self):
         return False
 
@@ -178,14 +183,15 @@ def wm_loss(wm, obs, act, rew, nobs, done):
 # ----------------------------------------------------------------------------------------------------------------------
 class TFArm(Arm):
     def __init__(self, d=64, layers=2, heads=4, hist=4, wm_mode="none", wm_hidden=256, wm_coef=1.0, critic="shared",
-                 wmq=False, gamma=0.99):
+                 wmq=False, gamma=0.99, aux_coef=0.0):
         assert wm_mode in ("none", "trained", "random") and critic in ("shared", "mlp")
         assert not wmq or (wm_mode != "none" and critic == "mlp"), "wmq needs a world model and a separate critic"
-        self.critic, self.wmq, self.gamma = critic, wmq, gamma
+        self.critic, self.wmq, self.gamma, self.aux_coef = critic, wmq, gamma, aux_coef
         self.d, self.layers, self.heads, self.hist_len = d, layers, heads, hist
         self.wm_mode, self.wm_hidden, self.wm_coef = wm_mode, wm_hidden, wm_coef
         self.name = (f"tf{d}x{layers}h{hist}" + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
-                     + ("+sc" if critic == "mlp" else "") + ("+q" if wmq else ""))
+                     + ("+sc" if critic == "mlp" else "") + ("+q" if wmq else "")
+                     + (f"+aux{aux_coef:g}" if aux_coef else ""))
 
     def init(self, key):
         d, H = self.d, self.hist_len
@@ -206,6 +212,9 @@ class TFArm(Arm):
         if self.critic == "mlp":   # separate tanh-MLP critic on the raw observation, as in the MLP/GRU baselines
             pi["critic"] = _mlp(next(k), [OBS_DIM, 512, 512, 512, 1], 1.0)
             del pi["value"]
+        if self.aux_coef:   # candidate-token heads: reward and next-observation delta of the EXECUTED action
+            pi["aux_r"] = _dense(next(k), d, 1, 0.1)
+            pi["aux_obs"] = _dense(next(k), d, OBS_DIM, 0.1)
         if self.wm_mode != "none":
             pi["wm_feat"] = _dense(next(k), self.wm_hidden + 1 + int(self.wmq), d)
             out["wm"] = init_world_model(next(k), self.wm_hidden)
@@ -225,7 +234,7 @@ class TFArm(Arm):
         hv2 = jnp.concatenate([hv[:, 1:], jnp.ones_like(hv[:, :1])], 1) & ~done[:, None]
         return ho2, ha2, hv2
 
-    def _one(self, params, obs, ho, ha, hv):
+    def _one_h(self, params, obs, ho, ha, hv):
         pi, d, H, nh = params["pi"], self.d, self.hist_len, self.heads
         tiles = obs[:MAP_DIM].reshape(N_TILE, TILE_DIM)
         typ = pi["type"]
@@ -261,15 +270,30 @@ class TFArm(Arm):
             h = _ln(x, b["ln2_g"], b["ln2_b"])
             x = x + _ap(b["fc2"], jax.nn.gelu(_ap(b["fc1"], h)))
         x = _ln(x, pi["lnf_g"], pi["lnf_b"])
-        logits = _ap(pi["logit"], x[L - 1 - N_ACT:L - 1])[:, 0]
+        ch = x[L - 1 - N_ACT:L - 1]
+        logits = _ap(pi["logit"], ch)[:, 0]
         if self.critic == "mlp":
-            return logits, _tanh_mlp(pi["critic"], obs)[0]
-        return logits, _ap(pi["value"], x[L - 1])[0]
+            return logits, _tanh_mlp(pi["critic"], obs)[0], ch
+        return logits, _ap(pi["value"], x[L - 1])[0], ch
 
     def step(self, params, carry, obs):
         ho, ha, hv = carry
-        logits, value = jax.vmap(lambda o, a, b, c: self._one(params, o, a, b, c))(obs, ho, ha, hv)
+        logits, value, _ = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(obs, ho, ha, hv)
         return logits, value, carry
+
+    def train_forward(self, params, mb):
+        if not self.aux_coef:
+            return super().train_forward(params, mb)
+        ho, ha, hv = mb["carry"]
+        logits, value, ch = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(mb["obs"], ho, ha, hv)
+        sel = jnp.take_along_axis(ch, mb["act"][:, None, None], axis=1)[:, 0]      # token of the executed action only
+        pi = params["pi"]
+        r_hat, d_hat = _ap(pi["aux_r"], sel)[:, 0], _ap(pi["aux_obs"], sel)
+        w = 1.0 - mb["done"].astype(jnp.float32)   # drop transitions that ended an episode (next obs is a fresh episode)
+        den = jnp.maximum(w.sum(), 1.0)
+        l_obs = (((d_hat - (mb["nobs"] - mb["obs"])) ** 2).mean(-1) * w).sum() / den
+        l_rew = (((r_hat - mb["rew"]) ** 2) * w).sum() / den
+        return logits, value, self.aux_coef * (100.0 * l_obs + l_rew)
 
     def aux_loss(self, params, batch):
         if self.wm_mode != "trained":
@@ -303,6 +327,7 @@ ARM_BUILDERS = {
     "tf": lambda **kw: TFArm(wm_mode="none", **kw),
     "tf_wm": lambda **kw: TFArm(wm_mode="trained", **kw),
     "tf_wm_random": lambda **kw: TFArm(wm_mode="random", **kw),
+    "tf_aux": lambda **kw: TFArm(wm_mode="none", **kw),
     "tf_wmq": lambda **kw: TFArm(wm_mode="trained", critic="mlp", wmq=True, **kw),
     "tf_wmq_random": lambda **kw: TFArm(wm_mode="random", critic="mlp", wmq=True, **kw),
 }
