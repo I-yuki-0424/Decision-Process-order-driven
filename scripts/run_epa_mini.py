@@ -42,6 +42,8 @@ def main():
     ap.add_argument("--minibatches", type=int, default=4)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--ent", type=float, default=0.01)
+    ap.add_argument("--lam", type=float, default=0.8)
+    ap.add_argument("--gamma", type=float, default=0.99)
     ap.add_argument("--eval-envs", type=int, default=256)
     ap.add_argument("--protocol", default="EP-A-mini")
     ap.add_argument("--tuning-budget", default="unspecified")
@@ -56,7 +58,7 @@ def main():
         raise SystemExit("final runs use evaluation seeds < 1000")
     arm = ARM_BUILDERS[a.arm](**json.loads(a.arm_kwargs))
     cfg = PPOConfig(total_steps=a.steps, num_envs=a.num_envs, num_steps=a.num_steps, epochs=a.epochs,
-                    minibatches=a.minibatches, lr=a.lr, ent=a.ent)
+                    minibatches=a.minibatches, lr=a.lr, ent=a.ent, lam=a.lam, gamma=a.gamma)
     tr = Trainer(arm, cfg)
     print(f"arm={arm.name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
     per_seed = []

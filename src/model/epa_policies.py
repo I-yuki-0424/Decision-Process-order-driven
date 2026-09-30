@@ -128,9 +128,12 @@ class GRUArm(Arm):
     def init_carry(self, n):
         return jnp.zeros((n, self.width))
 
+    def _embed(self, p, obs):
+        return jnp.tanh(_ap(p["embed"], obs))
+
     def step(self, params, h, obs):
         p = params["pi"]
-        x = jnp.tanh(_ap(p["embed"], obs))
+        x = self._embed(p, obs)
         gi, gh = _ap(p["gru"]["wi"], x), _ap(p["gru"]["wh"], h)
         ir, iz, inn = jnp.split(gi, 3, -1)
         hr, hz, hn = jnp.split(gh, 3, -1)
@@ -273,19 +276,20 @@ class TFArm(Arm):
         ch = x[L - 1 - N_ACT:L - 1]
         logits = _ap(pi["logit"], ch)[:, 0]
         if self.critic == "mlp":
-            return logits, _tanh_mlp(pi["critic"], obs)[0], ch
-        return logits, _ap(pi["value"], x[L - 1])[0], ch
+            return logits, _tanh_mlp(pi["critic"], obs)[0], ch, x[L - 1]
+        value = _ap(pi["value"], x[L - 1])[0] if "value" in pi else jnp.zeros(())   # TFGRUArm takes its value from the GRU
+        return logits, value, ch, x[L - 1]
 
     def step(self, params, carry, obs):
         ho, ha, hv = carry
-        logits, value, _ = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(obs, ho, ha, hv)
+        logits, value, _, _ = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(obs, ho, ha, hv)
         return logits, value, carry
 
     def train_forward(self, params, mb):
         if not self.aux_coef:
             return super().train_forward(params, mb)
         ho, ha, hv = mb["carry"]
-        logits, value, ch = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(mb["obs"], ho, ha, hv)
+        logits, value, ch, _ = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(mb["obs"], ho, ha, hv)
         sel = jnp.take_along_axis(ch, mb["act"][:, None, None], axis=1)[:, 0]      # token of the executed action only
         pi = params["pi"]
         r_hat, d_hat = _ap(pi["aux_r"], sel)[:, 0], _ap(pi["aux_obs"], sel)
@@ -310,6 +314,81 @@ class TFArm(Arm):
         return total, deployed
 
 
+class TFGRUArm(TFArm):
+    """Tile-token Transformer encoder per step (no history tokens) + GRU memory over the CLS embedding.
+    logits = candidate-token logit + Dense(h); value from h. Recurrent: the learner trains on sequences."""
+    recurrent = True
+
+    def __init__(self, d=64, layers=2, heads=4, width=256):
+        super().__init__(d=d, layers=layers, heads=heads, hist=0, wm_mode="none", critic="shared")
+        self.width, self.name = width, f"tfgru{d}x{layers}w{width}"
+
+    def init(self, key):
+        k1, k2, k3, k4, k5 = jax.random.split(key, 5)
+        out = super().init(k1)
+        pi, w = out["pi"], self.width
+        del pi["value"]
+        pi["gru_wi"], pi["gru_wh"] = _ortho(k2, self.d, 3 * w, 1.0), _ortho(k3, w, 3 * w, 1.0)
+        pi["h_logit"], pi["h_value"] = _ortho(k4, w, N_ACT, 0.01), _ortho(k5, w, 1, 1.0)
+        return out
+
+    def init_carry(self, n):
+        return jnp.zeros((n, self.width))
+
+    def step(self, params, h, obs):
+        pi = params["pi"]
+        z = jnp.zeros((obs.shape[0], 0, OBS_DIM)), jnp.zeros((obs.shape[0], 0), jnp.int32), jnp.zeros((obs.shape[0], 0), jnp.bool_)
+        lc, _, _, cls = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(obs, *z)
+        ir, iz, inn = jnp.split(_ap(pi["gru_wi"], cls), 3, -1)
+        hr, hz, hn = jnp.split(_ap(pi["gru_wh"], h), 3, -1)
+        r, zg = jax.nn.sigmoid(ir + hr), jax.nn.sigmoid(iz + hz)
+        h2 = (1.0 - zg) * jnp.tanh(inn + r * hn) + zg * h
+        return lc + _ap(pi["h_logit"], h2), _ap(pi["h_value"], h2)[:, 0], h2
+
+    def advance(self, h_next, obs, act, done):
+        return h_next * (1.0 - done.astype(jnp.float32))[:, None]
+
+    def train_forward(self, params, mb):   # only used by flat learners; recurrent learners call step()
+        raise NotImplementedError
+
+    def param_counts(self, params):
+        pi = params["pi"]
+        return n_params(params), n_params({k: v for k, v in pi.items() if k != "h_value"})
+
+
+class CNNGRUArm(GRUArm):
+    """Control for TFGRUArm: the same GRU/heads, but the per-step encoder is a 2-layer CNN over the 7x9x21 tile map
+    (+ the 22 scalars) instead of a Transformer. Separates 'spatial encoder + memory' from 'attention'."""
+
+    def __init__(self, width=256, ch1=32, ch2=64):
+        super().__init__(width)
+        self.ch1, self.ch2, self.name = ch1, ch2, f"cnngru{ch1}-{ch2}w{width}"
+
+    def init(self, key):
+        out = super().init(key)
+        k = jax.random.split(jax.random.fold_in(key, 11), 3)
+        pi = out["pi"]
+        pi["c1"] = {"w": jax.nn.initializers.orthogonal(jnp.sqrt(2.0))(k[0], (3 * 3 * TILE_DIM, self.ch1)).reshape(3, 3, TILE_DIM, self.ch1),
+                    "b": jnp.zeros((self.ch1,))}
+        pi["c2"] = {"w": jax.nn.initializers.orthogonal(jnp.sqrt(2.0))(k[1], (3 * 3 * self.ch1, self.ch2)).reshape(3, 3, self.ch1, self.ch2),
+                    "b": jnp.zeros((self.ch2,))}
+        pi["embed"] = _ortho(k[2], 63 * self.ch2 + EXTRA_DIM, self.width, jnp.sqrt(2.0))
+        return out
+
+    def _embed(self, p, obs):
+        x = obs[..., :MAP_DIM].reshape(obs.shape[:-1] + (7, 9, TILE_DIM))
+        for name in ("c1", "c2"):
+            x = jax.lax.conv_general_dilated(x, p[name]["w"], (1, 1), "SAME", dimension_numbers=("NHWC", "HWIO", "NHWC"))
+            x = jax.nn.relu(x + p[name]["b"])
+        z = jnp.concatenate([x.reshape(obs.shape[:-1] + (-1,)), obs[..., MAP_DIM:]], -1)
+        return jnp.tanh(_ap(p["embed"], z))
+
+    def param_counts(self, params):
+        pi = params["pi"]
+        dep = sum(n_params(pi[k]) for k in ("c1", "c2", "embed", "gru", "actor"))
+        return n_params(params), dep
+
+
 def make_optimizer(arm: Arm, lr, max_grad_norm):
     """Separate clip+Adam per subtree so the WM loss scale cannot interact with the policy step; a 'random' WM is frozen."""
     def chain():
@@ -327,6 +406,8 @@ ARM_BUILDERS = {
     "tf": lambda **kw: TFArm(wm_mode="none", **kw),
     "tf_wm": lambda **kw: TFArm(wm_mode="trained", **kw),
     "tf_wm_random": lambda **kw: TFArm(wm_mode="random", **kw),
+    "tf_gru": lambda **kw: TFGRUArm(**kw),
+    "cnn_gru": lambda **kw: CNNGRUArm(**kw),
     "tf_aux": lambda **kw: TFArm(wm_mode="none", **kw),
     "tf_wmq": lambda **kw: TFArm(wm_mode="trained", critic="mlp", wmq=True, **kw),
     "tf_wmq_random": lambda **kw: TFArm(wm_mode="random", critic="mlp", wmq=True, **kw),

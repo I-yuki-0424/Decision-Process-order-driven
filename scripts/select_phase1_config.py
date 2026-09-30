@@ -1,7 +1,7 @@
 """Pick the best config per arm from TUNING outputs only (tuning seeds >= 1000). Selection metric: mean reward_pct over tuning seeds.
 
-  python scripts/select_phase1_config.py output/phase1/tune_100k
-Writes <dir>/selection.json and prints the tuning table. Refuses to read any file whose seeds include an evaluation seed (< 1000) (P8).
+  python scripts/select_phase1_config.py output/phase1/tune_100k [extra_dir ...]
+Several directories (a grid plus its extensions) are pooled per arm. Writes <first dir>/selection.json and prints the tuning table. Refuses to read any file whose seeds include an evaluation seed (< 1000) (P8).
 """
 import glob
 import json
@@ -11,9 +11,10 @@ import sys
 
 
 def main():
-    d = sys.argv[1]
+    dirs = sys.argv[1:]
+    d = dirs[0]
     per_arm = {}
-    for f in sorted(glob.glob(os.path.join(d, "*.json"))):
+    for f in sorted(f for dd in dirs for f in glob.glob(os.path.join(dd, "*.json"))):
         if os.path.basename(f) == "selection.json":
             continue
         r = json.load(open(f))

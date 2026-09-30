@@ -9,7 +9,7 @@ import numpy as np
 try:
     import jax
     import jax.numpy as jnp
-    from src.model.epa_policies import GRUArm, MLPArm, TFArm, N_ACT, OBS_DIM
+    from src.model.epa_policies import GRUArm, MLPArm, TFArm, TFGRUArm, CNNGRUArm, N_ACT, OBS_DIM
     from src.pipeline import epa_harness as eh
     HAVE = True
 except ImportError:   # pragma: no cover - host without craftax
@@ -41,7 +41,7 @@ class TestArms(unittest.TestCase):
         self.obs, _ = eh.env_reset(jax.random.split(jax.random.PRNGKey(0), 3))
 
     def test_shapes(self):
-        for arm in (MLPArm(64, 2), GRUArm(32), TFArm(d=32, layers=1, hist=2), TFArm(d=32, layers=1, hist=2, wm_mode="trained")):
+        for arm in (MLPArm(64, 2), GRUArm(32), TFGRUArm(d=32, layers=1, width=32), CNNGRUArm(32, 8, 8), TFArm(d=32, layers=1, hist=2), TFArm(d=32, layers=1, hist=2, wm_mode="trained")):
             p = arm.init(jax.random.PRNGKey(1))
             logits, value, _ = arm.step(p, arm.init_carry(3), self.obs)
             self.assertEqual(logits.shape, (3, N_ACT))
@@ -141,6 +141,12 @@ class TestRecompute(unittest.TestCase):
 
     def test_transformer_history(self):
         self._check(TFArm(d=32, layers=1, hist=3))
+
+    def test_cnn_gru_with_resets(self):
+        self._check(CNNGRUArm(32, 8, 8))
+
+    def test_transformer_gru_with_resets(self):
+        self._check(TFGRUArm(d=32, layers=1, width=32))
 
 
 @unittest.skipUnless(HAVE, "craftax/jax not importable")

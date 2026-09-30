@@ -213,7 +213,7 @@ class Trainer:
 
             size = cfg.num_envs
         else:
-            batch = jax.tree_util.tree_map(lambda x: x.reshape((-1,) + x.shape[2:]), batch)
+            batch = jax.tree_util.tree_map(lambda x: x.reshape((x.shape[0] * x.shape[1],) + x.shape[2:]), batch)
             loss_fn = self._loss_flat
             split = lambda x, perm: x[perm].reshape((nmb, perm.shape[0] // nmb) + x.shape[1:])
             size = self.steps_per_update

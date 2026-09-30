@@ -35,6 +35,19 @@ ARMS = {   # name -> (script, extra args, name of the rollout-length flag)
     "tf_aux1": ("run_epa_mini", ["--arm", "tf_aux", "--arm-kwargs", '{"aux_coef": 1.0}'], "--num-steps"),
     "tf_wmq": ("run_epa_mini", ["--arm", "tf_wmq"], "--num-steps"),
     "tf_wmq_random": ("run_epa_mini", ["--arm", "tf_wmq_random"], "--num-steps"),
+    # baseline-improvement variants (GRU), see docs README "baseline calibration"
+    "gru_e8": ("run_epa_mini", ["--arm", "ppo_gru", "--epochs", "8"], "--num-steps"),
+    "gru_ent003": ("run_epa_mini", ["--arm", "ppo_gru", "--ent", "0.003"], "--num-steps"),
+    "gru_w512": ("run_epa_mini", ["--arm", "ppo_gru", "--arm-kwargs", '{"width": 512}'], "--num-steps"),
+    "gru_lam95": ("run_epa_mini", ["--arm", "ppo_gru", "--lam", "0.95"], "--num-steps"),
+    "gru_gamma995": ("run_epa_mini", ["--arm", "ppo_gru", "--gamma", "0.995"], "--num-steps"),
+    "gru_ent02": ("run_epa_mini", ["--arm", "ppo_gru", "--ent", "0.02"], "--num-steps"),
+    "tf_gru": ("run_epa_mini", ["--arm", "tf_gru"], "--num-steps"),
+    "tf_h16": ("run_epa_mini", ["--arm", "tf", "--arm-kwargs", '{"hist": 16}'], "--num-steps"),
+    "cnn_gru": ("run_epa_mini", ["--arm", "cnn_gru"], "--num-steps"),
+    "tf_gru_ent003": ("run_epa_mini", ["--arm", "tf_gru", "--ent", "0.003"], "--num-steps"),
+    "tf_gru_d128": ("run_epa_mini", ["--arm", "tf_gru", "--arm-kwargs", '{"d": 128, "layers": 3}'], "--num-steps"),
+    "gru_base": ("run_epa_mini", ["--arm", "ppo_gru"], "--num-steps"),
     "chunkppo_k1": ("run_epa_chunkppo", ["--k", "1", "--hist", "4"], "--cycles"),
     "chunkppo_k4": ("run_epa_chunkppo", ["--k", "4", "--hist", "4"], "--cycles"),   # informational (Phase 3)
 }
