@@ -23,3 +23,5 @@ kaggle_logs/
 # arc-proposals runs: checkpoints are large and resumable state only
 output/arc_proposals/**/checkpoints/
 kaggle_kernel_arc_*/
+.jaxcache/
+output/phase1_scratch/

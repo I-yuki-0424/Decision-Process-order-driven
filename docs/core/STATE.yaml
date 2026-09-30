@@ -986,6 +986,38 @@ tasks:
       Execution plan: local Docker GPU: latency sweeps (output/arc_proposals/latency/), structure-input planning + prediction studies
       (output/arc_proposals/structure_input/); Kaggle (kernel bfloat16/arc-ac-litmus, T4x2, 2 concurrent jobs): actor-critic litmus, lr 3e-4 vs 1e-3.
 
+  - id: "TASK-20260930-017-phase1-model-families"
+    created_at: "2026-09-30T18:40:00Z"
+    status: "in_progress"
+    description: >
+      Operator request (2026-09-30, unattended ~20 h window, Kaggle GPU quota exhausted so local RTX 3060 Ti via Docker dpod-local,
+      operator asks for ~10k-100k training steps): re-run the main model families under the roadmap-v10 evaluation rules on
+      Craftax-Classic with the 1345-d symbolic observation and uncapped episodes: (1) pure-RL PPO baselines (MLP and GRU),
+      (2) pure Transformer policy, (3) Transformer with Idea-6 world-model features for step-by-step action choice (no noop
+      future), (4) the ChunkPPO series (chunk_ppo.py) at k=1 (Phase-1 step-by-step) plus k=4 as an informational point.
+      Phase 1 goal: the step-by-step reasoning model should clearly beat pure RL.
+    spec_ref: "docs/core/MASTER_GUIDANCE.xml (roadmap v10, current_phase=1); docs/experiments/2026-09-30_phase1_model_families/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_epa_harness"
+    result: null
+    blockers: []
+    notes: >
+      PROTOCOL LABEL: budgets of 10k-100k env steps (operator's request) are NOT EP-A (limit is exactly 1M; 10 seeds) and can never close
+      a gate or be quoted next to paper numbers. They are labelled 'EP-A-mini': same env/observation/evaluator/policy/checkpoint/tuning
+      rules as EP-A, but a reduced training budget. Gate ids are not claimed for them.
+      CRITICAL-REVIEW OBJECTIONS (recorded before implementing):
+      (1) At k=1, delta=0 the ChunkPPO series reduces to PPO with a small Transformer actor over [state, history] tokens: its
+          distinguishing parts (chunking, latency compensation, forecast arms, hindsight distance head) are inactive or, for forecast
+          arms, cannot add information (DESIGN.md issue 4). Phase-1 ChunkPPO is therefore NOT a distinct hypothesis from arm (2); it is
+          run as the actual chunk_ppo.py code path for fidelity, and k=4 is recorded as informational (Phase 3, locked).
+      (2) A world model that is a deterministic function of the same observation adds no information to the policy; any gain can only
+          come from representation shaping by the auxiliary loss / sample efficiency. Controls added: frozen random-init WM with identical
+          architecture (arm 3 vs arm 2 vs random-WM control). WM is trained only from executed transitions (one action per state, P4) and
+          its data is the policy's own rollout (already counted in the budget, P10). Untaken-action predictions are extrapolation.
+      (3) 10k-100k steps is far below the 1M reference budget; differences between arms may be within seed noise. Reported with
+          all seeds and SE; no claim beyond what the seeds support.
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
