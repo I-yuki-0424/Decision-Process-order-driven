@@ -1,4 +1,4 @@
-<master_guidance version="v9">
+<master_guidance version="v10">
 
   <role>
     You are a senior software engineer operating autonomously in this repository.
@@ -26,6 +26,125 @@
     </hardware_targets>
   </implementation_environment>
 </goal>
+
+  <!-- ===================================================================== -->
+  <!-- ROADMAP: added in v10. Scores are measured on Craftax-Classic.        -->
+  <!-- ===================================================================== -->
+  <roadmap current_phase="1" updated="2026-09-30">
+
+    <rule id="scope">Only the gates of current_phase are pursued. Later phases are locked. Their numbers are fixed now so that they cannot be adjusted after results are seen.</rule>
+    <rule id="quoting">Reference values are quoted from the cited papers. Do not edit them from memory; changing one requires a new citation. A value with basis="derived" shows its formula. A value with basis="to_measure" is missing and must not be invented (see report_rule under context).</rule>
+    <rule id="phase_advance">A phase is closed only when every gate in it passes under evaluation_protocol EP-A. Record the gate id and the quoted numbers in the task's STATE.yaml result field.</rule>
+
+    <definitions>
+      <metric id="reward_pct">Mean over evaluation episodes of (distinct achievements unlocked in the episode / 22) x 100, counted with the masked_achievements() code path. The +/-0.1 health terms are excluded, as in Dedieu et al. 2025, footnote 1 (R = arithmetic mean of the achievement success rates).</metric>
+      <metric id="score_pct">S = exp( (1/22) * sum_i ln(1 + s_i) ) - 1, where s_i in [0,100] is the percentage of episodes in which achievement i was unlocked at least once (Hafner 2021; same formula as Dedieu et al. 2025, footnote 1).</metric>
+      <relation id="surpass">Our mean minus 2 x SE (over 10 seeds) is greater than the reference mean, on every metric listed for the gate.</relation>
+      <relation id="comparable">Our mean is at least 0.9 x the reference mean, on every metric listed for the gate. The factor 0.9 is a design choice of this document, not taken from a paper.</relation>
+      <precondition id="metric_check">Before the first gate run, verify by reading the code that the repository's crafter_score implements score_pct and that reward_pct is computed from achievement counts, not from the environment return. Record the result. Numbers from the internal return field are not reward_pct.</precondition>
+    </definitions>
+
+    <evaluation_protocol id="EP-A" role="gating; the only protocol whose numbers may be compared with papers">
+      <item id="env">Craftax-Classic (Matthews et al. 2024) with its default episode length, reward and dynamics unchanged. No episode cap such as T=250.</item>
+      <item id="observation">Declare exactly one input modality per run: the 63x63x3 image or the 1345-d symbolic observation. The policy input may be derived only from that observation and the agent's own past observations and actions. The 39-d summary adapters (CraftaxObsAdapter, CraftaxFutureAdapter) are internal and are not EP-A observations.</item>
+      <item id="budget">At most 1,000,000 environment steps in total, the budget used by the reference papers. Count every step in every environment copy: policy training, passive or reference-action data for a world model, and data collected offline to train any auxiliary predictor. Evaluation episodes are not counted but must never be used for training or selection.</item>
+      <item id="seeds">10 independent training runs. Report mean and standard error over seeds, and list every seed's value.</item>
+      <item id="policy">Stochastic (sampled) policy. Headline number = mean over the first episode of each of at least 256 fresh environments per seed (metric protocol v2). A greedy result may be reported separately and never counts toward a gate.</item>
+      <item id="checkpoint">Final checkpoint at the budget limit only. No best-checkpoint or best-seed selection.</item>
+      <item id="evaluator">Post 2026-09-29 auto-reset fix (masked_achievements()). Any result produced before that fix is ineligible.</item>
+      <item id="tuning">Hyperparameters are tuned on tuning seeds that are disjoint from the evaluation seeds. Our model and our reimplemented baseline receive the same tuning budget. Report the budget.</item>
+      <item id="parameters">Report params_total (everything trained: actor, critic, world model, tokenizer) and params_deployed (modules used to choose actions). Parameter comparisons use params_total.</item>
+    </evaluation_protocol>
+
+    <evaluation_protocol id="EP-B" role="internal screening only">
+      <item id="setting">Existing internal setting: 39-d summary adapter, T=250, actor-critic PPO learner, 49.9k episodes, 256 evaluation episodes, sampled policy, at least 8 seeds.</item>
+      <item id="use">EP-B decides which candidates deserve a 1M-step EP-A run. EP-B numbers are never quoted next to paper numbers and never close a gate.</item>
+      <item id="anchor">Internal tuned base at lr 1e-3: return 4.36 +/- 0.16 (crafter_score 4.8). Leaked-signal arms (oracle_act, oracle) are upper-bound controls only.</item>
+    </evaluation_protocol>
+
+    <references>
+      <!-- Primary table: Dedieu et al. 2025 (Google DeepMind), "Improving Transformer World Models for Data-Efficient RL", arXiv 2502.01591 v3, Table 1. Craftax-classic, 1M env steps, image observation, 10 seeds, mean (SE). -->
+      <ref id="MFRL_4M_reimpl" kind="pure_rl" source="Dedieu 2025, Table 1 (their implementation of the Moon et al. 2024 baseline)" reward_pct="47.40" reward_se="0.58" score_pct="10.71" score_se="0.29" params="4.0M" env_steps="1M" used_by="G1.0,G1.1"/>
+      <ref id="MFRL_best" kind="pure_rl" source="Dedieu 2025, Table 1 (PPO, Impala CNN + GRU)" reward_pct="55.49" reward_se="1.33" score_pct="16.77" score_se="1.11" params="55.6M" env_steps="1M" used_by="G1.2,G3.1,G3.2"/>
+      <ref id="MFRL_4M_published" kind="pure_rl" source="Moon et al. 2024 as quoted in Dedieu 2025, Table 1" reward_pct="46.91" reward_se="2.41" score_pct="15.60" score_se="1.66" params="4.0M" env_steps="1M" caveat="C1" used_by="reference_only"/>
+      <ref id="DreamerV3" kind="model_based" source="Hafner et al. 2023 as quoted in Dedieu 2025, Table 1" reward_pct="53.2" reward_se="8" score_pct="14.5" score_se="1.6" params="201M" env_steps="1M" caveat="C1" used_by="reference_only (dominated by MFRL_best)"/>
+      <ref id="MBRL_fast" kind="model_based" source="Dedieu 2025, Table 1 (transformer world model, Dyna with warmup, nearest-neighbour tokenizer, block teacher forcing)" reward_pct="67.42" reward_se="0.55" score_pct="27.91" score_se="0.63" params="58.5M" env_steps="1M" used_by="reference_only (aspiration beyond Phase 1)"/>
+      <ref id="MBRL_slow" kind="model_based" source="Dedieu 2025, Table 1 (about 2 days of training)" reward_pct="69.66" reward_se="1.20" score_pct="31.77" score_se="1.43" params="58.5M" env_steps="1M" used_by="reference_only"/>
+      <ref id="IRIS_DeltaIRIS" kind="model_based" source="Dedieu 2025, Table 1" reward_pct="25.0 (IRIS); 35.0 (Delta-IRIS)" score_pct="6.66 (IRIS); 9.30 (Delta-IRIS)" caveat="C1" used_by="reference_only (dominated by MFRL_best)"/>
+      <ref id="CuriousReplay" kind="model_based" source="Kauvar et al. 2023 as quoted in Dedieu 2025, Table 1" reward_pct="not reported" score_pct="19.4" score_se="1.6" caveat="C1" used_by="reference_only (score only)"/>
+      <ref id="Human_expert" kind="human" source="Dedieu 2025, Table 1 (Crafter, 100 episodes, 5 experts)" reward_pct="65.0" reward_se="10.5" score_pct="50.5" score_se="6.8" caveat="C1" used_by="reference_only (beyond Phase 4)"/>
+      <ref id="PPO_1B" kind="pure_rl" source="Matthews et al. 2024 (Craftax), abstract" reward_pct="about 90 of optimal reward" env_steps="1B" used_by="excluded from gates: budget is 1000x larger than EP-A"/>
+      <ref id="SPRING_GPT4" kind="llm" source="Wu et al. 2023 (SPRING), arXiv 2305.15486, Table 2" score_pct="27.3" score_se="1.2" return="12.3" return_se="0.7" env="Crafter with text scene description" training_steps="0" params="undisclosed" caveat="C1,C2" used_by="G2.1,G4.1"/>
+      <derived id="SPRING_reward_pct" basis="derived" formula="12.3 / 22 x 100" value="55.9" caveat="C3"/>
+
+      <caveat id="C1">Marked * in the source table or measured on Crafter, not Craftax-Classic. The source states these may not exactly match Craftax-Classic.</caveat>
+      <caveat id="C2">The LLM agent reads a text description of the scene, not the image or symbolic observation. Parameter count of GPT-4 is undisclosed, so the parameter condition of Phase 2 cannot be checked against it.</caveat>
+      <caveat id="C3">Crafter return includes the +/-0.1 health terms, so the derived reward_pct is approximate.</caveat>
+      <excluded>AdaRefiner at 1M steps (14.3 / 10.1 in one secondary source, 15.8 / 12.3 in another) and Reflexion score (11.7 vs 12.8) are reported inconsistently across secondary sources. They are not used in any gate until read from the primary paper.</excluded>
+    </references>
+
+    <prohibited>
+      <item id="P1">No fabricated, formula-generated, hard-coded or copy-pasted metrics. Every number in a result file comes from an executed rollout. A constant field must not appear in a result file (see output/quarantine audit, STATE.yaml TASK-20260928-015).</item>
+      <item id="P2">No untrained, random or freshly initialised weights presented as trained. A checkpoint must come from a logged training run.</item>
+      <item id="P3">No simulator access at decision time: no oracle_act, no true future state, no true noop future, no simulator branching, no environment-state copy or reset used to look ahead. Such arms may appear only as labelled upper-bound controls and never count toward a gate.</item>
+      <item id="P4">No counterfactual labels from simulator branching in EP-A. Any auxiliary predictor, for example an action-reward model, is trained only from transitions the agent actually executed, one action per state, and its data collection is charged to the 1M budget.</item>
+      <item id="P5">No hand-specified game knowledge in gate runs: no achievement hierarchy, tech-tree, hand-written resource-effects table, or reward shaping beyond the environment reward. Moon et al. 2024 excluded external achievement knowledge from its baseline for this reason.</item>
+      <item id="P6">No use of results produced before the 2026-09-29 auto-reset fix, and no use of the quarantined or deleted files (crafter scores of 54-91, the Run-Seq #005 table, the 162-row grid search table).</item>
+      <item id="P7">No mixing of protocols: EP-B numbers are not compared with paper numbers, and internal return is not reported as reward_pct.</item>
+      <item id="P8">No training, tuning or checkpoint selection on evaluation seeds or evaluation episodes. No best-seed or best-window reporting; all seeds are listed.</item>
+      <item id="P9">No unequal effort: the reimplemented baseline receives the same tuning budget, environment steps and evaluator as the proposed model.</item>
+      <item id="P10">No uncounted interaction: every environment step, including passive world-model data, reference-action ticks and offline label collection, counts against the 1M budget.</item>
+      <item id="P11">No parameter-count shortcuts: params_total includes every trained module, and the gate uses params_total.</item>
+      <item id="P12">No numbers quoted from a paper without its source id and caveat ids from the references block.</item>
+    </prohibited>
+
+    <phase id="1" status="active" goal="Surpass pure RL in a structure where actions are chosen step by step (k = 1)">
+      <gate id="G1.0" protocol="EP-A" purpose="pipeline calibration">
+        Our reimplemented pure-RL baseline reaches at least 0.9 x MFRL_4M_reimpl on both metrics: reward_pct at least 42.7 and score_pct at least 9.6 (basis="derived"). If it does not, no Phase 1 comparison is valid.
+      </gate>
+      <gate id="G1.1" protocol="EP-A" relation="surpass" reference="MFRL_4M_reimpl">
+        reward_pct above 47.40 and score_pct above 10.71, with params_total at most 4.0M.
+      </gate>
+      <gate id="G1.2" protocol="EP-A" relation="surpass" reference="MFRL_best" closes_phase="true">
+        reward_pct above 55.49 and score_pct above 16.77. params_total is reported (reference: 55.6M). This also dominates DreamerV3, IRIS and Delta-IRIS.
+      </gate>
+      <gate id="G1.S" protocol="EP-B" purpose="screening before spending 1M-step runs">
+        A candidate advances to EP-A only if its EP-B return is at least 4.9 (tuned base 4.36 plus 0.5, about 3 sd of base seeds) at two learning rates. The matching crafter_score of 5.8 is a linear interpolation between base and oracle_act and is unverified.
+      </gate>
+      <note>The EP-A gates have not been run. The internal EP-B numbers (return 4.36 base) are on a different observation, episode cap and budget, and no conversion to reward_pct is valid.</note>
+    </phase>
+
+    <phase id="2" status="locked" goal="Same score as an LLM-based model with fewer parameters">
+      <gate id="G2.1" protocol="EP-A" relation="comparable" reference="SPRING_GPT4">
+        score_pct at least 24.6 and reward_pct at least 50.3 (both basis="derived", 0.9 x 27.3 and 0.9 x 55.9), with params_total at most 1/100 of the parameter count of a disclosed-size LLM.
+      </gate>
+      <gate id="G2.2" basis="to_measure">
+        Measure an open-weight LLM agent (prompted, and separately RL-fine-tuned if used) under the same evaluator and record its parameter count, score_pct and reward_pct. G2.1 is binding only against a measured, disclosed-size LLM. Values: missing.
+      </gate>
+    </phase>
+
+    <phase id="3" status="locked" goal="Generate a whole chunk at once at a level comparable to sequential pure RL">
+      <gate id="G3.1" protocol="EP-A" relation="comparable" reference="MFRL_best" commit_length="4">
+        Chunk of k = 4 actions committed without intermediate observations: reward_pct at least 49.9 and score_pct at least 15.1 (basis="derived", 0.9 x 55.49 and 0.9 x 16.77), with the Phase 1 model's parameters and budget.
+      </gate>
+      <gate id="G3.2" protocol="EP-A" relation="comparable" reference="MFRL_best" commit_length="8">
+        Same thresholds at k = 8. Longer chunks are recorded but do not gate until Phase 3 is complete.
+      </gate>
+      <note>Whether exogenous randomness in the environment allows k = 8 to reach the thresholds is unverified.</note>
+    </phase>
+
+    <phase id="4" status="locked" goal="Generate at once at a level comparable to an LLM-based model">
+      <gate id="G4.1" protocol="EP-A" relation="comparable" reference="SPRING_GPT4" commit_length="8">
+        score_pct at least 24.6 and reward_pct at least 50.3 at k = 8, with the parameter ratio required in G2.1.
+      </gate>
+    </phase>
+
+    <reporting>
+      <rule>Every result file records: phase, gate_id, protocol, git commit, evaluator commit, observation modality, env_steps_total including auxiliary data, seeds, per-seed reward_pct and score_pct, their mean and SE, params_total, params_deployed, tuning budget.</rule>
+      <rule>The validation_commands for a roadmap task are supplied by the operator. No default script is assumed here.</rule>
+    </reporting>
+
+  </roadmap>
 
   <context>
     <core_file>docs/core/STATE.yaml is the only file under docs/core/. At session start, read only the document metadata and the task entry or entries relevant to the current task. Do not load, parse, or summarize unrelated task entries unless required to resolve a dependency, status conflict, or explicitly requested audit.</core_file>
