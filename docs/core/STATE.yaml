@@ -1032,6 +1032,32 @@ tasks:
       (3) 10k-100k steps is far below the 1M reference budget; differences between arms may be within seed noise. Reported with
           all seeds and SE; no claim beyond what the seeds support.
 
+  - id: "TASK-20261001-018-mlflow-local-management"
+    created_at: "2026-10-01T00:00:00Z"
+    status: "done"
+    description: >
+      Local MLflow management (SQLite file store, no server/cloud) so past runs/results can be aggregated per architecture
+      without re-reading the LaTeX notes. Operator condition: report if the DB becomes extremely large (then Cloudflare D1).
+    spec_ref: null
+    validation_commands:
+      - "python -m unittest tests.test_mlflow_ingest"
+      - "python scripts/pre_commit_ban_check.py"
+      - "python scripts/mlflow_ingest.py --root <checkout with smudged output/>"
+      - "python scripts/mlflow_report.py size"
+    result: >
+      PASS. scripts/mlflow_ingest.py (idempotent, schema-detecting: phase1 / candidate-result / latency) + scripts/mlflow_report.py
+      (summary / arch / size / ui) + tests/test_mlflow_ingest.py (3 tests OK). Backfill of the existing output/: 1604 runs
+      (122 phase1 files -> 122 aggregates + per-seed children, 201 candidate results, 719 latency), 409,778 metric rows, store 0.125 GiB
+      (below the 1 GiB report threshold -> NO Cloudflare D1 needed). 108 json files of other schemas (replays, benchmarks, ...) are skipped
+      and counted. Values are copied from the source files, nothing recomputed. Impact check: only new files plus .gitignore/requirements.txt/
+      scripts/README.md edits; no existing symbol modified, scip-neo4j checks not needed.
+    blockers: []
+    notes: >
+      Latency per-update curves are trimmed to 6 headline columns x <=100 points (first full ingest kept 25 columns: 357 MB, 1.26M rows).
+      Source files remain the source of truth; `source_key` tag maps every run back to its file. Oracle arms are tagged oracle_control=true
+      (upper-bound controls, never gate evidence, P3). Duplicate Phase-1 dirs (*_all, *_derived) are ingested as-is and merged only in the
+      report. The worktree's output/ is Git-LFS pointers, so ingestion used the main checkout's output/ via --root.
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
