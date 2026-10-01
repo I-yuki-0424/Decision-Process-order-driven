@@ -1182,6 +1182,11 @@ tasks:
           100k-step check before any tuning result is trusted (P1/P2: no result that was not produced by the declared pipeline).
       (4) Kaggle TPU and GPU quotas are separate; the 2-concurrent-GPU-session limit from earlier notes may not apply, but the TPU session rule must be checked.
       (5) ADR-002 authorises Kaggle runs under its conditions; the operator's message of 2026-10-01 additionally authorises up to ~20 h of TPU time for TASK-020 tuning only.
+      PROGRESS 2026-10-02 01:15 JST: trials 0-9 (60 jobs, ~5.3 h, 0 failures) done; throughput was ~2x better than estimated (tf_gru 480-500 s/job with 2 workers), so the
+          search was extended to 20 trials (same RNG stream, first 10 points unchanged; decision taken BEFORE looking at results, tuning stops starting jobs 06:40 JST).
+          NOISE FINDING: runs are not bit-reproducible (same config+seed: cnn_gru seed 1000 29.0 earlier vs 36.9 now; tf_gru default 41.4/43.1 earlier vs 34.1/34.0 now; final
+          10-seed tf_gru spread 29.5-45.2). A 2-seed tuning mean has SE ~2.5 reward_pct, so selection carries a winner's-curse bias, equal for all three arms; the final
+          10-seed run on fresh seeds is the unbiased estimate. Not a code change (diff cb35899..HEAD only adds arms).
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
