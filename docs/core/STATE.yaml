@@ -1086,6 +1086,91 @@ tasks:
     blockers:
       - "Operator: restart `mlflow ui` with --backend-store-uri sqlite:///mlflow_local/mlflow.db (PIDs 3564/13696 hold the empty root mlflow.db; not killed by the agent)."
 
+  - id: "TASK-20261001-020-g10-symbolic-baseline-tuning"
+    created_at: "2026-10-01T12:00:00Z"
+    status: "queued"
+    description: >
+      Operator decision (2026-10-01): image observations (63x63x3) are rejected for now (not feasible with current compute; revisit if more compute
+      becomes available). Route 1 only: declare the 1345-d symbolic modality and tune the pure-RL baseline (ppo_gru) at the 1M-step budget until
+      G1.0 (reward_pct >= 42.7 and score_pct >= 9.6, EP-A) is met or the tuning budget is exhausted. Then give tf_gru the SAME tuning budget (P7/P9)
+      and report the ladder tuned GRU -> CNN+GRU -> TF+GRU (10 seeds each, params_total).
+    spec_ref: "docs/core/MASTER_GUIDANCE.xml roadmap G1.0/G1.1; docs/experiments/2026-09-30_phase1_model_families/README.md; scripts/run_phase1_sweep.py"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_epa_harness"
+      - "PROPOSED, operator to confirm: python scripts/run_phase1_sweep.py tune --steps 1000000 --grid '<points>'  (tuning seeds 1000-1002, disjoint from 42-51/424-433)"
+    result: ""
+    blockers:
+      - "Depends on TASK-20261001-021 (Kaggle TPU execution + checkpointing). Not started; operator said 'do not execute yet'."
+      - "Trial count is set from the TPU smoke-test throughput (TASK-021) so that equal budgets for ppo_gru, cnn_gru and tf_gru fit in <= 18 h TPU (90% of 20 h) plus local time; the agent records it here before the first tuning run."
+      - "Operator waived grid/batch-size requirements (2026-10-01); agent proposes the space below, same sampled points for every arm."
+    notes: >
+      OPERATOR APPROVAL (2026-10-01): plan approved (tune ppo_gru at 1M steps -> same budget for tf_gru/cnn_gru -> 10-seed ladder). Tuning compute: remaining
+      ~20 h Kaggle TPU quota (see TASK-021) to reduce local execution time. Model Idea4_O01_D01_S00 (tfgru64x2w256) was given the proper name "Truck" by the operator.
+      ASSUMPTIONS / CRITICAL REVIEW (recorded before implementing):
+      (1) Why G1.0 failed is probably tuning, not architecture: the previous grid was only {(16x32),(64x64)} x lr {3e-4,1e-3,3e-3}, selected at 100k steps and
+          applied at 1M. At 100k MLP == GRU, at 1M GRU wins by 3.4, i.e. a 100k selection is not a 1M selection. epochs=4, minibatches=4, ent=0.01, lam=0.8,
+          gamma=0.99 were never tuned for the GRU in the final protocol (gru_e8 / gru_ent* / gru_lam95 / gru_gamma995 variants exist as 100k exploratory arms).
+          Proposal: tune at the full 1M budget on tuning seeds, with epochs, minibatches, ent, lam, gamma, num_envs x rollout and lr in the search space.
+      (2) Modality caveat: the paper baselines use image observations. A symbolic baseline reaching 42.7/9.6 shows the pipeline is calibrated for THIS
+          modality only; G1.1/G1.2 comparisons to paper numbers must carry that caveat (symbolic input may be easier).
+      PROPOSED SEARCH SPACE (not yet run): fixed-seed random search, identical sampled points for every arm, 2 tuning seeds (1000, 1001) per point at 1M steps:
+          (num_envs, rollout) in {(16,32),(64,64),(128,64),(256,32)}; lr log-uniform [3e-4, 3e-3]; epochs {4,8}; minibatches {4,8}; ent {0.003,0.01,0.02};
+          lam {0.8,0.95}; gamma {0.99,0.995}; selection by mean tuning-seed reward_pct + score_pct (both must be reported; selection rule fixed before running).
+      (3) Fairness: the tuning budget (trials x seeds x steps) given to ppo_gru must be identical for tf_gru and every other arm in the final comparison.
+      (4) World-model finding for the record: one-step WM features (executed-action training, stop-gradient) == frozen random WM at 100k and 1M. This is a
+          null result for that design, not proof that world models cannot help; WM arms are parked for Phase 1.
+      (5) G1.1 needs BOTH reward_pct > 47.40 and score_pct > 10.71 (+ params_total <= 4.0M); tf_gru is at 39.2 / 11.5. Tuned outcome is not guaranteed; G1.2 (55.49/16.77) is a long shot at 0.45M params.
+
+  - id: "TASK-20261001-021-kaggle-tpu-tuning-checkpoints"
+    created_at: "2026-10-01T13:00:00Z"
+    status: "queued"
+    description: >
+      Operator request (2026-10-01): register only, DO NOT EXECUTE YET. Run the TASK-020 tuning sweep on the remaining ~20 h of Kaggle TPU quota to cut
+      local execution time, with enough checkpointing that nothing is lost when a Kaggle session ends, is preempted or hits its runtime cap.
+      Work items: (a) a Kaggle kernel runner for scripts/run_epa_mini.py jobs (arm x config x seed, role=tune) on the TPU backend; the existing
+      build_kaggle_kernel.py / phase2_runner.py path runs the OLD benchmark, not the Phase-1 harness; (b) TPU throughput smoke test and go/no-go;
+      (c) resumable job queue + mid-run checkpoints; (d) fetch + ingest + cleanup procedure.
+    spec_ref: "TASK-20261001-020; docs/DECISIONS/ADR-002 (conditions: checkpoint every 100K steps, resumable, 24h limit per config); scripts/run_phase1_sweep.py; src/pipeline/epa_harness.py; scripts/kaggle_watch_fetch.py"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_epa_harness   # plus a new test: resume-from-checkpoint reproduces the uninterrupted run's final metrics for the same seed"
+      - "PROPOSED, operator to confirm: TPU smoke = run_epa_mini --arm tf_gru --steps 100000 on Kaggle TPU vs local GPU, compare steps/s and final reward_pct"
+    result: ""
+    blockers:
+      - "Not started by operator order (register only)."
+    notes: >
+      OPERATOR FACTS (2026-10-01): hardware = Kaggle TPU v5e-8 (8 chips), ~20 h quota remaining. Because of usage constraints, parallel use of the 8 chips
+      may NOT be possible: plan for ONE job at a time on ONE chip (jax.devices()[0]); multi-chip parallelism is an optional later bonus, not an assumption.
+      Operator has no requirements on batch size / rollout shape: the agent chooses them inside the search space of TASK-020 and records them.
+      CHECKPOINT REQUIREMENTS (the point of this task):
+      1. Per-job mid-run checkpoint every 100K env steps (ADR-002) containing: params, optimiser state, RNG key, env state (or a reset-and-replay rule recorded
+         as a deviation), recurrent carry / GRU state, update counter, env_steps counter. Resume must start at the stored env_steps so the budget count stays
+         exact (P10, <= 1,000,000 steps in total, no double counting). Keep only the latest 2 checkpoints per job (~4 MB each) to stay far below Kaggle's output cap.
+      2. Per-job result JSON written the moment a job finishes, to /kaggle/working, with the roadmap <reporting> fields; the queue skips jobs whose result
+         exists (run_phase1_sweep.py already skips existing outputs; mirror that).
+      3. Chunk the queue into kernel versions sized well below the per-session cap (verify the cap on the quota page; do not assume it) so that a killed
+         session loses at most one chunk's in-flight job; checkpoints of unfinished jobs are shipped back in the kernel output and re-supplied to the next
+         version as a Kaggle dataset (embedding pickles in the notebook is rejected by Kaggle, see kaggle-ops notes).
+      4. Verify (do not assume) that /kaggle/working contents survive a session that ends on timeout/stop; if not, shorter chunks are mandatory.
+      5. Fetch results only (`scripts/kaggle_watch_fetch.py --file-pattern`), never re-download all outputs every minute. Then run
+         `python scripts/mlflow_ingest.py <files>` IN THIS CHECKOUT and check `mlflow_report.py summary` (CLAUDE.md pitfalls). Tuning runs use role=tune,
+         tuning seeds 1000+ (disjoint from 42-51 / 424-433), protocol EP-A tuning, and are never quoted as results.
+      6. Budget ledger: log TPU wall-clock per job and the running total against the 20 h quota; stop submitting at 90% and report.
+      CRITICAL REVIEW / RISKS (recorded before implementing):
+      (1) The model is tiny (0.45M params) and PPO uses 16-64 envs per update. TPUs pay off at large batch; a small policy on one TPU core can be SLOWER
+          than the local RTX 3060 Ti (compile time + latency-bound scan). Hence the smoke test is a hard go/no-go: if TPU steps/s is not clearly better than
+          local GPU (or than a Kaggle T4, which was ~4x a shared 3060 Ti), report it and stop instead of burning quota.
+      (2) Single-chip consequence: with one v5e chip and these tiny kernels, expect roughly local-GPU-class throughput, not an 8x gain; the main benefit
+          is freeing the local machine. Budget the 20 h as sequential single-chip time. If the smoke test shows TPU slower than the local GPU, the task
+          still has value only as offload; report the numbers and let the operator decide (do not silently continue). Optional: seeds with identical shapes
+          can be vmapped on one chip if the smoke test shows idle capacity (lr/seed vmap only; different rollout shapes cannot be batched).
+      (3) The Phase-1 harness has only ever run on CUDA; TPU-specific issues are possible (dtype defaults, XLA memory settings: TF-GRU needed a memory fraction
+          >= 0.4 locally, the 1345-d x history carry layouts, lax.scan compile time). Results from a TPU run must match the CUDA run within seed noise on a
+          100k-step check before any tuning result is trusted (P1/P2: no result that was not produced by the declared pipeline).
+      (4) Kaggle TPU and GPU quotas are separate; the 2-concurrent-GPU-session limit from earlier notes may not apply, but the TPU session rule must be checked.
+      (5) ADR-002 authorises Kaggle runs under its conditions; the operator's message of 2026-10-01 additionally authorises up to ~20 h of TPU time for TASK-020 tuning only.
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >

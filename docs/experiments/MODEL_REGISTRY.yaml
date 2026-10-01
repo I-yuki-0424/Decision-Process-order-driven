@@ -32,7 +32,8 @@ models:
     arms: ["tfgru64x2w256"]
     description: "Transformer tile encoder + GRU-256 memory, PPO (Phase-1 best at 1M steps)"
     status: provisional
-    proper_name: null
+    proper_name: "Truck"
+    proper_name_by: operator   # named by the operator 2026-10-01
   Idea4_O01_D01_S01:
     arms: ["tfgru64x2w256+wm_trained"]
     description: "tf_gru + trained Idea-6 world-model features"
