@@ -68,7 +68,7 @@ def section_phase(df, exp):
         return None
     key = ["tag.arm", "tag.protocol", "param.seed.train", "reward_pct", "score_pct", "tag.git_commit", "param.train.learning_rate",
            "param.train.rollout_length"]
-    dirs = df.groupby(key)["tag.source_dir"].agg(lambda x: sorted(set(x))).rename("dirs")  # same file copied into several dirs
+    dirs = df.groupby(key, dropna=False)["tag.source_dir"].agg(lambda x: sorted(set(x))).rename("dirs")  # same file copied into several dirs
     df = df.drop_duplicates(key).merge(dirs, left_on=key, right_index=True)
     rows = []
     grp = ["tag.model_id", "tag.arm", "tag.protocol", "tag.role", "param.train.learning_rate", "param.train.rollout_length",

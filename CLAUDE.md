@@ -48,6 +48,11 @@ Local MLflow (SQLite `mlflow_local/`, gitignored) indexes result files; the file
 - Parameters use the official names in `docs/experiments/MLFLOW_PARAM_NAMES.yaml` (`train.learning_rate`, not `lr`/`LR`); add new ones there before the run that uses them.
 - Seeds: train 42, test 0424 (stored as 424); replicate k = 42+k / 424+k. Tuning seeds disjoint from 42-51 and 424-433.
 - Keep logs minimal (final scalars, <= 50 curve points, no artifacts). Record every failed/interrupted run with `mlflow_ingest.py --record-failure ...`; such runs are never aggregated or quoted as results.
+- **Pitfalls (a past mistake left Phase-1 results invisible):**
+  - `mlflow_local/` is gitignored, so a store built in a worktree or another checkout does not exist elsewhere. After producing or pulling results, run the ingest **in the checkout being used** (`output/` must be smudged LFS, not pointers) and confirm with `mlflow_report.py summary`. A STATE.yaml "backfilled" note is not proof the store exists here.
+  - Always pass the store explicitly: `mlflow ui --backend-store-uri sqlite:///mlflow_local/mlflow.db`. A bare `mlflow ...` or `sqlite:///mlflow.db` uses/creates an empty `./mlflow.db` at the repo root (gitignored) and looks like "nothing was recorded". Never ingest into it.
+  - New result arms: register them in `MODEL_REGISTRY.yaml` (provisional) before ingesting; check `summary` shows no `UNREGISTERED` phase-1 rows. Registry edits need `rm -rf mlflow_local` + re-ingest.
+  - In pandas aggregation code (`mlflow_report.py`), use `groupby(..., dropna=False)`: arms lack some param columns (e.g. ChunkPPO has no `train.rollout_length`), and the default silently drops those rows. After changing the report, check every arm in the registry appears (compare the run count per `model_id` with the table).
 - `python scripts/mlflow_report.py summary|arch NAME|size`. If the store reaches 1 GiB, report it to the operator (next step: Cloudflare D1, not on your own).
 
 ### Dependency impact checks (scip-neo4j MCP server)

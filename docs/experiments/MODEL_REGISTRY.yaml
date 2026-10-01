@@ -58,3 +58,39 @@ models:
     description: "ChunkPPO, commit length k=1, history 4 (latency/goal-chunking line; reduces to PPO + small Transformer at k=1)"
     status: provisional
     proper_name: null
+  # --- exploratory 100k tuning arms (tune_100k / tune_100k_explore); added provisionally when Phase-1 results were first ingested ---
+  Idea4_O01_D02_S00:
+    arms: ["tf64x2h0"]
+    description: "tf64x2h4 with history length 0 (ablation: no action history)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D03_S00:
+    arms: ["tf128x3h4"]
+    description: "tf64x2h4 scaled to d=128, 3 layers (size ablation)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S00:
+    arms: ["tf64x2h4+aux0.1"]
+    description: "tf64x2h4 + auxiliary loss, aux_coef=0.1 (arm tf_aux)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S01:
+    arms: ["tf64x2h4+aux1"]
+    description: "tf64x2h4 + auxiliary loss, aux_coef=1.0 (arm tf_aux)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S00:
+    arms: ["tf64x2h4+sc"]
+    description: "tf64x2h4 with a separate MLP critic (arm-kwargs critic=mlp)"
+    status: provisional
+    proper_name: null
+  Idea6_O01_D01_S00:
+    arms: ["tf64x2h4+wm_trained+sc+q"]
+    description: "Idea6 wm_trained with separate critic and the 'q' variant (arm tf_wmq; see scripts/run_phase1_sweep.py)"
+    status: provisional
+    proper_name: null
+  Idea6_O01_D01_S01:
+    arms: ["tf64x2h4+wm_random+sc+q"]
+    description: "frozen random-init control for Idea6_O01_D01_S00 (arm tf_wmq_random)"
+    status: provisional
+    proper_name: null

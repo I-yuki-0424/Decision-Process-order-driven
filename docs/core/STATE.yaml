@@ -1065,6 +1065,27 @@ tasks:
       Source files remain the source of truth; duplicate Phase-1 dirs (*_all, *_derived) are ingested as-is and merged only in the report.
       The worktree's output/ is Git-LFS pointers, so ingestion used the main checkout's output/ via --root.
 
+  - id: "TASK-20261001-019-mlflow-phase1-reflect"
+    created_at: "2026-10-01T00:00:00Z"
+    status: "done"
+    description: >
+      Operator reported that Phase-1 results were not visible in MLflow. Build the store in the main checkout and reflect all Phase-1 result files.
+    spec_ref: "docs/core/MASTER_GUIDANCE.xml (<experiment_tracking>)"
+    validation_commands:
+      - "python scripts/mlflow_ingest.py --root output"
+      - "python scripts/mlflow_report.py summary"
+      - "python -m unittest tests.test_mlflow_ingest"
+    result: >
+      PASS. Cause: (1) mlflow_local/ is gitignored, so the TASK-018 backfill (done in a worktree) never reached the main checkout; the store did not exist.
+      (2) The operator's `mlflow ui` was started with --backend-store-uri sqlite:///mlflow.db (repo root; an EMPTY default-URI store, 0 runs), not
+      sqlite:///mlflow_local/mlflow.db. Fix: ingested output/ into mlflow_local/ -> 1482 runs (phase-1: 562, phase-0-legacy: 920), 0.045 GiB.
+      Also fixed scripts/mlflow_report.py section_phase: groupby without dropna=False silently dropped every run with a NaN key column, so the whole
+      Chunk_O01_D00_S00 arm (67 runs; it has no train.rollout_length) was missing from the summary. Registered 7 exploratory 100k arms as provisional
+      (Idea4_O01_D02..D05, Idea6_O01_D01_S00/S01); all Phase-1 runs now have a model_id (remaining UNREGISTERED = phase-0-legacy only).
+      Impact check: no existing source symbol modified (report script + registry + .gitignore only); no locked symbols.
+    blockers:
+      - "Operator: restart `mlflow ui` with --backend-store-uri sqlite:///mlflow_local/mlflow.db (PIDs 3564/13696 hold the empty root mlflow.db; not killed by the agent)."
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
