@@ -45,6 +45,8 @@ def main():
     ap.add_argument("--lam", type=float, default=0.8)
     ap.add_argument("--gamma", type=float, default=0.99)
     ap.add_argument("--eval-envs", type=int, default=256)
+    ap.add_argument("--eval-seed-offset", type=int, default=0, help="evaluation uses seed+offset (MLflow convention: train 42+k -> test 424+k = offset 382)")
+    ap.add_argument("--seed-convention", default="legacy", help="recorded in the result file (legacy | mlflow_v11)")
     ap.add_argument("--protocol", default="EP-A-mini")
     ap.add_argument("--tuning-budget", default="unspecified")
     ap.add_argument("--out", required=True)
@@ -65,10 +67,10 @@ def main():
     for s in seeds:
         t0 = time.time()
         params, curve, train_s = tr.train(s, log_every=a.log_every)
-        ev = tr.evaluate(params, s, a.eval_envs)
+        ev = tr.evaluate(params, s + a.eval_seed_offset, a.eval_envs)
         if not per_seed:
             p_total, p_dep = arm.param_counts(params)
-        row = dict(seed=s, reward_pct=ev["reward_pct"], score_pct=ev["score_pct"], eval_episodes=ev["eval_episodes"],
+        row = dict(seed=s, test_seed=s + a.eval_seed_offset, reward_pct=ev["reward_pct"], score_pct=ev["score_pct"], eval_episodes=ev["eval_episodes"],
                    eval_censored=ev["eval_censored"], eval_mean_length=ev["eval_mean_length"],
                    achievement_rates_pct=ev["achievement_rates_pct"], train_curve_return=curve_summary(curve),
                    train_seconds=train_s, wall_seconds=time.time() - t0)
@@ -78,6 +80,7 @@ def main():
               flush=True)
         record = make_record(arm.name, a.arm, json.loads(a.arm_kwargs), cfg._asdict(), per_seed, a.role, a.protocol,
                              tr.env_steps_total, p_total, p_dep, a.tuning_budget, git_commit())
+        record["seed_convention"] = a.seed_convention
         write_json(a.out, record)
     print(f"DONE reward_pct={record['reward_pct_mean']:.2f}+-{record['reward_pct_se']:.2f} score_pct={record['score_pct_mean']:.2f}+-{record['score_pct_se']:.2f} "
           f"params_total={p_total} deployed={p_dep}")
