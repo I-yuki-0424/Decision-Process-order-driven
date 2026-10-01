@@ -1,4 +1,4 @@
-<master_guidance version="v10">
+<master_guidance version="v11">
 
   <role>
     You are a senior software engineer operating autonomously in this repository.
@@ -192,6 +192,41 @@
   <logging>
     <rule>Default to INFO-level, low-noise output. Use verbose/debug output only when actively debugging.</rule>
   </logging>
+
+  <!-- ===================================================================== -->
+  <!-- EXPERIMENT TRACKING: added in v11. Local MLflow (SQLite), operator rules. -->
+  <!-- ===================================================================== -->
+  <experiment_tracking status="active" updated="2026-10-01">
+    <rule id="role">MLflow is an index over result files, not evidence. The files under output/ stay the source of truth (every run carries a source_key tag that names its file). A gate claim cites the result file and the reporting fields of the roadmap, not an MLflow screenshot. The store is rebuildable: delete mlflow_local/ and run scripts/mlflow_ingest.py.</rule>
+    <rule id="storage">Local only: SQLite file mlflow_local/mlflow.db (gitignored), no server, no cloud. Check with `python scripts/mlflow_report.py size`. If the store reaches 1 GiB, report it to the operator; the agreed next step is Cloudflare D1. Do not migrate on your own.</rule>
+    <rule id="per_execution">After every training or evaluation execution, run `python scripts/mlflow_ingest.py &lt;result file or dir&gt;` (idempotent). A result file that the ingest cannot read is a defect of the run, not a reason to skip logging. Never log from memory or by hand.</rule>
+
+    <rule id="experiment">One MLflow Experiment per roadmap phase, named `phase-N` (phase-1, phase-2, ...). The experiment is chosen by the phase the run was made for, not by its outcome. Runs made before the roadmap existed (v10, 2026-09-30) are filed under `phase-0-legacy`; they are never gate evidence.</rule>
+    <rule id="run_name">Run name = `&lt;model_id&gt;_&lt;YYYYMMDD-HHMMSS&gt;` with the UTC start time of the execution. One run per training execution (one run per seed). Mean and SE over seeds are computed by mlflow_report.py and are not stored as runs. Backfilled legacy runs whose model is not registered are named `UNREGISTERED-&lt;label&gt;_&lt;time&gt;`; their time comes from the file mtime and carries the tag time_source=file_mtime.</rule>
+
+    <model_id_policy file="docs/experiments/MODEL_REGISTRY.yaml">
+      <rule id="format">model_id = `&lt;IdeaName&gt;_&lt;OriginalID&gt;_&lt;DerivativeID&gt;_&lt;SubDerivativeID&gt;`, written `Idea4_O01_D01_S00`: IdeaName is the idea the model comes from (Base for a plain RL baseline; no underscore inside), O&lt;NN&gt; the original model of that idea, D&lt;NN&gt; a derivative (D00 = the original itself), S&lt;NN&gt; a sub-derivative (S00 = none).</rule>
+      <rule id="registration">Every model that is trained gets an entry in MODEL_REGISTRY.yaml before its first run. Entries are matched on the `arm` string of the result file. An agent may add an entry with status="provisional"; the operator confirms or renames it. A different architecture or configuration of an existing model is a new derivative or sub-derivative, never a silent overwrite. A changed ID means a registry edit plus a store rebuild.</rule>
+      <rule id="proper_name">Models with excellent results may receive a proper name. Only the operator creates proper names. An agent never writes `proper_name` and never proposes one inside the registry. The registry field is accepted only together with `proper_name_by: operator` (the ingest refuses it otherwise).</rule>
+    </model_id_policy>
+
+    <parameter_policy file="docs/experiments/MLFLOW_PARAM_NAMES.yaml">
+      <rule id="official_names">One concept has one official name. Official names are `&lt;group&gt;.&lt;snake_case&gt;` with group train (optimisation / RL), arch (model structure), wm (world-model component), env, eval or seed. Module-specific structure parameters take their module's group prefix. The ingest maps every known alias (lr, LR, learning_rate, ...) to the official name (train.learning_rate).</rule>
+      <rule id="new_parameters">A parameter that is not in MLFLOW_PARAM_NAMES.yaml is added there, with its official name and aliases, before the run that uses it. Until then the ingest logs it as `x.&lt;name&gt;` and lists it in its summary, which counts as unfinished work. Never invent a second name for an existing concept.</rule>
+      <rule id="structure_dependent">Parameters that exist only for some model structures are logged only for the models that have them (absent means not applicable). They are never logged with placeholder values.</rule>
+      <rule id="required">Every run records: model_id, phase (via the experiment), protocol, role (final|tune|screen|smoke), git_commit, source_key, end_reason, seed.train, seed.test (where an evaluation was made), the hyperparameters of the model and learner under official names, and the metrics reward_pct, score_pct, env_steps_total, params_total, params_deployed for EP-A and EP-B runs.</rule>
+    </parameter_policy>
+
+    <seed_policy>
+      <rule id="defaults">Default training seed 42 and test (evaluation) seed 0424, stored as the integer 424. They apply to dev, smoke and screening runs.</rule>
+      <rule id="replicates">For multi-seed runs (EP-A needs 10) replicate k = 0..9 uses train seed 42 + k and test seed 424 + k (train 42-51, test 424-433). Every seed is listed in the result file (EP-A rule stays unchanged).</rule>
+      <rule id="tuning">Tuning seeds must be disjoint from 42-51 and 424-433 and are listed in the result. Training, tuning or selection on a test seed is prohibited (P8).</rule>
+      <rule id="legacy">Results made before this rule used seeds 0-9 (tuning 1000, 1001). They keep their recorded seeds and are tagged seed_convention=legacy; they are not rewritten.</rule>
+    </seed_policy>
+
+    <rule id="minimal_logging">Log only what a later query needs: final scalars, the metrics listed under required, at most 50 points of one or two curves per run (train return, eval return), and the final per-achievement success rates for EP-A and EP-B. No per-update loss streams, no artifacts, no checkpoints, no raw files (the source_key tag points to them). Tags: only those the report or a filter uses.</rule>
+    <rule id="failures">Every failed or interrupted execution is recorded, so it cannot later be read as a missing or a bad result. Command: `python scripts/mlflow_ingest.py --record-failure --model-id ID --phase N --end-reason error|interrupted|oom|timeout --role R --protocol P --steps-completed S --note "cause"` (writes output/failures/*.json and ingests it). The run gets status FAILED (error, oom, timeout) or KILLED (interrupted), the tags end_reason and error_summary, and the metric steps_completed. Runs that did not finish are never aggregated, never ranked, never quoted as a result, and never count toward a gate; mlflow_report.py lists them in a separate section. A partial run is not resumed under the same run: the resumed execution is a new run.</rule>
+  </experiment_tracking>
 
   <dependency_impact status="active">
     <rule>

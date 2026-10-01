@@ -6,7 +6,9 @@ gymnax
 jax
 kaggle
 matplotlib
+mlflow
 numpy
 optax
 pandas
 requests
+yaml

@@ -25,3 +25,7 @@ output/arc_proposals/**/checkpoints/
 kaggle_kernel_arc_*/
 .jaxcache/
 output/phase1_scratch/
+
+# Local MLflow store (SQLite, rebuildable via scripts/mlflow_ingest.py)
+mlflow_local/
+mlruns/
