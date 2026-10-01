@@ -142,6 +142,19 @@ class TestRecompute(unittest.TestCase):
     def test_transformer_history(self):
         self._check(TFArm(d=32, layers=1, hist=3))
 
+    def test_recurrent_world_model_update_rules(self):
+        cfg = eh.PPOConfig(total_steps=2 * 4 * 4, num_envs=4, num_steps=4, minibatches=2)
+        for mode, wm_changes in (("trained", True), ("random", False)):
+            arm = TFGRUArm(d=32, layers=1, width=32, wm_mode=mode, wm_hidden=32)
+            tr = eh.Trainer(arm, cfg)
+            st0 = tr.init(jax.random.PRNGKey(3))
+            st1, stats = tr.update(st0)
+            d = lambda a, b: max(float(jnp.abs(x - y).max()) for x, y in
+                                 zip(jax.tree_util.tree_leaves(a), jax.tree_util.tree_leaves(b)))
+            self.assertGreater(d(st0["params"]["pi"], st1["params"]["pi"]), 0.0)
+            self.assertEqual(d(st0["params"]["wm"], st1["params"]["wm"]) > 0.0, wm_changes, mode)
+            self.assertEqual(float(stats[3]) > 0.0, wm_changes, mode)   # logged WM loss
+
     def test_cnn_gru_with_resets(self):
         self._check(CNNGRUArm(32, 8, 8))
 

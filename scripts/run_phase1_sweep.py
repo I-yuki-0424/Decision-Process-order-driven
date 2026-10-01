@@ -47,6 +47,8 @@ ARMS = {   # name -> (script, extra args, name of the rollout-length flag)
     "cnn_gru": ("run_epa_mini", ["--arm", "cnn_gru"], "--num-steps"),
     "tf_gru_ent003": ("run_epa_mini", ["--arm", "tf_gru", "--ent", "0.003"], "--num-steps"),
     "tf_gru_d128": ("run_epa_mini", ["--arm", "tf_gru", "--arm-kwargs", '{"d": 128, "layers": 3}'], "--num-steps"),
+    "tf_gru_wm": ("run_epa_mini", ["--arm", "tf_gru_wm"], "--num-steps"),
+    "tf_gru_wm_random": ("run_epa_mini", ["--arm", "tf_gru_wm_random"], "--num-steps"),
     "gru_base": ("run_epa_mini", ["--arm", "ppo_gru"], "--num-steps"),
     "chunkppo_k1": ("run_epa_chunkppo", ["--k", "1", "--hist", "4"], "--cycles"),
     "chunkppo_k4": ("run_epa_chunkppo", ["--k", "4", "--hist", "4"], "--cycles"),   # informational (Phase 3)

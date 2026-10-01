@@ -319,9 +319,11 @@ class TFGRUArm(TFArm):
     logits = candidate-token logit + Dense(h); value from h. Recurrent: the learner trains on sequences."""
     recurrent = True
 
-    def __init__(self, d=64, layers=2, heads=4, width=256):
-        super().__init__(d=d, layers=layers, heads=heads, hist=0, wm_mode="none", critic="shared")
-        self.width, self.name = width, f"tfgru{d}x{layers}w{width}"
+    def __init__(self, d=64, layers=2, heads=4, width=256, wm_mode="none", wm_hidden=256, wm_coef=1.0):
+        super().__init__(d=d, layers=layers, heads=heads, hist=0, wm_mode=wm_mode, wm_hidden=wm_hidden, wm_coef=wm_coef,
+                         critic="shared")
+        self.width = width
+        self.name = f"tfgru{d}x{layers}w{width}" + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
 
     def init(self, key):
         k1, k2, k3, k4, k5 = jax.random.split(key, 5)
@@ -353,7 +355,7 @@ class TFGRUArm(TFArm):
 
     def param_counts(self, params):
         pi = params["pi"]
-        return n_params(params), n_params({k: v for k, v in pi.items() if k != "h_value"})
+        return n_params(params), n_params({k: v for k, v in pi.items() if k != "h_value"}) + n_params(params.get("wm", {}))
 
 
 class CNNGRUArm(GRUArm):
@@ -408,6 +410,8 @@ ARM_BUILDERS = {
     "tf_wm_random": lambda **kw: TFArm(wm_mode="random", **kw),
     "tf_gru": lambda **kw: TFGRUArm(**kw),
     "cnn_gru": lambda **kw: CNNGRUArm(**kw),
+    "tf_gru_wm": lambda **kw: TFGRUArm(wm_mode="trained", **kw),
+    "tf_gru_wm_random": lambda **kw: TFGRUArm(wm_mode="random", **kw),
     "tf_aux": lambda **kw: TFArm(wm_mode="none", **kw),
     "tf_wmq": lambda **kw: TFArm(wm_mode="trained", critic="mlp", wmq=True, **kw),
     "tf_wmq_random": lambda **kw: TFArm(wm_mode="random", critic="mlp", wmq=True, **kw),

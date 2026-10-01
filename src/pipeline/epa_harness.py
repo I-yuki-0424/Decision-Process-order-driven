@@ -191,7 +191,9 @@ class Trainer:
 
         _, (logits, value) = jax.lax.scan(body, mb["carry"][0], (mb["obs"], mb["act"], mb["done"]))
         loss, aux = self._ppo_terms(logits, value, mb)
-        return loss, jnp.concatenate([aux, jnp.zeros(1)])
+        flat = {k: mb[k].reshape((-1,) + mb[k].shape[2:]) for k in ("obs", "act", "rew", "nobs", "done")}
+        wl = self.arm.aux_loss(params, flat)   # world-model loss of arms that have one (zeros otherwise)
+        return loss + wl, jnp.concatenate([aux, wl[None]])
 
     # -- one PPO update ------------------------------------------------------------------------------------------------
     def _update(self, st):
