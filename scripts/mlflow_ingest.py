@@ -15,6 +15,7 @@ Rules: MASTER_GUIDANCE.xml <experiment_tracking>. Summary:
     truth (`source_key` tag).
   * Failures/interruptions are recorded as runs with status FAILED/KILLED and `end_reason`; the report never aggregates them.
 
+After ingesting, the registry (MODEL_REGISTRY.yaml) is synced into the MLflow Models tab (see mlflow_report.sync_models).
 Re-running is idempotent (skips runs whose `source_key` already exists). The store is rebuildable: delete mlflow_local/ and ingest
 again. Files that are still Git-LFS pointers are skipped and counted.
 Detected schemas: phase1 {arm_key, per_seed}, result {candidate, final_sampled|error}, latency {cfg, records}, failure {end_reason, model_id}.
@@ -42,12 +43,28 @@ MAX_PARAM_LEN = 500
 BATCH = 900  # < MLflow's 1000-metric log_batch limit
 LEGACY_EXP = "phase-0-legacy"
 UNREGISTERED = "UNREGISTERED"
+MISMATCH = []  # score_pct in a file that disagrees with the geometric mean of its own 22 rates
 DEFAULT_TRAIN_SEED, DEFAULT_TEST_SEED = 42, 424  # "0424" is stored as the integer 424
 END_REASONS = ("completed", "error", "interrupted", "oom", "timeout")
 STATUS_OF = {"completed": "FINISHED", "error": "FAILED", "oom": "FAILED", "timeout": "FAILED", "interrupted": "KILLED"}
 LATENCY_CURVES = ("train_return", "eval_return")
 CANDIDATE_CURVES = ("crafter_score",)
 NON_PARAM = {"arm", "env_kwargs"}  # arm is a tag, not a hyperparameter
+# Craftax-Classic achievement order = index of `achievement_rates(_pct)` in the result files; must equal ACHIEVEMENT_NAMES in
+# src/environment/craftax_env_adapter.py (tests/test_mlflow_tools.py checks that). Metric keys are `ach_rate_pct/<NN>_<name>`.
+ACHIEVEMENT_NAMES = [
+    "collect_wood", "place_table", "eat_cow", "collect_sapling", "collect_drink", "make_wood_pickaxe", "make_wood_sword",
+    "place_plant", "defeat_zombie", "collect_stone", "place_stone", "eat_plant", "defeat_skeleton", "make_stone_pickaxe",
+    "make_stone_sword", "wake_up", "place_furnace", "collect_coal", "collect_iron", "collect_diamond", "make_iron_pickaxe",
+    "make_iron_sword",
+]
+METRIC_GUIDE = """Headline metrics (same names in every experiment, sort by these):
+- score_pct  = Crafter score = geometric mean of the 22 achievement success rates: exp(mean_i ln(1+s_i)) - 1, s_i in percent.
+- reward_pct = arithmetic mean of the 22 success rates = (distinct achievements per episode / 22) x 100.
+- ach_rate_pct/<NN>_<name> = success rate (%) of achievement NN; NN is the index in the result files.
+Phase-1 files carry both from the evaluation; phase-0-legacy files carry crafter_score / mean_unlocked, mapped to the same names here.
+Achievement index: """ + ", ".join(f"{i:02d}={n}" for i, n in enumerate(ACHIEVEMENT_NAMES)) + """
+Per-seed runs only; mean and SE over seeds: `python scripts/mlflow_report.py top|summary`. Models tab = docs/experiments/MODEL_REGISTRY.yaml."""
 
 
 def default_store():
@@ -160,9 +177,15 @@ def when(d, mtime_ms):
     return mtime_ms, "file_mtime"  # backfill approximation, flagged by the time_source tag
 
 
+def crafter_score(rates):
+    """exp(mean ln(1+s_i)) - 1 over the 22 success rates in percent (same formula as calculate_crafter_score in the adapter)."""
+    return math.exp(sum(math.log1p(max(0.0, float(r))) for r in rates) / len(ACHIEVEMENT_NAMES)) - 1.0
+
+
 def _ach(rates, names, prefix=""):
-    return {f"{prefix}ach_rate_pct/{names[i] if names and i < len(names) else f'{i:02d}'}": float(v)
-            for i, v in enumerate(rates or []) if finite(v)}
+    names = names if names and len(names) == len(ACHIEVEMENT_NAMES) else ACHIEVEMENT_NAMES
+    return {f"{prefix}ach_rate_pct/{i:02d}_{names[i]}": float(v) for i, v in enumerate(rates or [])
+            if finite(v) and i < len(names)}
 
 
 def base_tags(sch, mid, key, family, t_src):
@@ -192,6 +215,9 @@ def build_phase1(sch, d, key, mtime_ms):
              if finite(s.get(k))}
         m.update({k: float(d[k]) for k in ("env_steps_total", "env_steps_auxiliary", "params_total", "params_deployed") if finite(d.get(k))})
         m.update(_ach(s.get("achievement_rates_pct"), None))
+        rates = s.get("achievement_rates_pct") or []
+        if len(rates) == len(ACHIEVEMENT_NAMES) and finite(s.get("score_pct")) and abs(crafter_score(rates) - s["score_pct"]) > 1e-3:
+            MISMATCH.append(f"{key}#seed{s['seed']}: score_pct {s['score_pct']:.4f} != geomean of rates {crafter_score(rates):.4f}")
         curve = stride([(i, float(v)) for i, v in enumerate(s.get("train_curve_return", [])) if finite(v)])
         out.append(RunSpec(tags["source_key"], f"phase-{d.get('phase', 1)}", mid, start, p, tags, m, {"train/return": curve},
                            label=d["arm"]))
@@ -224,6 +250,11 @@ def build_result(sch, d, key, mtime_ms):
             m.update({f"{blk}/{k}": float(sub[k]) for k in keys if finite(sub.get(k))})
     if isinstance(d.get("final_sampled"), dict):
         m.update(_ach(d["final_sampled"].get("achievement_rates"), names, "final_sampled/"))
+        rates = d["final_sampled"].get("achievement_rates") or []
+        if len(rates) == len(ACHIEVEMENT_NAMES) and all(finite(r) for r in rates):
+            m["reward_pct"] = sum(rates) / len(rates)
+        if finite(d["final_sampled"].get("crafter_score")):
+            m["score_pct"] = float(d["final_sampled"]["crafter_score"])
     for k in ("n_actor_params", "n_params"):
         if finite(d.get(k)):
             m["n_params"] = float(d[k])
@@ -347,6 +378,7 @@ def main():
     ap.add_argument("--root", default="output", help="keys are paths relative to this dir; also the default scan dir")
     ap.add_argument("--store", default=default_store(), help="local store dir holding mlflow.db (env MLFLOW_LOCAL_DIR)")
     ap.add_argument("--dry-run", action="store_true", help="parse and count only; touch nothing")
+    ap.add_argument("--no-sync-models", action="store_true", help="skip rebuilding the MLflow Models tab from the registry")
     f = ap.add_argument_group("failure recording (writes <root>/failures/*.json, then ingests it)")
     f.add_argument("--record-failure", action="store_true")
     f.add_argument("--model-id")
@@ -402,6 +434,8 @@ def main():
     print(f"  registered runs: {sum(v for k, v in reg.items() if k != UNREGISTERED)}, {UNREGISTERED}: {reg[UNREGISTERED]}")
     if sch.unknown:
         print("  UNKNOWN parameter names (logged as x.<name>; add to MLFLOW_PARAM_NAMES.yaml):", dict(sch.unknown))
+    if MISMATCH:
+        print(f"  WARNING: {len(MISMATCH)} runs whose score_pct != geometric mean of their rates, e.g. {MISMATCH[0]}")
     if a.dry_run:
         return 0
 
@@ -414,6 +448,7 @@ def main():
     for name in sorted({s.experiment for s in specs}):
         e = client.get_experiment_by_name(name)
         exp_ids[name] = e.experiment_id if e else client.create_experiment(name)
+        client.set_experiment_tag(exp_ids[name], "mlflow.note.content", METRIC_GUIDE)  # shown as the experiment description in the UI
     done, stale = existing_keys(client, [e.experiment_id for e in client.search_experiments()])
     for rid in stale:
         client.delete_run(rid)
@@ -426,6 +461,10 @@ def main():
         n_new += 1
     print(f"ingested {n_new} runs ({n_metrics} metric rows), skipped {n_skip} already present, "
           f"{time.time() - t0:.1f}s -> {store_uri(a.store)}")
+    if not a.no_sync_models:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from mlflow_report import sync_models  # lazy: mlflow_report imports this module
+        print(sync_models(a.store))
     return 0
 
 

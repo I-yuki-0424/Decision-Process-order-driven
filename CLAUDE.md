@@ -53,7 +53,7 @@ Local MLflow (SQLite `mlflow_local/`, gitignored) indexes result files; the file
   - Always pass the store explicitly: `mlflow ui --backend-store-uri sqlite:///mlflow_local/mlflow.db`. A bare `mlflow ...` or `sqlite:///mlflow.db` uses/creates an empty `./mlflow.db` at the repo root (gitignored) and looks like "nothing was recorded". Never ingest into it.
   - New result arms: register them in `MODEL_REGISTRY.yaml` (provisional) before ingesting; check `summary` shows no `UNREGISTERED` phase-1 rows. Registry edits need `rm -rf mlflow_local` + re-ingest.
   - In pandas aggregation code (`mlflow_report.py`), use `groupby(..., dropna=False)`: arms lack some param columns (e.g. ChunkPPO has no `train.rollout_length`), and the default silently drops those rows. After changing the report, check every arm in the registry appears (compare the run count per `model_id` with the table).
-- `python scripts/mlflow_report.py summary|arch NAME|size`. If the store reaches 1 GiB, report it to the operator (next step: Cloudflare D1, not on your own).
+- `python scripts/mlflow_report.py summary|top|ach|models|arch NAME|size`. Headline metrics have the same names in every experiment: `score_pct` (Crafter score = geometric mean of the 22 rates) and `reward_pct`; per-achievement metrics are `ach_rate_pct/<NN>_<name>`. The Models tab is rebuilt from `MODEL_REGISTRY.yaml` on every ingest (one version per configuration, numbers are a derived snapshot; `proper_name` is only copied). Changing metric names needs `rm -rf mlflow_local` + re-ingest (stop `mlflow ui` first: it locks the DB on Windows). If the store reaches 1 GiB, report it to the operator (next step: Cloudflare D1, not on your own).
 
 ### Dependency impact checks (scip-neo4j MCP server)
 

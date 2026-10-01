@@ -1,6 +1,9 @@
 """Aggregate the local MLflow store by model (replaces re-reading the LaTeX notes for 'what did X score?').
 
   python scripts/mlflow_report.py summary [--md out.md]   # per experiment (phase), per model; mean/SE computed here from per-seed runs
+  python scripts/mlflow_report.py top [-n 10] [--by score_pct|reward_pct] [--scope phase1|legacy|all] [--oracle]  # light leaderboard
+  python scripts/mlflow_report.py ach [-n 8] [--protocol EP-A]  # named per-achievement success rates (22 rows) of the top groups
+  python scripts/mlflow_report.py models                  # rebuild the MLflow Models tab from MODEL_REGISTRY.yaml (ingest does it too)
   python scripts/mlflow_report.py arch NAME               # every run whose model_id / arm / architecture contains NAME
   python scripts/mlflow_report.py size [--warn-gb 1.0]    # DB size / row counts; warns when it is time to consider Cloudflare D1
   python scripts/mlflow_report.py ui                      # prints the command to browse the store
@@ -20,7 +23,12 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from mlflow_ingest import LEGACY_EXP, default_store, store_uri  # noqa: E402
+from mlflow_ingest import (ACHIEVEMENT_NAMES, LEGACY_EXP, METRIC_GUIDE, REGISTRY_PATH, UNREGISTERED, default_store,  # noqa: E402
+                           store_uri)
+
+ACH_COLS = [f"ach_rate_pct/{i:02d}_{n}" for i, n in enumerate(ACHIEVEMENT_NAMES)]
+GROUP = ["tag.model_id", "tag.arm", "tag.protocol", "tag.role", "param.train.learning_rate", "param.train.rollout_length",
+         "param.train.num_envs", "param.train.total_env_steps"]
 
 
 def load(store):
@@ -62,18 +70,25 @@ def md_table(df):
     return "\n".join(lines)
 
 
-def section_phase(df, exp):
+def phase1_groups(df):
+    """One (key, seed DataFrame) per configuration (model / arm / protocol / role / main hyperparameters).
+    The same result file copied into several dirs counts once; `dirs` lists where it was found."""
     df = df[df["tag.family"] == "phase1"].copy()
     if df.empty:
-        return None
+        return []
     key = ["tag.arm", "tag.protocol", "param.seed.train", "reward_pct", "score_pct", "tag.git_commit", "param.train.learning_rate",
            "param.train.rollout_length"]
-    dirs = df.groupby(key, dropna=False)["tag.source_dir"].agg(lambda x: sorted(set(x))).rename("dirs")  # same file copied into several dirs
+    dirs = df.groupby(key, dropna=False)["tag.source_dir"].agg(lambda x: sorted(set(x))).rename("dirs")
     df = df.drop_duplicates(key).merge(dirs, left_on=key, right_index=True)
+    return list(df.groupby(GROUP, dropna=False))
+
+
+def section_phase(df, exp):
+    groups = phase1_groups(df)
+    if not groups:
+        return None
     rows = []
-    grp = ["tag.model_id", "tag.arm", "tag.protocol", "tag.role", "param.train.learning_rate", "param.train.rollout_length",
-           "param.train.num_envs", "param.train.total_env_steps"]
-    for k, g in df.groupby(grp, dropna=False):
+    for k, g in groups:
         all_dirs = sorted({d.split("/")[-1] for ds in g["dirs"] for d in ds})
         rows.append({"model_id": k[0], "arm": k[1], "protocol": k[2].split(" (")[0], "role": k[3], "lr": k[4], "n": len(g),
                      "env_steps": f"{g['env_steps_total'].iloc[0]:,.0f}", "params_total": f"{g['params_total'].iloc[0]:,.0f}",
@@ -144,6 +159,106 @@ def cmd_summary(a):
         Path(a.md).write_text(text + "\n", encoding="utf-8")
 
 
+def leaderboard_rows(df, scope, by, oracle):
+    """Ranked configurations: phase-1 groups (a board per protocol) and/or legacy candidate groups."""
+    rows = []
+    if scope in ("phase1", "all"):
+        for k, g in phase1_groups(df):
+            rows.append({"board": f"phase-1 {k[2].split(' (')[0]}", "name": k[0] if k[0] != UNREGISTERED else k[1], "arm": k[1],
+                         "role": k[3], "n": len(g), "oracle": g["tag.oracle_control"].iloc[0], "g": g})
+    if scope in ("legacy", "all"):
+        c = df[(df["tag.family"] == "candidate-result") & df["score_pct"].notna()].drop_duplicates(["tag.tag", "score_pct"])
+        for (arch, var, orc), g in c.groupby(["tag.architecture", "tag.variant", "tag.oracle_control"]):
+            rows.append({"board": "legacy (candidate-results)", "name": f"{arch}/{var}", "arm": g["tag.mode"].iloc[0], "role": "screen",
+                         "n": len(g), "oracle": orc, "g": g})
+    for r in rows:
+        r["_k"] = r["g"][by].mean()
+    return [r for r in rows if (oracle or r["oracle"] != "true") and pd.notna(r["_k"])]
+
+
+def finished(df):
+    return df[df["status"] == "FINISHED"] if not df.empty else df
+
+
+def cmd_top(a):
+    rows = leaderboard_rows(finished(load(a.store)), a.scope, a.by, a.oracle)
+    if not rows:
+        print("no finished runs for this scope")
+        return 1
+    for board in sorted({r["board"] for r in rows}, key=lambda b: (b != "phase-1 EP-A", b)):
+        mine = [r for r in rows if r["board"] == board]
+        top = sorted(mine, key=lambda r: -r["_k"])[:a.n]
+        t = pd.DataFrame([{"#": i + 1, "name": r["name"], "arm": r["arm"], "role": r["role"], "n": r["n"],
+                           "score_pct": pm(r["g"]["score_pct"]), "reward_pct": pm(r["g"]["reward_pct"]), "oracle_ctl": r["oracle"]}
+                          for i, r in enumerate(top)])
+        print(f"## {board}: top {len(top)} of {len(mine)} by mean {a.by} (mean ± SE over n seeds)\n")
+        print(md_table(t) + "\n")
+    if not a.oracle:
+        print("(oracle upper-bound controls hidden; --oracle shows them)")
+
+
+def cmd_ach(a):
+    rows = [r for r in leaderboard_rows(finished(load(a.store)), "phase1", "score_pct", a.oracle) if r["board"] == f"phase-1 {a.protocol}"]
+    top = sorted(rows, key=lambda r: -r["_k"])[:a.n]
+    if not top:
+        print(f"no phase-1 {a.protocol} groups")
+        return 1
+    cols = [f"{i + 1}:{r['name']}" for i, r in enumerate(top)]
+    body = [{"achievement": c.split("/", 1)[1], **{cn: fmt(r["g"][c].mean()) if c in r["g"] else "–" for cn, r in zip(cols, top)}}
+            for c in ACH_COLS]
+    body.append({"achievement": "score_pct = geometric mean of the 22: exp(mean ln(1+s)) - 1",
+                 **{cn: fmt(r["g"]["score_pct"].mean()) for cn, r in zip(cols, top)}})
+    body.append({"achievement": "reward_pct = arithmetic mean of the 22", **{cn: fmt(r["g"]["reward_pct"].mean()) for cn, r in zip(cols, top)}})
+    print(f"## success rate (%) per achievement, mean over seeds; top {len(top)} phase-1 {a.protocol} groups by score_pct\n")
+    print(md_table(pd.DataFrame(body)))
+
+
+def sync_models(store):
+    """Rebuild the MLflow Models tab from MODEL_REGISTRY.yaml: one Registered Model per model_id, one version per phase-1
+    configuration (linked to its first-seed run; no artifact). Version descriptions/tags hold a derived snapshot of mean ± SE and
+    are rewritten on every sync. proper_name is copied from the registry (operator-only), never invented here."""
+    import re
+    import yaml
+    from mlflow import MlflowClient
+    from mlflow.exceptions import MlflowException
+    ok = finished(load(store))
+    groups = {}
+    for k, g in phase1_groups(ok):
+        groups.setdefault(k[0], []).append((k, g))
+    reg = yaml.safe_load(REGISTRY_PATH.read_text(encoding="utf-8"))["models"]
+    c = MlflowClient()
+    n_ver = 0
+    for mid, m in reg.items():
+        try:
+            c.delete_registered_model(mid)
+        except MlflowException:
+            pass
+        tags = {"idea": mid.split("_")[0], "status": str(m.get("status")), "arms": ",".join(m.get("arms", [])), "source": "MODEL_REGISTRY.yaml"}
+        if m.get("proper_name"):
+            tags["proper_name"] = str(m["proper_name"])
+        c.create_registered_model(mid, tags=tags, description=str(m.get("description", "")))
+        best = {}
+        for k, g in sorted(groups.get(mid, []), key=lambda kg: kg[1]["score_pct"].mean()):  # ascending: the best is created last
+            proto = k[2].split(" (")[0]
+            desc = (f"{k[1]} | {proto} | role={k[3]} | lr={k[4]} rollout={k[5]} envs={k[6]} steps={k[7]} | n={len(g)} seeds | "
+                    f"score_pct {pm(g['score_pct'])} | reward_pct {pm(g['reward_pct'])}")
+            vt = {"protocol": proto, "role": str(k[3]), "n_seeds": str(len(g)), "score_pct_mean": f"{g['score_pct'].mean():.3f}",
+                  "reward_pct_mean": f"{g['reward_pct'].mean():.3f}", "gate_eligible": str(proto == "EP-A").lower(),
+                  "oracle_control": str(g["tag.oracle_control"].iloc[0])}
+            rid = g.sort_values("param.seed.train")["run_id"].iloc[0]
+            best[proto] = c.create_model_version(mid, source=f"runs:/{rid}/model", run_id=rid, tags=vt, description=desc).version
+            n_ver += 1
+        for proto, ver in best.items():
+            c.set_registered_model_alias(mid, "best-" + re.sub(r"[^A-Za-z0-9_-]+", "-", proto).strip("-").lower(), ver)
+    return f"models tab: {len(reg)} registered models, {n_ver} versions (alias best-<protocol> = highest mean score_pct)"
+
+
+def cmd_models(a):
+    import mlflow
+    mlflow.set_tracking_uri(store_uri(a.store))
+    print(sync_models(a.store))
+
+
 def cmd_arch(a):
     df = load(a.store)
     cols = ["tag.model_id", "tag.arm", "tag.architecture"]
@@ -175,7 +290,14 @@ def cmd_size(a):
 
 
 def cmd_ui(a):
-    print(f"mlflow ui --backend-store-uri {store_uri(a.store)}")
+    print(f"mlflow ui --backend-store-uri {store_uri(a.store)}\n")
+    print("Light views in the Runs tab (paste into the search box, sort by the metrics.score_pct column, hide columns via 'Columns'):")
+    print('  real runs only : tags.family = "phase1" and tags.oracle_control = "false" and metrics.score_pct > 4')
+    print('  gate protocol  : tags.gate_eligible = "true"')
+    print('  one model      : tags.model_id = "Idea4_O01_D01_S00"')
+    print("  'Group by' tags.model_id gives one aggregated row per model. Per-achievement columns: metrics.ach_rate_pct/NN_name.")
+    print("  The experiment description (top of the experiment page) holds the metric definitions and the achievement index:\n")
+    print(METRIC_GUIDE)
 
 
 def main():
@@ -192,6 +314,18 @@ def main():
     z.add_argument("--warn-gb", type=float, default=1.0)
     z.set_defaults(fn=cmd_size)
     sub.add_parser("ui").set_defaults(fn=cmd_ui)
+    t = sub.add_parser("top")
+    t.add_argument("-n", type=int, default=10)
+    t.add_argument("--by", choices=("score_pct", "reward_pct"), default="score_pct")
+    t.add_argument("--scope", choices=("phase1", "legacy", "all"), default="phase1")
+    t.add_argument("--oracle", action="store_true", help="include oracle upper-bound controls")
+    t.set_defaults(fn=cmd_top)
+    h = sub.add_parser("ach")
+    h.add_argument("-n", type=int, default=8)
+    h.add_argument("--protocol", default="EP-A", help="exact protocol label, e.g. EP-A, EP-A-mini")
+    h.add_argument("--oracle", action="store_true")
+    h.set_defaults(fn=cmd_ach)
+    sub.add_parser("models").set_defaults(fn=cmd_models)
     a = ap.parse_args()
     return a.fn(a) if a.cmd else cmd_summary(argparse.Namespace(store=a.store, md=None))
 
