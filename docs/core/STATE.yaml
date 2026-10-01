@@ -1036,27 +1036,34 @@ tasks:
     created_at: "2026-10-01T00:00:00Z"
     status: "done"
     description: >
-      Local MLflow management (SQLite file store, no server/cloud) so past runs/results can be aggregated per architecture
-      without re-reading the LaTeX notes. Operator condition: report if the DB becomes extremely large (then Cloudflare D1).
-    spec_ref: null
+      Local MLflow management (SQLite file store, no server/cloud) so past runs/results can be aggregated per model without re-reading
+      the LaTeX notes, plus the operator's tracking rules (MASTER_GUIDANCE v11 <experiment_tracking>). Operator condition: report if the
+      DB becomes extremely large (then Cloudflare D1).
+    spec_ref: "docs/core/MASTER_GUIDANCE.xml (<experiment_tracking>)"
     validation_commands:
       - "python -m unittest tests.test_mlflow_ingest"
       - "python scripts/pre_commit_ban_check.py"
       - "python scripts/mlflow_ingest.py --root <checkout with smudged output/>"
       - "python scripts/mlflow_report.py size"
     result: >
-      PASS. scripts/mlflow_ingest.py (idempotent, schema-detecting: phase1 / candidate-result / latency) + scripts/mlflow_report.py
-      (summary / arch / size / ui) + tests/test_mlflow_ingest.py (3 tests OK). Backfill of the existing output/: 1604 runs
-      (122 phase1 files -> 122 aggregates + per-seed children, 201 candidate results, 719 latency), 409,778 metric rows, store 0.125 GiB
-      (below the 1 GiB report threshold -> NO Cloudflare D1 needed). 108 json files of other schemas (replays, benchmarks, ...) are skipped
-      and counted. Values are copied from the source files, nothing recomputed. Impact check: only new files plus .gitignore/requirements.txt/
-      scripts/README.md edits; no existing symbol modified, scip-neo4j checks not needed.
+      PASS. Rules in MASTER_GUIDANCE v11: experiment per phase (phase-N, pre-roadmap = phase-0-legacy); run = <model_id>_<UTC time>, one per seed;
+      model_id <IdeaName>_O<NN>_D<NN>_S<NN> via docs/experiments/MODEL_REGISTRY.yaml (proper names operator-only, ingest refuses proper_name without
+      proper_name_by: operator); official parameter names docs/experiments/MLFLOW_PARAM_NAMES.yaml (aliases lr/LR/learning_rate -> train.learning_rate,
+      unknown -> x.<name> and reported); seeds train 42 / test 0424 (stored 424), replicate k = 42+k / 424+k (operator choice); minimal logging
+      (<= 50 curve points, no artifacts); failures/interruptions recorded via --record-failure (status FAILED/KILLED, end_reason) and never aggregated.
+      Tooling: scripts/mlflow_ingest.py, scripts/mlflow_report.py, tests/test_mlflow_ingest.py (7 tests OK). Backfill of the existing output/ (main checkout):
+      1482 runs (515 mapped to a registry model_id, 967 UNREGISTERED legacy), 98,843 metric rows, store 0.045 GiB (< 1 GiB threshold -> NO Cloudflare D1 needed).
+      108 json files of other schemas skipped and counted. Values are copied from the source files; only mean/SE are computed in the report.
+      Impact check: only new files plus .gitignore/requirements.txt/CLAUDE.md/scripts/README.md/MASTER_GUIDANCE edits; no existing symbol modified,
+      scip-neo4j checks not needed.
     blockers: []
     notes: >
-      Latency per-update curves are trimmed to 6 headline columns x <=100 points (first full ingest kept 25 columns: 357 MB, 1.26M rows).
-      Source files remain the source of truth; `source_key` tag maps every run back to its file. Oracle arms are tagged oracle_control=true
-      (upper-bound controls, never gate evidence, P3). Duplicate Phase-1 dirs (*_all, *_derived) are ingested as-is and merged only in the
-      report. The worktree's output/ is Git-LFS pointers, so ingestion used the main checkout's output/ via --root.
+      ASSUMPTIONS TO CONFIRM (operator): (1) the registry IDs are PROVISIONAL drafts derived from the Phase-1 arm names (Base / Idea4 / Idea6 / Chunk as IdeaName);
+      the exploration arms (tf128x3h4, tf_aux, tf_wmq, ...) and all legacy candidate/latency runs are UNREGISTERED. (2) "0424" is stored as the integer 424
+      (a leading zero is not a valid JSON/Python integer). (3) Existing results keep their legacy seeds 0-9 / tuning 1000-1001 (tag seed_convention=legacy);
+      EP-A 10-seed rule is unchanged, replicates are 42..51. (4) Backfilled run times come from file mtime (tag time_source=file_mtime), not the true start time.
+      Source files remain the source of truth; duplicate Phase-1 dirs (*_all, *_derived) are ingested as-is and merged only in the report.
+      The worktree's output/ is Git-LFS pointers, so ingestion used the main checkout's output/ via --root.
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example

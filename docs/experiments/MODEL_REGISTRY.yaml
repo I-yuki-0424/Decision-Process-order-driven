@@ -1,0 +1,60 @@
+# Model ID registry (MASTER_GUIDANCE <experiment_tracking>).
+# ID format: <IdeaName>_<OriginalID>_<DerivativeID>_<SubDerivativeID>, e.g. Idea4_O01_D01_S00
+#   IdeaName    : idea the model originates from (Base = plain RL baseline, Idea4, Idea6, Chunk, ...). No underscores inside it.
+#   OriginalID  : O<NN>, the original model of that idea.  DerivativeID: D<NN>, D00 = the original itself.
+#   SubDerivativeID: S<NN>, S00 = no sub-derivative.
+# proper_name: assigned ONLY by the operator (set proper_name_by: operator together with it). Agents leave it null.
+# status: provisional = drafted by an agent from the Phase-1 arm names; operator confirms or renames. After editing this file rebuild
+#   the store (`rm -rf mlflow_local` then `python scripts/mlflow_ingest.py`); it is always rebuildable from the files under output/.
+# match keys: `arm` = the descriptive arm string in result files (NOT arm_key: one arm_key can hide different configs).
+models:
+  Base_O01_D00_S00:
+    arms: ["mlp512x3"]
+    description: "PPO, 3x512 MLP actor-critic, symbolic observation (pure-RL baseline)"
+    status: provisional
+    proper_name: null
+  Base_O02_D00_S00:
+    arms: ["gru256"]
+    description: "PPO, GRU-256 recurrent actor-critic (pure-RL baseline)"
+    status: provisional
+    proper_name: null
+  Base_O02_D01_S00:
+    arms: ["cnngru32-64w256"]
+    description: "gru256 with CNN tile encoder (control for tf_gru)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D00_S00:
+    arms: ["tf64x2h4"]
+    description: "PPO, tile-token Transformer actor (64d x 2 layers, 4 heads, history 4), no memory"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S00:
+    arms: ["tfgru64x2w256"]
+    description: "Transformer tile encoder + GRU-256 memory, PPO (Phase-1 best at 1M steps)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S01:
+    arms: ["tfgru64x2w256+wm_trained"]
+    description: "tf_gru + trained Idea-6 world-model features"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S02:
+    arms: ["tfgru64x2w256+wm_random"]
+    description: "tf_gru + frozen random-init world model (control)"
+    status: provisional
+    proper_name: null
+  Idea6_O01_D00_S00:
+    arms: ["tf64x2h4+wm_trained"]
+    description: "Transformer actor + trained Idea-6 world-model features"
+    status: provisional
+    proper_name: null
+  Idea6_O01_D00_S01:
+    arms: ["tf64x2h4+wm_random"]
+    description: "Transformer actor + frozen random-init world model (control)"
+    status: provisional
+    proper_name: null
+  Chunk_O01_D00_S00:
+    arms: ["chunkppo_k1_h4"]
+    description: "ChunkPPO, commit length k=1, history 4 (latency/goal-chunking line; reduces to PPO + small Transformer at k=1)"
+    status: provisional
+    proper_name: null

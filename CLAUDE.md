@@ -18,7 +18,7 @@ Check in particular for these problems:
 
 The "strictness" rule below means "don't invent components the operator didn't specify." It does **not** mean "implement flawed specs without comment." When refuting, state the flaw concisely, show the simplified form that exposes it, and propose a fix or an experiment that would decide the question if one exists. Record the objection in the task's `STATE.yaml` entry.
 
-## Operating protocol (`docs/core/MASTER_GUIDANCE.xml`, v10)
+## Operating protocol (`docs/core/MASTER_GUIDANCE.xml`, v11)
 
 The role is a careful senior engineer working autonomously: correct first, minimal diff, verifiable, and ask only when genuinely blocked.
 
@@ -39,6 +39,16 @@ Read the XML for the exact gates before any roadmap task. Structure and rules th
 - **Prohibited (P1–P12):** no fabricated or constant result fields, no untrained weights presented as trained, no simulator access or counterfactual simulator-branching labels at decision time (oracle arms only as labelled upper-bound controls, never counting toward a gate), no hand-specified game knowledge (achievement hierarchy, tech tree, reward shaping) in gate runs, no use of quarantined or pre-fix results, no training/tuning/selection on evaluation seeds or episodes, no unequal effort against the baseline, no uncounted env steps, no parameter shortcuts (gates use `params_total`), and no paper number without its source id and caveat ids.
 - **Reference values** are quoted from cited papers (Dedieu et al. 2025 Table 1 and others). Do not edit them from memory. Changing one needs a new citation. Values marked `basis="to_measure"` are missing and must not be invented.
 - Every result file must record the fields listed in the roadmap's `<reporting>` block (phase, gate_id, protocol, commits, modality, `env_steps_total`, seeds, per-seed metrics with mean and SE, `params_total`, `params_deployed`, tuning budget).
+
+### Experiment tracking (`<experiment_tracking>` in MASTER_GUIDANCE, added in v11)
+
+Local MLflow (SQLite `mlflow_local/`, gitignored) indexes result files; the files under `output/` stay the source of truth. After every execution run `python scripts/mlflow_ingest.py <result file or dir>`.
+- One Experiment per phase (`phase-N`; pre-roadmap runs in `phase-0-legacy`). One run per training execution (per seed), named `<model_id>_<YYYYMMDD-HHMMSS>` (UTC).
+- `model_id` = `<IdeaName>_O<NN>_D<NN>_S<NN>` from `docs/experiments/MODEL_REGISTRY.yaml` (register before the first run; agents may add `status: provisional` entries). **Proper names are operator-only; never write or propose `proper_name`.**
+- Parameters use the official names in `docs/experiments/MLFLOW_PARAM_NAMES.yaml` (`train.learning_rate`, not `lr`/`LR`); add new ones there before the run that uses them.
+- Seeds: train 42, test 0424 (stored as 424); replicate k = 42+k / 424+k. Tuning seeds disjoint from 42-51 and 424-433.
+- Keep logs minimal (final scalars, <= 50 curve points, no artifacts). Record every failed/interrupted run with `mlflow_ingest.py --record-failure ...`; such runs are never aggregated or quoted as results.
+- `python scripts/mlflow_report.py summary|arch NAME|size`. If the store reaches 1 GiB, report it to the operator (next step: Cloudflare D1, not on your own).
 
 ### Dependency impact checks (scip-neo4j MCP server)
 

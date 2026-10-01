@@ -1,0 +1,67 @@
+# Official parameter names for MLflow (MASTER_GUIDANCE <experiment_tracking>). One concept = one name.
+# Format: <group>.<snake_case_name>; groups: train (optimisation / RL), arch (model structure), wm (world-model component), env, eval, seed.
+# Component-specific structure/optimiser parameters of an extra module take that module's group prefix (wm., and e.g. tok. for a tokenizer).
+# Every alias (matched case-insensitively, '-' == '_') maps to its official name at ingest. An unknown parameter is logged as
+# x.<original_name> and counted in the ingest summary; add it here (with the official name) BEFORE the next run that uses it.
+# family_aliases resolve names that are ambiguous across result families.
+params:
+  train.learning_rate:   {aliases: [lr, learning_rate]}
+  train.anneal_lr:       {aliases: [anneal_lr, lr_anneal]}
+  train.total_env_steps: {aliases: [total_steps, total_env_steps]}
+  train.total_env_ticks: {aliases: [total_env_ticks]}      # latency line: ticks incl. passive ticks, not equal to env steps
+  train.num_envs:        {aliases: [num_envs, n_envs]}
+  train.rollout_length:  {aliases: [num_steps, rollout_length, n_steps]}
+  train.num_updates:     {aliases: [updates, num_updates, n_updates]}
+  train.cycles_per_update: {aliases: [cycles_per_update]}
+  train.batch_episodes:  {aliases: [batch, batch_episodes]}
+  train.total_episodes:  {aliases: [episodes, total_episodes]}
+  train.update_epochs:   {aliases: [epochs, update_epochs]}
+  train.num_minibatches: {aliases: [minibatches, num_minibatches]}
+  train.discount_gamma:  {aliases: [gamma, discount_gamma]}
+  train.gae_lambda:      {aliases: [lam, gae_lambda]}
+  train.clip_epsilon:    {aliases: [clip, clip_eps, clip_epsilon]}
+  train.entropy_coef:    {aliases: [ent, ent_coef, entropy_coef]}
+  train.value_coef:      {aliases: [vf, vf_coef, value_coef]}
+  train.max_grad_norm:   {aliases: [max_grad_norm]}
+  train.dist_coef:       {aliases: [dist_coef]}
+  train.dist_max_gap:    {aliases: [dist_max_gap]}
+  train.aux_coef:        {aliases: [aux_coef]}
+  train.passive_envs:    {aliases: [passive_envs]}
+  train.passive_ticks_per_env: {aliases: [passive_ticks_per_env]}
+  train.passive_pretrain_steps: {aliases: [passive_pretrain_steps]}
+  train.equal_env_ticks: {aliases: [equal_env_ticks]}
+  train.checkpoint_ticks: {aliases: [checkpoint_ticks]}
+  train.time_limit_s:    {aliases: [time_limit_s]}
+  wm.hidden_width:       {aliases: [wm_hidden]}
+  wm.window_length:      {aliases: [wm_window]}
+  wm.learning_rate:      {aliases: [wm_lr]}
+  wm.steps_per_update:   {aliases: [wm_steps_per_update]}
+  wm.batch_size:         {aliases: [wm_batch]}
+  wm.freeze_f:           {aliases: [wm_freeze_f]}
+  eval.every:            {aliases: [eval_every]}
+  eval.cycles:           {aliases: [eval_cycles]}
+  eval.windows:          {aliases: [eval_windows]}
+  arch.d_model:          {aliases: [d_model]}
+  arch.n_layers:         {aliases: [n_layers, num_layers]}
+  arch.n_heads:          {aliases: [n_heads, num_heads]}
+  arch.hidden_width:     {aliases: [mlp_width, hidden_width]}
+  arch.n_hidden_layers:  {aliases: [mlp_layers, n_hidden_layers]}
+  arch.critic_width:     {aliases: [critic_width]}
+  arch.critic_layers:    {aliases: [critic_layers]}
+  arch.critic_type:      {aliases: [critic_type]}
+  arch.critic_time_feature: {aliases: [critic_time_feature]}
+  arch.history_length:   {aliases: [hist_len, hist, history_length]}
+  arch.actor_type:       {aliases: [actor, actor_type]}
+  arch.commit_length:    {aliases: [commit_length]}
+  env.id:                {aliases: [env]}
+  env.episode_limit:     {aliases: [episode_limit, max_episode_steps]}
+  env.latency_delta:     {aliases: [latency_delta]}
+  env.observation:       {aliases: [observation]}
+  seed.train:            {aliases: [seed, train_seed]}      # default 42; replicate k uses 42 + k
+  seed.test:             {aliases: [test_seed, eval_seed]}  # default 424 (written 0424); replicate k uses 424 + k
+  eval.episodes:         {aliases: [eval_episodes]}
+  eval.policy:           {aliases: [policy]}
+family_aliases:
+  latency:   {k: arch.commit_length, delta: env.latency_delta, d: arch.d_model}
+  candidate: {T: env.episode_limit}
+  phase1:    {delta: env.latency_delta, d: arch.d_model, layers: arch.n_layers, k: arch.commit_length, critic: arch.critic_type}

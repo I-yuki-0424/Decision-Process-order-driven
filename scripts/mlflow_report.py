@@ -1,13 +1,14 @@
-"""Aggregate the local MLflow store by architecture (replaces re-reading the LaTeX notes for 'what did X score?').
+"""Aggregate the local MLflow store by model (replaces re-reading the LaTeX notes for 'what did X score?').
 
-  python scripts/mlflow_report.py summary [--md out.md]   # per family, per architecture
-  python scripts/mlflow_report.py arch NAME               # every run of one architecture (substring match)
+  python scripts/mlflow_report.py summary [--md out.md]   # per experiment (phase), per model; mean/SE computed here from per-seed runs
+  python scripts/mlflow_report.py arch NAME               # every run whose model_id / arm / architecture contains NAME
   python scripts/mlflow_report.py size [--warn-gb 1.0]    # DB size / row counts; warns when it is time to consider Cloudflare D1
   python scripts/mlflow_report.py ui                      # prints the command to browse the store
 
-Numbers are copied from the ingested result files; nothing is recomputed. Families use different protocols and are NOT
-comparable to each other (phase1 = EP-A gating protocol; candidate-results / latency = internal screening). `oracle_control=true`
-rows are upper-bound controls and never count toward a gate (CLAUDE.md P3).
+Numbers are copied from the ingested result files; only mean and SE over seeds are computed here (SE = std(ddof=1)/sqrt(n)).
+Runs that did not finish (status FAILED/KILLED) are never aggregated; they are listed in a separate section.
+phase-1 protocol EP-A is the only gating protocol; other protocols are screening. `oracle_ctl=true` rows are upper-bound controls
+(CLAUDE.md P3). phase-0-legacy rows predate the roadmap and are never gate evidence.
 """
 import argparse
 import os
@@ -15,36 +16,43 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from mlflow_ingest import EXP_LATENCY, EXP_PHASE1, EXP_RESULT, default_store, store_uri  # noqa: E402
+from mlflow_ingest import LEGACY_EXP, default_store, store_uri  # noqa: E402
 
 
 def load(store):
-    from mlflow import MlflowClient
     import mlflow
+    from mlflow import MlflowClient
     mlflow.set_tracking_uri(store_uri(store))
     c = MlflowClient()
-    out = {}
-    for name in (EXP_PHASE1, EXP_RESULT, EXP_LATENCY):
-        e = c.get_experiment_by_name(name)
-        rows, tok = [], None
-        while e is not None:
+    rows = []
+    for e in c.search_experiments():
+        tok = None
+        while True:
             page = c.search_runs([e.experiment_id], max_results=1000, page_token=tok)
             for r in page:
                 rows.append({**{f"tag.{k}": v for k, v in r.data.tags.items()}, **r.data.metrics,
                              **{f"param.{k}": v for k, v in r.data.params.items()}, "run_id": r.info.run_id,
-                             "run_name": r.info.run_name})
+                             "run_name": r.info.run_name, "status": r.info.status, "experiment": e.name})
             tok = page.token
             if not tok:
                 break
-        out[name] = pd.DataFrame(rows)
-    return out
+    return pd.DataFrame(rows)
 
 
 def fmt(x, nd=2):
     return "–" if pd.isna(x) else f"{x:.{nd}f}"
+
+
+def pm(s, nd=2):
+    s = s.dropna()
+    if s.empty:
+        return "–"
+    se = s.std(ddof=1) / np.sqrt(len(s)) if len(s) > 1 else float("nan")
+    return f"{s.mean():.{nd}f} ± {fmt(se, nd)}"
 
 
 def md_table(df):
@@ -54,61 +62,82 @@ def md_table(df):
     return "\n".join(lines)
 
 
-def section_phase1(df):
-    df = df[df["tag.level"] == "aggregate"]
+def section_phase(df, exp):
+    df = df[df["tag.family"] == "phase1"].copy()
     if df.empty:
         return None
+    key = ["tag.arm", "tag.protocol", "param.seed.train", "reward_pct", "score_pct", "tag.git_commit", "param.train.learning_rate",
+           "param.train.rollout_length"]
+    dirs = df.groupby(key)["tag.source_dir"].agg(lambda x: sorted(set(x))).rename("dirs")  # same file copied into several dirs
+    df = df.drop_duplicates(key).merge(dirs, left_on=key, right_index=True)
     rows = []
-    # the same result file is often copied into several dirs (final_1000k_all, *_derived, ...): merge identical rows
-    for _, g in df.groupby(["tag.architecture", "tag.arm", "tag.protocol", "reward_pct_mean", "score_pct_mean", "tag.git_commit", "param.cfg.lr"]):
-        r = g.iloc[0]
-        dirs = sorted(set(g["tag.source_dir"].str.removeprefix("phase1/")))
-        rows.append({"dir": dirs[0] + (f" (+{len(dirs) - 1} copies)" if len(dirs) > 1 else ""), "architecture": r["tag.architecture"],
-                     "arm": r["tag.arm"], "protocol": r["tag.protocol"].split(" (")[0], "lr": r["param.cfg.lr"], "seeds": int(r["n_seeds"]),
-                     "env_steps": f"{r['env_steps_total']:,.0f}", "params_total": f"{r['params_total']:,.0f}",
-                     "reward_pct": f"{fmt(r['reward_pct_mean'])} ± {fmt(r['reward_pct_se'])}",
-                     "score_pct": f"{fmt(r['score_pct_mean'])} ± {fmt(r['score_pct_se'])}",
-                     "_k": r["reward_pct_mean"]})
-    t = pd.DataFrame(rows).sort_values(["dir", "_k"], ascending=[True, False]).drop(columns="_k")
-    return ("phase1-epa  (mean ± SE over seeds; reward_pct = % of 22 achievements, score_pct = Crafter score; "
-            "only protocol EP-A gates a phase, EP-A-mini / -partial are screening)"), t
+    grp = ["tag.model_id", "tag.arm", "tag.protocol", "tag.role", "param.train.learning_rate", "param.train.rollout_length",
+           "param.train.num_envs", "param.train.total_env_steps"]
+    for k, g in df.groupby(grp, dropna=False):
+        all_dirs = sorted({d.split("/")[-1] for ds in g["dirs"] for d in ds})
+        rows.append({"model_id": k[0], "arm": k[1], "protocol": k[2].split(" (")[0], "role": k[3], "lr": k[4], "n": len(g),
+                     "env_steps": f"{g['env_steps_total'].iloc[0]:,.0f}", "params_total": f"{g['params_total'].iloc[0]:,.0f}",
+                     "reward_pct": pm(g["reward_pct"]), "score_pct": pm(g["score_pct"]),
+                     "oracle_ctl": g["tag.oracle_control"].iloc[0], "dirs": ",".join(all_dirs[:3]) + ("…" if len(all_dirs) > 3 else ""),
+                     "_p": 0 if k[2] == "EP-A" else 1, "_k": g["reward_pct"].mean()})
+    t = pd.DataFrame(rows).sort_values(["_p", "protocol", "role", "_k"], ascending=[True, True, True, False]).drop(columns=["_p", "_k"])
+    return (f"{exp}  (mean ± SE over n seeds; reward_pct = % of 22 achievements, score_pct = Crafter score; "
+            "only protocol EP-A gates a phase, others are screening)"), t
 
 
-def section_result(df):
+def section_candidates(df):
+    df = df[df["tag.family"] == "candidate-result"]
     if df.empty:
         return None
+    df = df.drop_duplicates(["tag.tag", "final_sampled/crafter_score"])  # same run copied into several dirs counts once
     rows = []
     for (arch, var, orc), g in df.groupby(["tag.architecture", "tag.variant", "tag.oracle_control"]):
-        ok = g[g["tag.status"] != "failed"]
-        s = ok["final_sampled/crafter_score"] if "final_sampled/crafter_score" in ok else pd.Series(dtype=float)
-        rows.append({"architecture": arch, "variant": var, "mode": g["tag.mode"].iloc[0], "seeds": g["tag.seed"].nunique(),
-                     "failed": len(g) - len(ok), "oracle_ctl": orc,
-                     "crafter_score mean": fmt(s.mean()), "best seed": fmt(s.max()),
-                     "unlocked mean": fmt(ok.get("final_sampled/mean_unlocked", pd.Series(dtype=float)).mean()), "_k": s.mean()})
+        s = g["final_sampled/crafter_score"]
+        rows.append({"architecture": arch, "variant": var, "mode": g["tag.mode"].iloc[0], "runs": len(g), "seeds": g["tag.seed"].nunique(),
+                     "oracle_ctl": orc,
+                     "crafter_score": pm(s), "best seed": fmt(s.max()), "mean_unlocked": pm(g["final_sampled/mean_unlocked"]),
+                     "_k": s.mean()})
     t = pd.DataFrame(rows).sort_values("_k", ascending=False).drop(columns="_k")
-    return "candidate-results  (final_sampled, mean over seeds of one configuration; internal screening; oracle_ctl=true rows are upper-bound controls)", t
+    return "candidate-results  (legacy, final_sampled, mean ± SE over runs of one configuration (reruns of a seed count as runs); internal screening)", t
 
 
 def section_latency(df):
+    df = df[df["tag.family"] == "latency-chunking"]
     if df.empty:
         return None
+    df = df.drop_duplicates(["param.env.id", "tag.arm", "param.env.latency_delta", "train_return_settled_mean", "final/eval_return"])
     rows = []
-    for (env, arm, actor, delta), g in df.groupby(["tag.env", "tag.arm", "tag.actor", "param.cfg.delta"]):
-        rows.append({"env": env, "arm": arm, "actor": actor, "delta": delta, "oracle_ctl": g["tag.oracle_control"].iloc[0], "runs": len(g),
-                     "train_return_settled mean": fmt(g["train_return_settled_mean"].mean(), 3),
-                     "best seed": fmt(g["train_return_settled_mean"].max(), 3),
-                     "final eval_return mean": fmt(g.get("final/eval_return", pd.Series(dtype=float)).mean(), 3)})
-    t = pd.DataFrame(rows).sort_values(["env", "delta", "train_return_settled mean"], ascending=[True, True, False])
-    return "latency-chunking  (settled train return; one row per env/arm/actor/delta, mean over seeds)", t
+    for (env, arm, delta, orc), g in df.groupby(["param.env.id", "tag.arm", "param.env.latency_delta", "tag.oracle_control"],
+                                                 dropna=False):
+        rows.append({"env": env, "arm": arm, "delta": delta, "oracle_ctl": orc, "n": len(g),
+                     "train_return_settled": pm(g["train_return_settled_mean"], 3), "best seed": fmt(g["train_return_settled_mean"].max(), 3),
+                     "final eval_return": pm(g["final/eval_return"], 3)})
+    t = pd.DataFrame(rows).sort_values(["env", "delta", "train_return_settled"], ascending=[True, True, False])
+    return "latency-chunking  (legacy, settled train return; one row per env/arm/delta, mean ± SE over seeds)", t
+
+
+def section_unfinished(df):
+    bad = df[df["status"] != "FINISHED"]
+    if bad.empty:
+        return "Failed / interrupted runs", pd.DataFrame([{"note": "none recorded"}])
+    t = bad.groupby(["experiment", "status", "tag.end_reason", "tag.model_id"]).size().rename("runs").reset_index()
+    t.columns = ["experiment", "status", "end_reason", "model_id", "runs"]
+    return "Failed / interrupted runs  (excluded from every aggregate above)", t
 
 
 def cmd_summary(a):
-    data = load(a.store)
+    df = load(a.store)
     out = []
-    for name, fn in ((EXP_PHASE1, section_phase1), (EXP_RESULT, section_result), (EXP_LATENCY, section_latency)):
-        s = fn(data[name]) if not data[name].empty else None
-        if s:
-            out += [f"## {s[0]}", "", md_table(s[1]), ""]
+    ok = df[df["status"] == "FINISHED"] if not df.empty else df
+    for exp in sorted(df["experiment"].unique()) if not df.empty else []:
+        sub = ok[ok["experiment"] == exp]
+        secs = [section_phase(sub, exp)] if exp != LEGACY_EXP else [section_candidates(sub), section_latency(sub)]
+        for s in secs:
+            if s:
+                out += [f"## {s[0]}", "", md_table(s[1]), ""]
+    if not df.empty:
+        s = section_unfinished(df)
+        out += [f"## {s[0]}", "", md_table(s[1]), ""]
     text = "\n".join(out)
     print(text)
     if a.md:
@@ -116,20 +145,17 @@ def cmd_summary(a):
 
 
 def cmd_arch(a):
-    data = load(a.store)
-    for name, df in data.items():
-        if df.empty:
-            continue
-        hit = df[df["tag.architecture"].str.contains(a.name, case=False, na=False)]
-        hit = hit[hit.get("tag.level", "run") != "seed"] if "tag.level" in hit else hit
-        if hit.empty:
-            continue
-        keep = [c for c in ("run_name", "tag.source_dir", "tag.protocol", "reward_pct_mean", "score_pct_mean",
-                            "final_sampled/crafter_score", "final_sampled/mean_unlocked", "train_return_settled_mean",
-                            "tag.source_key") if c in hit]
-        print(f"## {name}: {len(hit)} runs")
-        print(md_table(hit[keep].rename(columns=lambda c: c.replace("tag.", "")).map(lambda v: fmt(v, 3) if isinstance(v, float) else v)))
-        print()
+    df = load(a.store)
+    cols = ["tag.model_id", "tag.arm", "tag.architecture"]
+    hit = df[df[[c for c in cols if c in df]].apply(lambda c: c.str.contains(a.name, case=False, na=False)).any(axis=1)]
+    if hit.empty:
+        print("no match")
+        return 1
+    keep = [c for c in ("run_name", "experiment", "status", "tag.end_reason", "tag.protocol", "tag.role", "param.seed.train", "reward_pct",
+                        "score_pct", "final_sampled/crafter_score", "train_return_settled_mean", "tag.source_key") if c in hit]
+    t = hit[keep].rename(columns=lambda c: c.replace("tag.", "").replace("param.", "")).sort_values("run_name")
+    print(f"## {len(hit)} runs matching {a.name!r}")
+    print(md_table(t.map(lambda v: fmt(v, 3) if isinstance(v, float) else v)))
 
 
 def cmd_size(a):
@@ -167,7 +193,7 @@ def main():
     z.set_defaults(fn=cmd_size)
     sub.add_parser("ui").set_defaults(fn=cmd_ui)
     a = ap.parse_args()
-    return (a.fn or cmd_summary)(a) if a.cmd else cmd_summary(argparse.Namespace(store=a.store, md=None))
+    return a.fn(a) if a.cmd else cmd_summary(argparse.Namespace(store=a.store, md=None))
 
 
 if __name__ == "__main__":
