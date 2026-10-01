@@ -988,7 +988,7 @@ tasks:
 
   - id: "TASK-20260930-017-phase1-model-families"
     created_at: "2026-09-30T18:40:00Z"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator request (2026-09-30, unattended ~20 h window, Kaggle GPU quota exhausted so local RTX 3060 Ti via Docker dpod-local,
       operator asks for ~10k-100k training steps): re-run the main model families under the roadmap-v10 evaluation rules on

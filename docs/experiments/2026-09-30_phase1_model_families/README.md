@@ -159,7 +159,7 @@ entropy 0.02 → 30.6, 8 epochs → 27.2; none reached the G1.0 level.
    history window is not a substitute for recurrent memory (hist = 0 and hist = 4 are equal at 100k).
 3. **Idea-6 world model as decision features (`tf_wm`)** — no benefit: vs `tf` −0.7 ± 0.8 (1M), vs frozen random WM +1.4 ± 1.2 (n.s.). At 100k the trained WM is no better than random (−0.05 ± 0.36). The imagined-Q variant and the
    auxiliary-loss variant (WM loss reaching the shared trunk) do not change this. This matches the objection recorded beforehand: a deterministic function of the same observation cannot add information; any gain would have to come from
-   representation shaping, and none was found. EXPLORATORY_WM
+   representation shaping, and none was found. Exploratory check on the strong backbone (`tf_gru` + the same WM features, lr 1e-3, 1M steps, tuning seed 1000 only — **interrupted by the machine restart before the second seed, so n = 1**): trained WM 31.5 / 8.83, frozen random WM 33.1 / 9.66, vs 41.4 / 12.18 without WM features on the same seed. Adding WM features did not help and, if anything, hurt (single seed; not a conclusion beyond "no sign of benefit").
 4. **ChunkPPO series (`chunkppo_k1`)** — worst of all arms at 1M (23.9 / 4.6) and at best mid-pack at 100k. At k = 1 it is a PPO learner with a single-state-token Transformer actor; the tile-token `tf` encoder is 5 points better,
    so the weakness is the actor/critic design, not the (inactive) chunk machinery. The chunk-specific claims (k > 1, latency, forecast arms) were not tested here (Phase 3 is locked; k = 4 was not run).
 5. **Derivative `tf_gru`** — the only model that clearly beats pure RL. Because it was designed *after* seeing the 1M results of the other arms, treat it as a new hypothesis that has passed one clean test (10 fresh seeds, same evaluator, same
@@ -174,6 +174,8 @@ entropy 0.02 → 30.6, 8 epochs → 27.2; none reached the G1.0 level.
 * `chunkppo_k1` k = 1 only. Sampled-policy evaluation only (no greedy numbers). Episodes are short for every arm (mean ≈ 140–230 steps, none censored at the 10 000-step limit), so these are early-game results and the episode limit never binds.
 * Exploratory tables have 2–3 seeds; differences below ~1 point there are not meaningful.
 * `tf_gru` and `cnn_gru` were added after the main comparison; `tf_gru`'s lr = 3e-3 tuning point has one seed.
+* Traceability: the `git_commit` field in each result JSON is HEAD at launch time; the derivative-arm code (`tf_gru`, `cnn_gru`) and some sweep options were still uncommitted then. All code that produced the results is in the
+  commit that contains this report; later edits only added default-off options (WM features on `tf_gru`, WM loss in the recurrent learner), covered by the unit tests.
 
 ## 7. Suggested next steps (not done)
 
@@ -181,7 +183,23 @@ entropy 0.02 → 30.6, 8 epochs → 27.2; none reached the G1.0 level.
 2. Re-test the world-model idea only on the strong backbone and only with a hypothesis that can add information (e.g. as a source of *data reuse* — Dyna-style imagined updates, which is where Dedieu 2025 gets its gains — not as features).
 3. If `tf_gru` is to be a Phase-1 candidate: tune it with the same effort as the GRU baseline (entropy, width, d), and add the image-observation variant.
 
-## 8. Reproduce
+## 8. Incident: GPU stutter / system slowdown during the last hours (restart at 12:40 on 2026-10-01)
+
+Not proven, but the evidence points to **GPU (VRAM and WDDM time-slice) oversubscription by my jobs, not to RAM or a leaked process**:
+
+* The only GPU in the box is also the display GPU (RTX 3060 Ti 8 GB, WDDM; the desktop alone holds ~1.1–1.5 GB). My containers were started with `XLA_PYTHON_CLIENT_MEM_FRACTION` caps that I summed to more than the free VRAM
+  (last stage: two `tf_gru`+WM containers at 0.42 each plus the 100k run at 0.5; `nvidia-smi` showed 5.3 GB used with three containers earlier and the Transformer-GRU jobs allocate 2–3 GB each). Over-committed VRAM on WDDM is
+  paged/evicted, which gives exactly "frame-rate drops, sharp GPU-load spikes, no system-RAM exhaustion". The JAX runs also produced OOM errors (`RESOURCE_EXHAUSTED`) whenever the cap was too low, which shows how close to the limit they ran.
+* GPU utilisation was 82–100 % for most of the ~18 h with 3–5 concurrent containers; a saturated display GPU stutters the desktop even when nothing is wrong. Parallel jobs gave **no speed-up** (GPU-bound), so the concurrency only cost UI smoothness.
+* Windows System log: 12 × `nvlddmkm` Event 13 (NVIDIA driver graphics exception) between 19:13 on 09-30 and 02:44 on 10-01 (19:13, 19:15, 19:19, 20:39, 20:40, 20:44, 21:10, 21:22, 21:41, 00:21, 01:07, 02:44). The first ones coincide with the
+  containers that failed at start with "no supported devices found for platform CUDA" (19:18 and 19:26); the driver was resetting/faulting under load. This is a driver/GPU stability signal (overclock, power, driver version, or memory pressure are the usual causes) that is worth
+  checking independently of my code.
+* A job that "did not terminate" is possible but not what I see: I stopped every sweep driver and container I abandoned (`docker stop`), and at the time of the restart the only live work was the two intentional `tf_gru`+WM containers. After the restart no
+  container or sweep process remained and no process holds RAM (largest: WSL `vmmem` 2.3 GB, which is the Docker backend).
+* Mitigations if this machine is used for long runs again: one job at a time; total `XLA_PYTHON_CLIENT_MEM_FRACTION` ≤ 0.6 (leave ≥ 3 GB for the desktop); `XLA_PYTHON_CLIENT_PREALLOCATE=false` (already set); lower GPU power/clock limit
+  or run overnight; check the driver (Event 13) and the GPU temperature/power limit; keep the repo on a persistent drive instead of the RAM disk (R: is 16 GB RAM-backed — that is why the working copy vanished; everything was already pushed).
+
+## 9. Reproduce
 
 ```bash
 python scripts/run_phase1_sweep.py tune  --steps 100000  --workers 3                 # tuning grid, seeds 1000-1002
