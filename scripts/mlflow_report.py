@@ -228,11 +228,15 @@ def sync_models(store):
     reg = yaml.safe_load(REGISTRY_PATH.read_text(encoding="utf-8"))["models"]
     c = MlflowClient()
     n_ver = 0
+    shown = 0
     for mid, m in reg.items():
         try:
             c.delete_registered_model(mid)
         except MlflowException:
             pass
+        if m.get("status") == "archived":   # dead ends stay in the registry (run -> model_id) but are not shown on the Models tab
+            continue
+        shown += 1
         tags = {"idea": mid.split("_")[0], "status": str(m.get("status")), "arms": ",".join(m.get("arms", [])), "source": "MODEL_REGISTRY.yaml"}
         if m.get("proper_name"):
             tags["proper_name"] = str(m["proper_name"])
@@ -250,7 +254,7 @@ def sync_models(store):
             n_ver += 1
         for proto, ver in best.items():
             c.set_registered_model_alias(mid, "best-" + re.sub(r"[^A-Za-z0-9_-]+", "-", proto).strip("-").lower(), ver)
-    return f"models tab: {len(reg)} registered models, {n_ver} versions (alias best-<protocol> = highest mean score_pct)"
+    return f"models tab: {shown} registered models ({len(reg) - shown} archived hidden), {n_ver} versions (alias best-<protocol> = highest mean score_pct)"
 
 
 def cmd_models(a):
