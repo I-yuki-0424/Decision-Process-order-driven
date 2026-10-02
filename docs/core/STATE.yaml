@@ -1088,7 +1088,7 @@ tasks:
 
   - id: "TASK-20261001-020-g10-symbolic-baseline-tuning"
     created_at: "2026-10-01T12:00:00Z"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator decision (2026-10-01): image observations (63x63x3) are rejected for now (not feasible with current compute; revisit if more compute
       becomes available). Route 1 only: declare the 1345-d symbolic modality and tune the pure-RL baseline (ppo_gru) at the 1M-step budget until
@@ -1099,7 +1099,20 @@ tasks:
       - "python scripts/pre_commit_ban_check.py"
       - "python -m unittest tests.test_epa_harness"
       - "PROPOSED, operator to confirm: python scripts/run_phase1_sweep.py tune --steps 1000000 --grid '<points>'  (tuning seeds 1000-1002, disjoint from 42-51/424-433)"
-    result: ""
+    result: >
+      DONE 2026-10-03 01:32 JST (local RTX 3060 Ti, Docker; TPU unused). G1.0: FAIL (best tuned baseline ppo_gru 32.45 +- 0.70 reward_pct / 8.16 +- 0.37 score_pct vs required 42.7 / 9.6).
+      G1.1 / G1.2 NOT claimed. No gate closed; Phase 1 stays open. EP-A, symbolic 1345-d, 999,424 env steps/run, seeds 42-51 (test seed 424-433), sampled policy, 256 fresh eval envs, final params,
+      0 censored. Tuning: 16 trials common to all arms x 2 tuning seeds (1000,1001) x 1M steps (random search + previous default as trial 0; space deviations in the notes), selection = max mean(reward+score) on
+      tuning seeds. Selected: ppo_gru t04, cnn_gru t00 (previous default), tf_gru t04 (lr 1.42e-3, ent 0.003, gamma 0.995).
+      LADDER (10 seeds each): ppo_gru 32.45 +- 0.70 / 8.16 +- 0.37 (0.88M params); cnn_gru 34.64 +- 0.49 / 9.30 +- 0.36 (1.59M); Truck=tf_gru (Idea4_O01_D01_S00) 34.19 +- 1.62 / 9.19 +- 0.74 (0.45M params_total).
+      Truck - ppo_gru = +1.74 / +1.03 (reward / score), within ~1 combined SE for reward -> NOT a distinguishable gain; Truck vs cnn_gru: no difference. Seed 51 of Truck is an outlier (22.5; range 22.5-39.8).
+      CRITICAL FINDING: the earlier untuned-default result for Truck (39.19 +- 1.27 / 11.45 +- 0.45 on seeds 0-9, TASK-017) is NOT reproduced: 34.19 on seeds 42-51 with a config that scored 38.5 on the tuning seeds.
+      Winner's curse (2-seed selection, SE ~2.5) plus non-bit-reproducible runs and large seed variance; the earlier 'tf_gru beats ppo_gru by +5.6 reward_pct' should be read as +1.7 +- ~1.8 (this run) to +5.6 (earlier, other seeds,
+      earlier ppo_gru default 33.57 / 9.12 also differs from the tuned 32.45): the 'Transformer encoder + GRU > pure RL' claim is NOT established at this effort level. Tuning also did not help the baseline (tuned ppo_gru 32.45 vs
+      untuned 33.57 on other seeds) -> tuning at 2 seeds/16 points is at the noise floor; the G1.0 gap (~10 reward_pct) is not a tuning gap in this search space; image modality was rejected by the operator.
+      MLflow: tuning + final runs ingested into the main checkout store (0 UNREGISTERED); the report merges identical configs across seed sets (cnn_gru row = 20 seeds). Cleanup: 13 dead-end models archived (hidden from the Models tab),
+      14 unreferenced adhoc scripts removed, no src/ architecture code deleted (imported by many scripts/notebooks). Impact check: no existing source symbol modified (run_epa_mini.py gained optional flags; mlflow_report.sync_models skips archived).
+      Incident: forced Windows Update restart ~02:33 JST killed the first tuning extension (see INCIDENT note); recovered from the pushed state, nothing counted twice (each result file is one (arm,trial,seed)).
     blockers:
       - "2026-10-02: resource window expired 11:59 JST and the run was killed by a forced restart; resuming the final stage needs operator authorization (see INCIDENT)."
       - "(superseded) 2026-10-01 18:55 JST: operator ordered execution (resources allowed until 2026-10-02 11:59 JST) and allowed local GPU if not slower than Kaggle; TASK-021 (TPU) is NOT used, see EXECUTION PLAN."
