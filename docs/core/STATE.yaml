@@ -1101,7 +1101,8 @@ tasks:
       - "PROPOSED, operator to confirm: python scripts/run_phase1_sweep.py tune --steps 1000000 --grid '<points>'  (tuning seeds 1000-1002, disjoint from 42-51/424-433)"
     result: ""
     blockers:
-      - "None. 2026-10-01 18:55 JST: operator ordered execution (resources allowed until 2026-10-02 11:59 JST) and allowed local GPU if not slower than Kaggle; TASK-021 (TPU) is NOT used, see EXECUTION PLAN."
+      - "2026-10-02: resource window expired 11:59 JST and the run was killed by a forced restart; resuming the final stage needs operator authorization (see INCIDENT)."
+      - "(superseded) 2026-10-01 18:55 JST: operator ordered execution (resources allowed until 2026-10-02 11:59 JST) and allowed local GPU if not slower than Kaggle; TASK-021 (TPU) is NOT used, see EXECUTION PLAN."
     notes: >
       OPERATOR APPROVAL (2026-10-01): plan approved (tune ppo_gru at 1M steps -> same budget for tf_gru/cnn_gru -> 10-seed ladder). Tuning compute: remaining
       ~20 h Kaggle TPU quota (see TASK-021) to reduce local execution time. Model Idea4_O01_D01_S00 (tfgru64x2w256) was given the proper name "Truck" by the operator.
@@ -1187,6 +1188,12 @@ tasks:
           NOISE FINDING: runs are not bit-reproducible (same config+seed: cnn_gru seed 1000 29.0 earlier vs 36.9 now; tf_gru default 41.4/43.1 earlier vs 34.1/34.0 now; final
           10-seed tf_gru spread 29.5-45.2). A 2-seed tuning mean has SE ~2.5 reward_pct, so selection carries a winner's-curse bias, equal for all three arms; the final
           10-seed run on fresh seeds is the unbiased estimate. Not a code change (diff cb35899..HEAD only adds arms).
+      INCIDENT 2026-10-02 (forced Windows Update restarts; event log: boot 02:34, restarts 13:20 and 13:33 JST): the tuning extension (trials 10-19, started 01:15) was killed at
+          ~02:33 by the first restart. The RMADISK worktree was deleted, so everything not pushed was lost: the unpushed outputs of trials 10+ (driver2.log lost; which jobs were
+          in flight is unknown, so no per-job failure record was written), the old mlflow_local (rebuilt, see below) and the VRAM probe scratch. Nothing was lost of trials 0-9 (pushed 214cfa7,
+          60 jobs + selection.json). The resource window ended 2026-10-02 11:59 JST; NO training ran after the restart. Final EP-A runs (seeds 42-51, 3 arms) were NOT started, so there is no
+          Truck evaluation number yet. MLflow: store rebuilt in the main checkout (1482 legacy+phase-1 runs) + 60 tuning runs ingested (0 UNREGISTERED, summary checked).
+          Selection (10 common trials, selection.json, tuning seeds only): ppo_gru t04, cnn_gru t00, tf_gru t04. RESUME needs operator authorization (window expired): final stage ~2-2.5 h GPU.
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
