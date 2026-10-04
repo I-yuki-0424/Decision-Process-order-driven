@@ -23,6 +23,8 @@ params:
   train.entropy_coef:    {aliases: [ent, ent_coef, entropy_coef]}
   train.value_coef:      {aliases: [vf, vf_coef, value_coef]}
   train.max_grad_norm:   {aliases: [max_grad_norm]}
+  train.value_norm_decay: {aliases: [value_norm, value_norm_decay]}   # EMA decay of value-target standardization; 0 = off (TASK-023)
+  train.adv_norm:        {aliases: [adv_norm]}                     # GAE standardization scope: minibatch | batch (TASK-023)
   train.dist_coef:       {aliases: [dist_coef]}
   train.dist_max_gap:    {aliases: [dist_max_gap]}
   train.aux_coef:        {aliases: [aux_coef]}
@@ -53,6 +55,11 @@ params:
   arch.history_length:   {aliases: [hist_len, hist, history_length]}
   arch.actor_type:       {aliases: [actor, actor_type]}
   arch.commit_length:    {aliases: [commit_length]}
+  arch.layer_norm:       {aliases: [ln, layer_norm]}               # LayerNorm before every dense layer (GRU baselines, TASK-023)
+  arch.head_skip:        {aliases: [skip, head_skip]}              # heads read [memory state, encoder output] (GRU skip / Truck hs)
+  arch.memory_token:     {aliases: [mem_token]}                    # Truck: h_{t-1} as an extra Transformer token
+  arch.prev_action_input: {aliases: [prev_act]}                    # Truck: previous-action embedding into the GRU input
+  arch.candidate_tokens: {aliases: [cand]}                         # Truck: candidate-action tokens on/off (attribution control)
   env.id:                {aliases: [env]}
   env.episode_limit:     {aliases: [episode_limit, max_episode_steps]}
   env.latency_delta:     {aliases: [latency_delta]}
@@ -64,4 +71,5 @@ params:
 family_aliases:
   latency:   {k: arch.commit_length, delta: env.latency_delta, d: arch.d_model}
   candidate: {T: env.episode_limit}
-  phase1:    {delta: env.latency_delta, d: arch.d_model, layers: arch.n_layers, k: arch.commit_length, critic: arch.critic_type}
+  phase1:    {delta: env.latency_delta, d: arch.d_model, layers: arch.n_layers, k: arch.commit_length, critic: arch.critic_type,
+              width: arch.hidden_width}

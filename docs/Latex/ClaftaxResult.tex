@@ -13,6 +13,14 @@
 \begin{document}
 \maketitle
 
+% ERRATUM added 2026-10-04 (audit TASK-20261004-022); ClaftaxResult.pdf predates it and was not rebuilt.
+\noindent\fbox{\parbox{\dimexpr\linewidth-2\fboxsep}{\small\textbf{Erratum (2026-10-04, audit TASK-20261004-022).} The \p{tf\_gru} win below
+($39.2\pm1.3$, $\Delta=+5.6\pm1.5$) is \textbf{not reliable and must not be cited}: its learning rate was selected with runs produced by
+uncommitted code (recorded commit cb35899 has no \p{tf\_gru} arm), it was designed after seeing the other arms on the same evaluation seeds,
+and it did not replicate (TASK-020: $34.19\pm1.62$ on fresh seeds 42--51, $+1.7$ vs \p{ppo\_gru}, n.s.; same-seed reruns of its tuning
+runs 34.1/34.0 instead of 41.4/43.1). No number was fabricated; the other conclusions stand.
+See \p{docs/experiments/2026-10-04\_phase1\_score\_audit/README.md}.}}
+
 \section*{Summary}
 \begin{itemize}\itemsep0pt
 \item \textbf{None of the four requested families beat pure RL} (100k and 1M steps): pure Transformer, Transformer + Idea-6 world-model (WM) features, ChunkPPO ($k{=}1$).

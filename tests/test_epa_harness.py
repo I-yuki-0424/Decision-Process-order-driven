@@ -163,6 +163,121 @@ class TestRecompute(unittest.TestCase):
 
 
 @unittest.skipUnless(HAVE, "craftax/jax not importable")
+class TestRecipeAndVariants(unittest.TestCase):
+    """TASK-20261004-023: recipe options of the reference baselines and the Truck / GRU-baseline variants."""
+
+    def setUp(self):
+        self.obs, _ = eh.env_reset(jax.random.split(jax.random.PRNGKey(0), 3))
+
+    def test_value_norm_stats(self):
+        mu, sd = eh._vn_stats(jnp.zeros(3))
+        self.assertEqual((float(mu), float(sd)), (0.0, 1.0))          # identity before the first update
+        vn = jnp.zeros(3)
+        for r in (jnp.array([1.0, 3.0]), jnp.array([1.0, 3.0])):
+            vn = eh._vn_update(vn, r, 0.9)
+        mu, sd = eh._vn_stats(vn)                                       # debiased EMA of a constant batch = its mean/std
+        self.assertAlmostEqual(float(mu), 2.0, places=5)
+        self.assertAlmostEqual(float(sd), 1.0, places=4)
+
+    def test_recipe_options_train(self):
+        for adv in ("minibatch", "batch"):
+            cfg = eh.PPOConfig(total_steps=2 * 4 * 8, num_envs=4, num_steps=8, minibatches=2, value_norm=0.95, adv_norm=adv,
+                               max_grad_norm=0.5, vf=1.0, gamma=0.925, lam=0.625)
+            tr = eh.Trainer(GRUArm(32, ln=True, skip=True), cfg)
+            st0 = tr.init(jax.random.PRNGKey(3))
+            st1, stats = tr.update(st0)
+            st2, _ = tr.update(st1)
+            self.assertTrue(np.isfinite(np.asarray(stats)).all())
+            self.assertGreater(float(st2["vn"][2]), float(st1["vn"][2]))   # target statistics are being tracked
+            d = max(float(jnp.abs(x - y).max()) for x, y in zip(jax.tree_util.tree_leaves(st0["params"]), jax.tree_util.tree_leaves(st2["params"])))
+            self.assertGreater(d, 0.0)
+        with self.assertRaises(ValueError):
+            eh.Trainer(GRUArm(32), eh.PPOConfig(total_steps=64, num_envs=4, num_steps=8, minibatches=2, adv_norm="episode"))
+
+    def test_variant_shapes_names_counts(self):
+        cases = {GRUArm(32, ln=True, skip=True): "gru32+ln+skip", CNNGRUArm(32, 8, 8, ln=True, skip=True): "cnngru8-8w32+ln+skip",
+                 TFGRUArm(d=32, layers=1, width=32, mem_token=True): "tfgru32x1w32+mem",
+                 TFGRUArm(d=32, layers=1, width=32, prev_act=True): "tfgru32x1w32+pa",
+                 TFGRUArm(d=32, layers=1, width=32, head_skip=True): "tfgru32x1w32+hs",
+                 TFGRUArm(d=32, layers=1, width=32, mem_token=True, prev_act=True, head_skip=True): "tfgru32x1w32+mem+pa+hs",
+                 TFGRUArm(d=32, layers=1, width=32, head_skip=True, cand=False): "tfgru32x1w32+hs-nocand"}
+        for arm, name in cases.items():
+            self.assertEqual(arm.name, name)
+            p = arm.init(jax.random.PRNGKey(1))
+            logits, value, caux = arm.step(p, arm.init_carry(3), self.obs)
+            self.assertEqual((logits.shape, value.shape), ((3, N_ACT), (3,)))
+            self.assertTrue(np.isfinite(np.asarray(logits)).all())
+            total, dep = arm.param_counts(p)
+            self.assertTrue(0 < dep < total)                            # the value head is never deployed
+        p = TFGRUArm(d=32, layers=1, width=32, cand=False).init(jax.random.PRNGKey(1))
+        self.assertNotIn("cand", p["pi"])                               # no unused parameters are counted
+        self.assertNotIn("logit", p["pi"])
+
+    def test_default_flags_are_the_original_arms(self):
+        for a, b in ((GRUArm(32), GRUArm(32, ln=False, skip=False)), (TFGRUArm(d=32, layers=1, width=32),
+                     TFGRUArm(d=32, layers=1, width=32, mem_token=False, prev_act=False, head_skip=False, cand=True))):
+            pa, pb = a.init(jax.random.PRNGKey(7)), b.init(jax.random.PRNGKey(7))
+            self.assertEqual(jax.tree_util.tree_structure(pa), jax.tree_util.tree_structure(pb))
+            self.assertEqual(sorted(pa["pi"]), sorted(pb["pi"]))
+            self.assertEqual(a.name, b.name)
+
+    def test_memory_token_feeds_candidate_tokens(self):
+        """With mem_token the candidate-token logits depend on the memory; without it only the Dense(h) bias does."""
+        for mem, expect in ((True, True), (False, False)):
+            arm = TFGRUArm(d=32, layers=1, width=32, mem_token=mem)
+            p = arm.init(jax.random.PRNGKey(2))
+            p["pi"]["h_logit"] = jax.tree_util.tree_map(jnp.zeros_like, p["pi"]["h_logit"])   # logits = candidate tokens only
+            h0 = jax.random.normal(jax.random.PRNGKey(3), (3, 32))
+            g = jax.grad(lambda h: arm.step(p, h, self.obs)[0].sum())(h0)
+            self.assertEqual(float(jnp.abs(g).max()) > 0.0, expect, mem)
+
+    def test_previous_action_carry(self):
+        arm = TFGRUArm(d=32, layers=1, width=32, prev_act=True)
+        c = arm.init_carry(2)
+        self.assertEqual(c.shape, (2, 32 + N_ACT + 1))
+        self.assertEqual(c[:, 32 + N_ACT].tolist(), [1.0, 1.0])        # 'none' at episode start
+        c2 = arm.advance(jnp.ones((2, 32)), self.obs[:2], jnp.array([5, 7]), jnp.array([False, True]))
+        self.assertEqual(int(jnp.argmax(c2[0, 32:])), 5)
+        self.assertEqual(int(jnp.argmax(c2[1, 32:])), N_ACT)            # episode ended: memory cleared, previous action 'none'
+        self.assertEqual(float(jnp.abs(c2[1, :32]).max()), 0.0)
+
+    def test_recompute_variants_with_resets(self):
+        for arm in (GRUArm(32, ln=True, skip=True), CNNGRUArm(32, 8, 8, ln=True, skip=True),
+                    TFGRUArm(d=32, layers=1, width=32, mem_token=True, prev_act=True, head_skip=True),
+                    TFGRUArm(d=32, layers=1, width=32, head_skip=True, cand=False)):
+            TestRecompute()._check(arm)
+
+
+@unittest.skipUnless(HAVE, "craftax/jax not importable")
+class TestDiagnosticsAndProvenance(unittest.TestCase):
+    def test_diagnostic_replays_the_headline_evaluator(self):
+        from src.pipeline.epa_diagnostics import CAUSES, diagnose_first_episodes, summarize
+        arm = TFGRUArm(d=32, layers=1, width=32, prev_act=True)
+        p = arm.init(jax.random.PRNGKey(0))
+        key = jax.random.PRNGKey(11)
+        ach, length, censored = eh.evaluate_first_episodes(arm, p, key, n_envs=8)
+        diag = diagnose_first_episodes(arm, p, key, n_envs=8)
+        np.testing.assert_array_equal(diag["length"], length)          # same trajectories, step for step
+        np.testing.assert_array_equal(diag["ach_masked"], ach)          # same headline achievements
+        self.assertTrue((diag["ach_full"] >= diag["ach_masked"]).all())  # + what was unlocked on the death tick
+        s, causes = summarize(diag)
+        self.assertEqual(sum(s["cause_counts"].values()), 8)
+        self.assertTrue(set(causes) <= set(CAUSES))
+        self.assertEqual(s["censored"], censored)
+
+    def test_provenance_fields(self):
+        prov = eh.run_provenance()
+        for k in ("git_commit", "git_dirty", "evaluator_commit", "code_sha256", "packages", "backend", "xla_flags"):
+            self.assertIn(k, prov)
+        self.assertEqual(len(prov["code_sha256"]), 64)
+        rec = eh.make_record("a", "a", {}, {}, [dict(seed=1000, reward_pct=1.0, score_pct=1.0)], "tune", "x", 1, 2, 1, "b",
+                             prov["git_commit"], provenance=prov)
+        self.assertEqual(rec["evaluator_commit"], prov["evaluator_commit"])
+        self.assertNotIn("provenance", eh.make_record("a", "a", {}, {}, [dict(seed=1000, reward_pct=1.0, score_pct=1.0)], "tune",
+                                                      "x", 1, 2, 1, "b", "c"))   # old callers (run_epa_chunkppo) unchanged
+
+
+@unittest.skipUnless(HAVE, "craftax/jax not importable")
 class TestEvaluation(unittest.TestCase):
     def test_untrained_eval_is_bounded_and_first_episode_only(self):
         arm = MLPArm(32, 1)

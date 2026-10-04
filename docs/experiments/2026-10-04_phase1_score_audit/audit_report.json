@@ -1,0 +1,2767 @@
+{
+ "kind": "phase1_result_audit",
+ "task": "TASK-20261004-022",
+ "roots": [
+  "output/phase1"
+ ],
+ "files_audited": 250,
+ "files_skipped": 7,
+ "finding_counts": {
+  "PROVENANCE:code_absent": 16,
+  "PROVENANCE:no_versions": 250
+ },
+ "findings": [
+  {
+   "file": "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s42.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s43.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s44.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s45.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s46.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s47.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s48.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s49.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s50.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/cnn_gru__s51.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s42.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s43.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s44.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s45.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s46.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s47.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s48.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s49.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s50.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/ppo_gru__s51.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s42.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s43.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s44.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s45.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s46.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s47.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s48.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s49.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s50.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_1000k_t020/tf_gru__s51.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/reference/untrained_init_mlp.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/chunkppo_k1__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/ppo_gru__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/ppo_mlp__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/tf__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/tf__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/tf_wm__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/tf_wm__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/tf_wm_random__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'cnn_gru' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'cnn_gru' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'cnn_gru' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_gru' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_gru' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_gru' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived3/tf_gru_wm__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_gru_wm' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived3/tf_gru_wm__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived3/tf_gru_wm_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_gru_wm_random' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived3/tf_gru_wm_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_gru_tune/gru_e8__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_gru_tune/gru_ent003__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_gru_tune/gru_ent02__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_gru_tune/gru_gamma995__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_gru_tune/gru_lam95__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/chunkppo_k1__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/ppo_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/ppo_mlp__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/tf__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/tf_wm__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/tf_wm_random__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t00__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t00__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t01__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t01__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t02__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t02__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t03__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t03__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t04__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t04__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t05__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t05__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t06__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t06__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t07__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t07__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t08__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t08__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t09__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t09__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t10__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t10__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t11__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t11__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t12__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t12__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t13__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t13__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t14__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t14__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t15__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/cnn_gru__t15__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t00__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t00__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t01__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t01__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t02__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t02__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t03__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t03__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t04__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t04__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t05__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t05__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t06__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t06__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t07__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t07__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t08__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t08__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t09__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t09__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t10__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t10__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t11__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t11__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t12__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t12__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t13__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t13__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t14__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t14__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t15__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t15__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t16__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/ppo_gru__t16__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t00__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t00__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t01__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t01__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t02__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t02__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t03__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t03__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t04__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t04__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t05__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t05__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t06__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t06__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t07__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t07__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t08__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t08__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t09__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t09__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t10__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t10__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t11__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t11__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t12__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t12__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t13__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t13__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t14__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t14__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t15__s1000.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/tf_gru__t15__s1001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/chunkppo_k1__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/chunkppo_k1__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/chunkppo_k1__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/chunkppo_k1__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_gru__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_gru__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_gru__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_gru__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_gru__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_gru__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_mlp__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_mlp__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_mlp__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_mlp__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/ppo_mlp__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'critic' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'critic' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'critic' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'critic' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_sc__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm_random__n16_t32_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm_random__n16_t32_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm_random__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k/tf_wm_random__n64_t64_lr0.003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux0.1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_aux' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux0.1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux0.1__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_aux' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux0.1__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_aux' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux1__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux1__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm builder 'tf_aux' absent from ARM_BUILDERS at the recorded commit"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_aux1__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_d128__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_d128__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_h0__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_h0__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_wmq__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_wmq__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_wmq_random__n64_t64_lr0.0003.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/tf_wmq_random__n64_t64_lr0.001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/chunkppo_k1__n64_t64_lr0.0001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/ppo_gru__n64_t64_lr0.0001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/ppo_mlp__n64_t64_lr0.0001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/tf__n64_t64_lr0.0001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/tf_wm__n64_t64_lr0.0001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/tf_wm_random__n64_t64_lr0.0001.json",
+   "level": "PROVENANCE",
+   "code": "no_versions",
+   "seed": null,
+   "msg": "no evaluator_commit / dirty flag / code hash / package versions (pre-TASK-022 format)"
+  }
+ ],
+ "copies": [
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/chunkppo_k1__n64_t64_lr0.0003.json",
+   "output/phase1/final_1000k_all/chunkppo_k1__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm__n64_t64_lr0.003.json",
+   "output/phase1/final_1000k_all/tf_wm__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k/tf_wm_random__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_all/tf_wm_random__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_1000k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_1000k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/chunkppo_k1__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/chunkppo_k1__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_gru__n64_t64_lr0.003.json",
+   "output/phase1/final_100k_all/ppo_gru__n64_t64_lr0.003.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/ppo_mlp__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_all/ppo_mlp__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm__n64_t64_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm__n64_t64_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k/tf_wm_random__n16_t32_lr0.0003.json",
+   "output/phase1/final_100k_all/tf_wm_random__n16_t32_lr0.0003.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/cnn_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/cnn_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ],
+  [
+   "output/phase1/final_100k_all/tf_gru__n64_t64_lr0.001.json",
+   "output/phase1/final_100k_derived/tf_gru__n64_t64_lr0.001.json"
+  ]
+ ],
+ "reproducibility_pairs": [
+  {
+   "arm": "cnngru32-64w256",
+   "seed": 1000,
+   "config": {
+    "adv_norm": "\"minibatch\"",
+    "anneal_lr": "true",
+    "clip": "0.2",
+    "ent": "0.01",
+    "epochs": "4",
+    "gamma": "0.99",
+    "lam": "0.8",
+    "lr": "0.001",
+    "max_grad_norm": "1.0",
+    "minibatches": "4",
+    "num_envs": "64",
+    "num_steps": "64",
+    "total_steps": "1000000",
+    "value_norm": "0.0",
+    "vf": "0.5"
+   },
+   "runs": [
+    {
+     "commit": "bb771a4c",
+     "file": "output/phase1/tune_1000k_t020/cnn_gru__t00__s1000.json",
+     "reward_pct": 36.9,
+     "score_pct": 11.32
+    },
+    {
+     "commit": "cb358995",
+     "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.001.json",
+     "reward_pct": 28.96,
+     "score_pct": 6.15
+    }
+   ],
+   "reward_spread": 7.94
+  },
+  {
+   "arm": "cnngru32-64w256",
+   "seed": 1001,
+   "config": {
+    "adv_norm": "\"minibatch\"",
+    "anneal_lr": "true",
+    "clip": "0.2",
+    "ent": "0.01",
+    "epochs": "4",
+    "gamma": "0.99",
+    "lam": "0.8",
+    "lr": "0.001",
+    "max_grad_norm": "1.0",
+    "minibatches": "4",
+    "num_envs": "64",
+    "num_steps": "64",
+    "total_steps": "1000000",
+    "value_norm": "0.0",
+    "vf": "0.5"
+   },
+   "runs": [
+    {
+     "commit": "bb771a4c",
+     "file": "output/phase1/tune_1000k_t020/cnn_gru__t00__s1001.json",
+     "reward_pct": 32.92,
+     "score_pct": 8.62
+    },
+    {
+     "commit": "cb358995",
+     "file": "output/phase1/tune_1000k_derived/cnn_gru__n64_t64_lr0.001.json",
+     "reward_pct": 33.38,
+     "score_pct": 8.62
+    }
+   ],
+   "reward_spread": 0.46
+  },
+  {
+   "arm": "gru256",
+   "seed": 1000,
+   "config": {
+    "adv_norm": "\"minibatch\"",
+    "anneal_lr": "true",
+    "clip": "0.2",
+    "ent": "0.01",
+    "epochs": "4",
+    "gamma": "0.99",
+    "lam": "0.8",
+    "lr": "0.001",
+    "max_grad_norm": "1.0",
+    "minibatches": "4",
+    "num_envs": "64",
+    "num_steps": "64",
+    "total_steps": "1000000",
+    "value_norm": "0.0",
+    "vf": "0.5"
+   },
+   "runs": [
+    {
+     "commit": "bb771a4c",
+     "file": "output/phase1/tune_1000k_t020/ppo_gru__t00__s1000.json",
+     "reward_pct": 31.64,
+     "score_pct": 8.29
+    },
+    {
+     "commit": "cb358995",
+     "file": "output/phase1/tune_1000k/ppo_gru__n64_t64_lr0.001.json",
+     "reward_pct": 33.11,
+     "score_pct": 9.15
+    }
+   ],
+   "reward_spread": 1.47
+  },
+  {
+   "arm": "gru256",
+   "seed": 1001,
+   "config": {
+    "adv_norm": "\"minibatch\"",
+    "anneal_lr": "true",
+    "clip": "0.2",
+    "ent": "0.01",
+    "epochs": "4",
+    "gamma": "0.99",
+    "lam": "0.8",
+    "lr": "0.001",
+    "max_grad_norm": "1.0",
+    "minibatches": "4",
+    "num_envs": "64",
+    "num_steps": "64",
+    "total_steps": "1000000",
+    "value_norm": "0.0",
+    "vf": "0.5"
+   },
+   "runs": [
+    {
+     "commit": "bb771a4c",
+     "file": "output/phase1/tune_1000k_t020/ppo_gru__t00__s1001.json",
+     "reward_pct": 34.46,
+     "score_pct": 9.65
+    },
+    {
+     "commit": "cb358995",
+     "file": "output/phase1/tune_1000k/ppo_gru__n64_t64_lr0.001.json",
+     "reward_pct": 33.26,
+     "score_pct": 9.15
+    }
+   ],
+   "reward_spread": 1.2
+  },
+  {
+   "arm": "tfgru64x2w256",
+   "seed": 1000,
+   "config": {
+    "adv_norm": "\"minibatch\"",
+    "anneal_lr": "true",
+    "clip": "0.2",
+    "ent": "0.01",
+    "epochs": "4",
+    "gamma": "0.99",
+    "lam": "0.8",
+    "lr": "0.001",
+    "max_grad_norm": "1.0",
+    "minibatches": "4",
+    "num_envs": "64",
+    "num_steps": "64",
+    "total_steps": "1000000",
+    "value_norm": "0.0",
+    "vf": "0.5"
+   },
+   "runs": [
+    {
+     "commit": "bb771a4c",
+     "file": "output/phase1/tune_1000k_t020/tf_gru__t00__s1000.json",
+     "reward_pct": 34.06,
+     "score_pct": 8.75
+    },
+    {
+     "commit": "cb358995",
+     "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.001.json",
+     "reward_pct": 41.35,
+     "score_pct": 12.18
+    }
+   ],
+   "reward_spread": 7.29
+  },
+  {
+   "arm": "tfgru64x2w256",
+   "seed": 1001,
+   "config": {
+    "adv_norm": "\"minibatch\"",
+    "anneal_lr": "true",
+    "clip": "0.2",
+    "ent": "0.01",
+    "epochs": "4",
+    "gamma": "0.99",
+    "lam": "0.8",
+    "lr": "0.001",
+    "max_grad_norm": "1.0",
+    "minibatches": "4",
+    "num_envs": "64",
+    "num_steps": "64",
+    "total_steps": "1000000",
+    "value_norm": "0.0",
+    "vf": "0.5"
+   },
+   "runs": [
+    {
+     "commit": "bb771a4c",
+     "file": "output/phase1/tune_1000k_t020/tf_gru__t00__s1001.json",
+     "reward_pct": 33.97,
+     "score_pct": 9.61
+    },
+    {
+     "commit": "cb358995",
+     "file": "output/phase1/tune_1000k_derived/tf_gru__n64_t64_lr0.001.json",
+     "reward_pct": 43.11,
+     "score_pct": 13.47
+    }
+   ],
+   "reward_spread": 9.14
+  }
+ ],
+ "skipped": [
+  {
+   "file": "output/phase1/tune_1000k/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_derived/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_lr3e-3/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/tune_1000k_t020/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/tune_100k/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/tune_100k_explore/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/tune_100k_lr1e-4/selection.json",
+   "why": "not a result file (no per_seed rows)"
+  }
+ ]
+}

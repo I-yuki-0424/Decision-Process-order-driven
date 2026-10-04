@@ -66,6 +66,17 @@ def _tanh_mlp(layers, x):
     return _ap(layers[-1], x)
 
 
+def _ln_params(n):
+    return {"g": jnp.ones((n,)), "b": jnp.zeros((n,))}
+
+
+def _ln_tanh_mlp(layers, lns, x):
+    """_tanh_mlp with a LayerNorm before every dense layer (Moon et al. 2023 PPO recipe)."""
+    for p, n in zip(layers[:-1], lns[:-1]):
+        x = jnp.tanh(_ap(p, _ln(x, n["g"], n["b"])))
+    return _ap(layers[-1], _ln(x, lns[-1]["g"], lns[-1]["b"]))
+
+
 class Arm:
     name = "arm"
     recurrent = False
@@ -113,41 +124,56 @@ class MLPArm(Arm):
 # Pure RL: GRU
 # ----------------------------------------------------------------------------------------------------------------------
 class GRUArm(Arm):
+    """ln: LayerNorm before every dense layer (embedding, GRU input, heads; the recurrent path stays a plain GRU).
+    skip: actor/critic read [h, embedding] (Dedieu et al. 2025 MFRL concatenates the RNN output with the encoder output).
+    Both default off = the original gru baseline."""
     recurrent = True
 
-    def __init__(self, width=256):
-        self.name, self.width = f"gru{width}", width
+    def __init__(self, width=256, ln=False, skip=False):
+        self.width, self.ln, self.skip = width, ln, skip
+        self.name = f"gru{width}" + ("+ln" if ln else "") + ("+skip" if skip else "")
 
     def init(self, key):
         k = iter(jax.random.split(key, 8))
         w = self.width
+        hin = 2 * w if self.skip else w
         gru = {"wi": _ortho(next(k), w, 3 * w, 1.0), "wh": _ortho(next(k), w, 3 * w, 1.0)}
-        return {"pi": {"embed": _ortho(next(k), OBS_DIM, w, jnp.sqrt(2.0)), "gru": gru,
-                       "actor": _mlp(next(k), [w, w, N_ACT], 0.01), "critic": _mlp(next(k), [w, w, 1], 1.0)}}
+        pi = {"embed": _ortho(next(k), OBS_DIM, w, jnp.sqrt(2.0)), "gru": gru,
+              "actor": _mlp(next(k), [hin, w, N_ACT], 0.01), "critic": _mlp(next(k), [hin, w, 1], 1.0)}
+        if self.ln:
+            pi["ln"] = {"in": _ln_params(OBS_DIM), "gru_in": _ln_params(w), "actor": [_ln_params(hin), _ln_params(w)],
+                        "critic": [_ln_params(hin), _ln_params(w)]}
+        return {"pi": pi}
 
     def init_carry(self, n):
         return jnp.zeros((n, self.width))
 
     def _embed(self, p, obs):
-        return jnp.tanh(_ap(p["embed"], obs))
+        return jnp.tanh(_ap(p["embed"], _ln(obs, p["ln"]["in"]["g"], p["ln"]["in"]["b"]) if self.ln else obs))
 
     def step(self, params, h, obs):
         p = params["pi"]
         x = self._embed(p, obs)
-        gi, gh = _ap(p["gru"]["wi"], x), _ap(p["gru"]["wh"], h)
+        gi, gh = _ap(p["gru"]["wi"], _ln(x, p["ln"]["gru_in"]["g"], p["ln"]["gru_in"]["b"]) if self.ln else x), _ap(p["gru"]["wh"], h)
         ir, iz, inn = jnp.split(gi, 3, -1)
         hr, hz, hn = jnp.split(gh, 3, -1)
         r, z = jax.nn.sigmoid(ir + hr), jax.nn.sigmoid(iz + hz)
         n = jnp.tanh(inn + r * hn)
         h2 = (1.0 - z) * n + z * h
-        return _tanh_mlp(p["actor"], h2), _tanh_mlp(p["critic"], h2)[..., 0], h2
+        hh = jnp.concatenate([h2, x], -1) if self.skip else h2
+        if self.ln:
+            return _ln_tanh_mlp(p["actor"], p["ln"]["actor"], hh), _ln_tanh_mlp(p["critic"], p["ln"]["critic"], hh)[..., 0], h2
+        return _tanh_mlp(p["actor"], hh), _tanh_mlp(p["critic"], hh)[..., 0], h2
 
     def advance(self, h_next, obs, act, done):
         return h_next * (1.0 - done.astype(jnp.float32))[:, None]
 
+    def _deployed_ln(self, pi):
+        return n_params({k: v for k, v in pi["ln"].items() if k != "critic"}) if self.ln else 0
+
     def param_counts(self, params):
         pi = params["pi"]
-        dep = n_params(pi["embed"]) + n_params(pi["gru"]) + n_params(pi["actor"])
+        dep = n_params(pi["embed"]) + n_params(pi["gru"]) + n_params(pi["actor"]) + self._deployed_ln(pi)
         return n_params(params), dep
 
 
@@ -237,11 +263,13 @@ class TFArm(Arm):
         hv2 = jnp.concatenate([hv[:, 1:], jnp.ones_like(hv[:, :1])], 1) & ~done[:, None]
         return ho2, ha2, hv2
 
-    def _one_h(self, params, obs, ho, ha, hv):
+    def _one_h(self, params, obs, ho, ha, hv, mem=None, use_cand=True):
+        """Token sequence [tiles, scalars, history?, memory?, candidates?, CLS]. `mem` (d,) is an extra memory token
+        (TFGRUArm mem_token); use_cand=False drops the candidate-action tokens (logits then come from elsewhere)."""
         pi, d, H, nh = params["pi"], self.d, self.hist_len, self.heads
         tiles = obs[:MAP_DIM].reshape(N_TILE, TILE_DIM)
         typ = pi["type"]
-        cand = pi["cand"]
+        cand = pi["cand"] if use_cand else None
         if self.wm_mode != "none":
             ha_wm, r_hat = wm_candidates(jax.lax.stop_gradient(params["wm"]), obs)
             feats = jnp.concatenate([ha_wm, r_hat[:, None]], -1)
@@ -258,8 +286,12 @@ class TFArm(Arm):
         if H:
             toks.append(_ap(pi["hist"], ho) + pi["hist_act"][ha] + pi["hist_pos"] + typ[2])
             valid.append(hv)
-        toks += [cand + typ[3], (pi["cls"] + typ[4])[None]]
-        valid.append(jnp.ones((N_ACT + 1,), jnp.bool_))
+        if mem is not None:
+            toks.append(mem[None])
+            valid.append(jnp.ones((1,), jnp.bool_))
+        n_cand = N_ACT if use_cand else 0
+        toks += ([cand + typ[3]] if use_cand else []) + [(pi["cls"] + typ[4])[None]]
+        valid.append(jnp.ones((n_cand + 1,), jnp.bool_))
         x, kv = jnp.concatenate(toks, 0), jnp.concatenate(valid, 0)
         L = x.shape[0]
         mask = jnp.broadcast_to(kv[None, :], (L, L))
@@ -273,8 +305,8 @@ class TFArm(Arm):
             h = _ln(x, b["ln2_g"], b["ln2_b"])
             x = x + _ap(b["fc2"], jax.nn.gelu(_ap(b["fc1"], h)))
         x = _ln(x, pi["lnf_g"], pi["lnf_b"])
-        ch = x[L - 1 - N_ACT:L - 1]
-        logits = _ap(pi["logit"], ch)[:, 0]
+        ch = x[L - 1 - n_cand:L - 1]
+        logits = _ap(pi["logit"], ch)[:, 0] if use_cand else jnp.zeros((N_ACT,))
         if self.critic == "mlp":
             return logits, _tanh_mlp(pi["critic"], obs)[0], ch, x[L - 1]
         value = _ap(pi["value"], x[L - 1])[0] if "value" in pi else jnp.zeros(())   # TFGRUArm takes its value from the GRU
@@ -316,39 +348,72 @@ class TFArm(Arm):
 
 class TFGRUArm(TFArm):
     """Tile-token Transformer encoder per step (no history tokens) + GRU memory over the CLS embedding.
-    logits = candidate-token logit + Dense(h); value from h. Recurrent: the learner trains on sequences."""
+    logits = candidate-token logit + Dense(h); value from h. Recurrent: the learner trains on sequences.
+    Options (all off = the original Truck, bit-identical init):
+      mem_token : h_{t-1} enters the per-step Transformer as one extra token, so the candidate-action tokens attend to memory
+      prev_act  : an embedding of the previous action (own past action, an allowed EP-A input) is added to the GRU input;
+                  the carry is then [h, one-hot(previous action or 'none')]
+      head_skip : logit-bias and value heads read [LN(h_t), CLS_t] instead of h_t
+      cand=False: no candidate-action tokens; logits come from the head only (attribution control for the 4th-idea readout)"""
     recurrent = True
 
-    def __init__(self, d=64, layers=2, heads=4, width=256, wm_mode="none", wm_hidden=256, wm_coef=1.0):
+    def __init__(self, d=64, layers=2, heads=4, width=256, wm_mode="none", wm_hidden=256, wm_coef=1.0,
+                 mem_token=False, prev_act=False, head_skip=False, cand=True):
+        assert cand or wm_mode == "none", "world-model features are attached to the candidate-action tokens"
         super().__init__(d=d, layers=layers, heads=heads, hist=0, wm_mode=wm_mode, wm_hidden=wm_hidden, wm_coef=wm_coef,
                          critic="shared")
-        self.width = width
-        self.name = f"tfgru{d}x{layers}w{width}" + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
+        self.width, self.mem_token, self.prev_act, self.head_skip, self.cand = width, mem_token, prev_act, head_skip, cand
+        self.name = (f"tfgru{d}x{layers}w{width}" + ("+mem" if mem_token else "") + ("+pa" if prev_act else "")
+                     + ("+hs" if head_skip else "") + ("" if cand else "-nocand") + ("" if wm_mode == "none" else f"+wm_{wm_mode}"))
 
     def init(self, key):
         k1, k2, k3, k4, k5 = jax.random.split(key, 5)
         out = super().init(k1)
-        pi, w = out["pi"], self.width
+        pi, w, d = out["pi"], self.width, self.d
         del pi["value"]
+        hin = w + d if self.head_skip else w
         pi["gru_wi"], pi["gru_wh"] = _ortho(k2, self.d, 3 * w, 1.0), _ortho(k3, w, 3 * w, 1.0)
-        pi["h_logit"], pi["h_value"] = _ortho(k4, w, N_ACT, 0.01), _ortho(k5, w, 1, 1.0)
+        pi["h_logit"], pi["h_value"] = _ortho(k4, hin, N_ACT, 0.01), _ortho(k5, hin, 1, 1.0)
+        kx = jax.random.split(jax.random.fold_in(key, 0x7C), 3)   # option parameters use their own stream
+        if self.head_skip:
+            pi["h_ln_g"], pi["h_ln_b"] = jnp.ones((w,)), jnp.zeros((w,))
+        if self.mem_token:
+            pi["mem_in"], pi["mem_type"] = _dense(kx[0], w, d), jax.random.normal(kx[1], (d,)) * 0.02
+        if self.prev_act:
+            pi["pa_emb"] = jax.random.normal(kx[2], (N_ACT + 1, d)) * 0.02
+        if not self.cand:
+            del pi["cand"], pi["logit"]
         return out
 
     def init_carry(self, n):
-        return jnp.zeros((n, self.width))
+        h = jnp.zeros((n, self.width))
+        if not self.prev_act:
+            return h
+        return jnp.concatenate([h, jax.nn.one_hot(jnp.full((n,), N_ACT), N_ACT + 1)], -1)   # previous action 'none'
 
-    def step(self, params, h, obs):
-        pi = params["pi"]
+    def step(self, params, carry, obs):
+        pi, w = params["pi"], self.width
+        h = carry[:, :w] if self.prev_act else carry
         z = jnp.zeros((obs.shape[0], 0, OBS_DIM)), jnp.zeros((obs.shape[0], 0), jnp.int32), jnp.zeros((obs.shape[0], 0), jnp.bool_)
-        lc, _, _, cls = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c))(obs, *z)
-        ir, iz, inn = jnp.split(_ap(pi["gru_wi"], cls), 3, -1)
+        if self.mem_token:
+            mem = _ap(pi["mem_in"], h) + pi["mem_type"]
+            lc, _, _, cls = jax.vmap(lambda o, a, b, c, m: self._one_h(params, o, a, b, c, mem=m, use_cand=self.cand))(obs, *z, mem)
+        else:
+            lc, _, _, cls = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c, use_cand=self.cand))(obs, *z)
+        x = cls + carry[:, w:] @ pi["pa_emb"] if self.prev_act else cls
+        ir, iz, inn = jnp.split(_ap(pi["gru_wi"], x), 3, -1)
         hr, hz, hn = jnp.split(_ap(pi["gru_wh"], h), 3, -1)
         r, zg = jax.nn.sigmoid(ir + hr), jax.nn.sigmoid(iz + hz)
         h2 = (1.0 - zg) * jnp.tanh(inn + r * hn) + zg * h
-        return lc + _ap(pi["h_logit"], h2), _ap(pi["h_value"], h2)[:, 0], h2
+        hh = jnp.concatenate([_ln(h2, pi["h_ln_g"], pi["h_ln_b"]), cls], -1) if self.head_skip else h2
+        logits = lc + _ap(pi["h_logit"], hh) if self.cand else _ap(pi["h_logit"], hh)
+        return logits, _ap(pi["h_value"], hh)[:, 0], h2
 
     def advance(self, h_next, obs, act, done):
-        return h_next * (1.0 - done.astype(jnp.float32))[:, None]
+        h = h_next * (1.0 - done.astype(jnp.float32))[:, None]
+        if not self.prev_act:
+            return h
+        return jnp.concatenate([h, jax.nn.one_hot(jnp.where(done, N_ACT, act), N_ACT + 1)], -1)
 
     def train_forward(self, params, mb):   # only used by flat learners; recurrent learners call step()
         raise NotImplementedError
@@ -362,9 +427,10 @@ class CNNGRUArm(GRUArm):
     """Control for TFGRUArm: the same GRU/heads, but the per-step encoder is a 2-layer CNN over the 7x9x21 tile map
     (+ the 22 scalars) instead of a Transformer. Separates 'spatial encoder + memory' from 'attention'."""
 
-    def __init__(self, width=256, ch1=32, ch2=64):
-        super().__init__(width)
-        self.ch1, self.ch2, self.name = ch1, ch2, f"cnngru{ch1}-{ch2}w{width}"
+    def __init__(self, width=256, ch1=32, ch2=64, ln=False, skip=False):
+        super().__init__(width, ln=ln, skip=skip)
+        self.ch1, self.ch2 = ch1, ch2
+        self.name = f"cnngru{ch1}-{ch2}w{width}" + ("+ln" if ln else "") + ("+skip" if skip else "")
 
     def init(self, key):
         out = super().init(key)
@@ -375,6 +441,8 @@ class CNNGRUArm(GRUArm):
         pi["c2"] = {"w": jax.nn.initializers.orthogonal(jnp.sqrt(2.0))(k[1], (3 * 3 * self.ch1, self.ch2)).reshape(3, 3, self.ch1, self.ch2),
                     "b": jnp.zeros((self.ch2,))}
         pi["embed"] = _ortho(k[2], 63 * self.ch2 + EXTRA_DIM, self.width, jnp.sqrt(2.0))
+        if self.ln:   # LayerNorm before the dense embedding of the CNN features (not before the convolutions)
+            pi["ln"]["in"] = _ln_params(63 * self.ch2 + EXTRA_DIM)
         return out
 
     def _embed(self, p, obs):
@@ -383,11 +451,11 @@ class CNNGRUArm(GRUArm):
             x = jax.lax.conv_general_dilated(x, p[name]["w"], (1, 1), "SAME", dimension_numbers=("NHWC", "HWIO", "NHWC"))
             x = jax.nn.relu(x + p[name]["b"])
         z = jnp.concatenate([x.reshape(obs.shape[:-1] + (-1,)), obs[..., MAP_DIM:]], -1)
-        return jnp.tanh(_ap(p["embed"], z))
+        return jnp.tanh(_ap(p["embed"], _ln(z, p["ln"]["in"]["g"], p["ln"]["in"]["b"]) if self.ln else z))
 
     def param_counts(self, params):
         pi = params["pi"]
-        dep = sum(n_params(pi[k]) for k in ("c1", "c2", "embed", "gru", "actor"))
+        dep = sum(n_params(pi[k]) for k in ("c1", "c2", "embed", "gru", "actor")) + self._deployed_ln(pi)
         return n_params(params), dep
 
 
