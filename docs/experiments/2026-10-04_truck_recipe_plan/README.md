@@ -82,3 +82,11 @@ craftax 1.6.1). The same rules (P7-P9) apply, the search is only smaller, and id
 * S4: Truck-family winner and baseline-family winner, seeds 52-61, test 434-443, EP-A, clean tree.
 * Consequence: 2 tuning seeds with per-seed spread ~10-20 reward_pct cannot separate options closer than ~5 reward_pct; selections are coarse and the
   finals (10 seeds) are the only trustworthy numbers.
+
+### Second amendment 2026-10-05 (after S2a anchors finished, before any later job): extend the search
+S2a ran faster than estimated (1M-step jobs: GRU ~4.5 min, Truck ~6 min effective with 2 workers), so the remaining time allows more search. The extension is
+symmetric for every arm and was fixed before any random-point or variant job ran. Seen at that moment: anchors `ref` >> `moon` for both baselines
+(ppo_gru ref 37.3/36.4 vs moon 30.2/28.1; ppo_gru_ln ref 40.3/39.6 vs moon 34.5/34.6) and Truck ref 38.6/36.8, with seed spread ~1 reward_pct.
+* S2: + random points `r00..r03` (first 4 of the registered 6; same RNG 20261004) x seed 1000, top-2 per arm promoted to seed 1001 (`tune2`).
+* S3: all 5 registered Truck variants and 5 baseline variants (instead of 2 + 2), tuning seeds 1000, 1001.
+* S4 unchanged. S0/S1/`cnn_gru` stay dropped.

@@ -43,7 +43,7 @@ TUNE_SEEDS = [1000, 1001]   # 10 h profile (TASK-023 amendment 2026-10-05): 2 tu
 FINAL_SEEDS = list(range(52, 62))
 TEST_SEED_OFFSET = 382
 RNG_SEED = 20261004
-N_RANDOM, N_PROMOTE = 0, 0   # 10 h profile: anchors only, no random points
+N_RANDOM, N_PROMOTE = 4, 2   # 10 h profile, extended 2026-10-05 after S2a: 4 random points (first 4 of the registered 6, same RNG), top-2 promoted
 DET_FLAGS = "--xla_gpu_deterministic_ops=true"
 # arms: name -> (run_epa_mini --arm, arm kwargs, VRAM MiB at 4096-4608 steps/rollout, seconds per 1M steps with the GPU to itself)
 ARMS = {
@@ -51,12 +51,14 @@ ARMS = {
     "ppo_gru_ln": ("ppo_gru", {"ln": True, "skip": True}, 1000, 500),
     "tf_gru": ("tf_gru", {}, 4800, 950),   # = Truck (Idea4_O01_D01_S00)
 }
-TRUCK_VARIANTS = {   # 10 h profile: 2 of the 5 registered variants (hs = cheapest generic change, mem_pa_hs = all three together)
-    "tf_gru_hs": {"head_skip": True},
+TRUCK_VARIANTS = {
+    "tf_gru_mem": {"mem_token": True}, "tf_gru_pa": {"prev_act": True}, "tf_gru_hs": {"head_skip": True},
     "tf_gru_mem_pa_hs": {"mem_token": True, "prev_act": True, "head_skip": True},
+    "tf_gru_hs_nocand": {"head_skip": True, "cand": False},   # attribution control: no candidate-action tokens
 }
 BASELINE_VARIANTS = {   # same count as TRUCK_VARIANTS (P9)
-    "gru256_ln": {"ln": True}, "gru512_ln_skip": {"width": 512, "ln": True, "skip": True},
+    "gru256_ln": {"ln": True}, "gru256_skip": {"skip": True}, "gru384_ln_skip": {"width": 384, "ln": True, "skip": True},
+    "gru512_ln_skip": {"width": 512, "ln": True, "skip": True}, "gru512": {"width": 512},
 }
 VARIANT_COST = {"tf_gru": (5200, 1050), "ppo_gru": (1600, 800)}
 # Anchors. lr/gamma/lambda/epochs/minibatches/clip/vf/grad-norm/value-norm/advantage standardization from the papers:
@@ -113,8 +115,9 @@ def job(name, out, arm_key, kwargs, p, seed, role, protocol, budget, mem, sec, s
                 cmd=cli(arm_key, kwargs, p, seed, role, out, steps, protocol, budget, offset, save_params))
 
 
-TUNE_BUDGET = (f"TASK-023 10 h profile: {len(ANCHORS)} anchors (ref, moon) x {len(TUNE_SEEDS)} tuning seeds = {len(ANCHORS) * len(TUNE_SEEDS)} jobs per arm at 1M steps, "
-               f"identical points for every arm; selection = mean(reward_pct + score_pct) over {len(TUNE_SEEDS)} tuning seeds")
+TUNE_BUDGET = (f"TASK-023 10 h profile: {len(ANCHORS)} anchors (ref, moon) x {len(TUNE_SEEDS)} tuning seeds + {N_RANDOM} random points x seed 1000 + top-{N_PROMOTE} x seed 1001 = "
+               f"{len(ANCHORS) * len(TUNE_SEEDS) + N_RANDOM + N_PROMOTE} jobs per arm at 1M steps, identical points for every arm; "
+               f"selection = mean(reward_pct + score_pct) over {len(TUNE_SEEDS)} tuning seeds")
 
 
 def stage_jobs(stage):
