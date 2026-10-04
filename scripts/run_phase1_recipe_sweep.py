@@ -196,9 +196,12 @@ def promotions():
     out = {}
     for arm in ARMS:
         rows = [(metric(f"{ROOT}/tune/{arm}__{p}__s1000.json"), p) for p in sample_points()]
-        if any(m is None for m, _ in rows):
-            raise SystemExit(f"{arm}: rung-1 tuning not complete")
-        out[arm] = [p for _, p in sorted(rows, reverse=True)[:N_PROMOTE]]
+        missing = [p for m, p in rows if m is None]
+        if missing:   # a point that cannot run on the 8 GiB card (CUDA OOM at 4608 steps/rollout x 4 minibatches) is excluded for that arm only
+            if any(not os.path.exists(f"{ROOT}/tune/logs/{arm}__{p}__s1000.log") for p in missing):
+                raise SystemExit(f"{arm}: rung-1 tuning not complete")
+            print(f"{arm}: points excluded (job failed, CUDA OOM, recorded): {missing}")
+        out[arm] = [p for m, p in sorted((r for r in rows if r[0] is not None), reverse=True)[:N_PROMOTE]]
     return out
 
 
