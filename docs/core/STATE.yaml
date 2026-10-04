@@ -1031,6 +1031,9 @@ tasks:
           its data is the policy's own rollout (already counted in the budget, P10). Untaken-action predictions are extrapolation.
       (3) 10k-100k steps is far below the 1M reference budget; differences between arms may be within seed noise. Reported with
           all seeds and SE; no claim beyond what the seeds support.
+      AUDIT 2026-10-04 (TASK-20261004-022): no fabricated number; but the 'derivative tf_gru 39.19 +- 1.27, +5.61 vs ppo_gru' result above is UNRELIABLE
+      (lr chosen with runs of uncommitted code -- recorded commit cb35899 has no tf_gru/cnn_gru arm; designed after seeing eval seeds 0-9; not replicated
+      by TASK-020: 34.19 +- 1.62). Do not cite it. Errata added to the README and ClaftaxResult.tex.
 
   - id: "TASK-20261001-018-mlflow-local-management"
     created_at: "2026-10-01T00:00:00Z"
@@ -1147,6 +1150,9 @@ tasks:
           Truck = Idea4_O01_D01_S00 = arm tf_gru. Final jobs seed-major so every arm has equal seeds at any cut-off. No new job starts that cannot finish by 11:00 JST.
       (f) Code: scripts/run_phase1_random_search.py (new), scripts/run_epa_mini.py (+--eval-seed-offset, --seed-convention; defaults unchanged). No existing symbol signature changed.
       After every finished stage: python scripts/mlflow_ingest.py <files> in this checkout (needs smudged output/ only for old files; new files are plain), then mlflow_report.py summary.
+      AUDIT 2026-10-04 (TASK-20261004-022): this ladder passes all integrity checks and all its runs share one src/ state (bb771a4 = ef1109b = aa66385);
+      it is the most reliable Phase-1 evidence. The 'not a code change' remark in the NOISE FINDING is incomplete: the earlier tf_gru/cnn_gru tuning runs it
+      compares against were produced by uncommitted code (absent at their recorded commit cb35899), so code drift cannot be excluded; TASK-023 S0 tests it.
 
   - id: "TASK-20261001-021-kaggle-tpu-tuning-checkpoints"
     created_at: "2026-10-01T13:00:00Z"
@@ -1208,8 +1214,93 @@ tasks:
           Truck evaluation number yet. MLflow: store rebuilt in the main checkout (1482 legacy+phase-1 runs) + 60 tuning runs ingested (0 UNREGISTERED, summary checked).
           Selection (10 common trials, selection.json, tuning seeds only): ppo_gru t04, cnn_gru t00, tf_gru t04. RESUME needs operator authorization (window expired): final stage ~2-2.5 h GPU.
 
+  - id: "TASK-20261004-022-phase1-score-reliability-audit"
+    created_at: "2026-10-04T00:00:00Z"
+    status: "done"
+    description: >
+      Operator request (2026-10-04): re-evaluate whether the Phase-1 scores are reliable; if anything is fabricated, leaked or violates a rule,
+      document it clearly and make the necessary corrections.
+    spec_ref: "docs/experiments/2026-10-04_phase1_score_audit/README.md (report: audit_report.json there); MASTER_GUIDANCE roadmap (EP-A, P1-P12, reporting)"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "PROPOSED, operator to confirm: python scripts/audit_phase1_results.py"
+    result: >
+      DONE. pre_commit_ban_check: passed. audit_phase1_results.py: exit 0 (250 result files under output/phase1, 7 other json skipped).
+      FABRICATION: none found -- every per-seed reward_pct/score_pct re-derived exactly from the stored per-achievement rates, every rate a whole number of
+      the 256 eval episodes, all means/SEs match, no outcome shared by different runs (160 groups = the same run filed twice). LEAKS: none found (code
+      reading: policy input = observation + own carry; WM trained on executed transitions; no hand-coded table or 39-d adapter in the EP-A path; ChunkPPO
+      k=1 arm 'ignore', delta 0; eval key stream disjoint; selection reads tuning files only). BUDGET/SEEDS/PARAMS: OK (999,424 steps, no auxiliary data).
+      RULE VIOLATIONS: (1) reporting/provenance -- 16 files were produced by uncommitted code (arm absent at the recorded commit): tune_1000k_derived
+      tf_gru x3 + cnn_gru x3 (cb358995; these chose the lr of the TASK-017 Truck/CNN-GRU finals), tune_1000k_derived3 tf_gru_wm(_random) x2 (9859360),
+      tune_100k tf_sc x4 (320f1a4d), tune_100k_explore tf_aux x4 (0aa4a857); no file records an evaluator commit, dirty flag or library versions;
+      requirements unpinned and the dpod-local image deleted. (2) P9 (TASK-017, already in its README): unequal tuning favouring the baseline.
+      (3) P8 grey zone (TASK-017): Truck designed after seeing other arms on eval seeds 0-9. REPRODUCIBILITY (same arm/config/seed, two sessions):
+      ppo_gru 33.11->31.64, 33.26->34.46; tf_gru 41.35->34.06, 43.11->33.97; cnn_gru 28.96->36.90, 33.38->32.92 (first runs of tf_gru/cnn_gru = unidentified code).
+      VERDICT: TASK-017 claim 'tf_gru 39.19+-1.27 beats ppo_gru by +5.6' is UNRELIABLE (do not cite); the TASK-020 ladder (ppo_gru 32.45+-0.70 / 8.16+-0.37,
+      cnn_gru 34.64+-0.49 / 9.30+-0.36, Truck 34.19+-1.62 / 9.19+-0.74; one code state bb771a4=ef1109b=aa66385 for src/) is the most reliable Phase-1
+      evidence; G1.0 FAIL is robust. CORRECTIONS: errata in docs/experiments/2026-09-30_phase1_model_families/README.md and docs/Latex/ClaftaxResult.tex
+      (PDF not rebuilt), registry description of Idea4_O01_D01_S00, output/README.md index; provenance recorded/enforced in new runs (TASK-023 code);
+      S0 determinism + replication jobs scheduled (TASK-023); audit tool added. No result file edited, moved or deleted.
+      Impact check: covered by TASK-023 (same commit).
+    blockers: []
+    notes: >
+      Operator question (2026-10-04) on setting the +0.3 net reward of a zombie hit on a sleeping player (+1 wake_up - 0.7 health) to 0: DECIDED NO
+      (agent decision delegated by the operator): EP-A requires the env reward unchanged and P5 forbids reward shaping; the TASK-023 S1 diagnostic
+      measures deaths while asleep instead. Earlier agent message of 2026-10-04 claimed 'Truck significantly beats the baseline (+5.6)' from main-branch
+      data that predated TASK-020 (unmerged branch claude/truck-architecture-training-f2a531); corrected in the reply to the operator.
+
+  - id: "TASK-20261004-023-truck-recipe-and-variants"
+    created_at: "2026-10-04T00:00:00Z"
+    status: "queued"
+    description: >
+      Operator accepted the 2026-10-04 proposals: (1) shared PPO recipe of the 1M-step reference baselines (gamma/lambda in both directions, value-target
+      normalization, grad-norm 0.5, 8 minibatches, LayerNorm + [h, embedding] heads for the GRU baseline), equal budget for every arm (P9); (2) death-cause /
+      near-table diagnostic with saved params; (3) Truck variants: memory token, previous action into the GRU, [LN(h), CLS] heads, no-candidate-token
+      attribution control. Modify the code and schedule the runs; DO NOT start training (operator order 2026-10-04).
+    spec_ref: "docs/experiments/2026-10-04_truck_recipe_plan/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_epa_harness"
+      - "PROPOSED, operator to confirm: python scripts/run_phase1_recipe_sweep.py plan"
+    result: >
+      CODE DONE, RUNS SCHEDULED, NOT STARTED (no training was run). Validation: pre_commit_ban_check passed; tests.test_epa_harness 22/22 OK (13 existing +
+      9 new; CPU venv jax 0.10.2 / craftax 1.6.1 / flax 0.12.8 because the dpod-local image no longer exists); run_phase1_recipe_sweep.py plan prints
+      S0 26 jobs ~4.0 GPU-h, S1 2 jobs ~0.4, S2a 60 jobs ~9.0, S2b ~2.8, S3 ~7.7, S4 ~6.8, total ~31 GPU-h. Regression: with all new options off the code is
+      BIT-IDENTICAL to the previous commit (init params, 2 PPO updates, final params, evaluation for MLP/GRU/CNN-GRU/TF/TF-GRU: 264 arrays equal).
+      End-to-end CPU smoke (64 steps, role diag): recipe flags + Truck mem+pa+hs train, provenance recorded (git_dirty=True detected), params saved,
+      diagnostic reproduces the run's own reward_pct (8.5227) and mean length (131.5) exactly; final/replication/diag role guards refuse invalid runs.
+      Added: PPOConfig.value_norm / adv_norm (epa_harness), GRUArm/CNNGRUArm ln/skip, TFGRUArm mem_token/prev_act/head_skip/cand, TFArm._one_h mem/use_cand,
+      run_provenance + make_record(provenance=), run_epa_mini.py flags (--clip --vf --max-grad-norm --value-norm --adv-norm --save-params --allow-dirty,
+      roles replication/diag), src/pipeline/epa_diagnostics.py, scripts/diagnose_phase1_deaths.py, scripts/run_phase1_recipe_sweep.py,
+      scripts/audit_phase1_results.py; 11 provisional model ids (Base_O02_D02_S00..D03_S02, Idea4_O01_D01_S03..S07) and 7 official param names
+      registered before any run. Impact check (scip-neo4j, index = main 926850e whose src/ equals this branch's base): check_symbol_constraints ALLOWED for
+      Trainer, PPOConfig, make_record, TFArm._one_h, TFGRUArm, GRUArm, CNNGRUArm (no LOCKED_CORE_THEORY); analyze_change_impact dependents =
+      scripts/run_epa_mini.py, scripts/run_epa_chunkppo.py (make_record, new kwarg optional), tests/test_epa_harness.py, epa_policies.py internals;
+      grep agrees (other hits are ChunkPPOConfig, unrelated). All reviewed; run_phase1_random_search.py (TASK-020 driver) left unchanged.
+    blockers:
+      - "Operator go-ahead per stage (training not authorized yet, 2026-10-04)."
+      - "Docker image dpod-local:latest was deleted: rebuild (docker build -t dpod-local:latest -f docker/Dockerfile .) then run the 'env' stage to record versions."
+      - "MLflow store not rebuilt after the registry edits (mlflow not installed in this session): rm -rf mlflow_local && python scripts/mlflow_ingest.py --root output in the checkout used."
+    notes: >
+      CRITICAL REVIEW (before implementing): (1) recipe changes are shared by every arm (P9): they can close G1.0 and lift Truck, but are not evidence for
+      the architecture; only S3 (equal-count variants) and S4 can show a Truck-specific gain. (2) gru512+ln+skip (~3.3M) is calibration toward the 4.0M
+      reference, not a claim; 'accuracy without scaling' needs Truck (<=0.5M) >= that baseline at equal effort. (3) The memory token adds a recurrent
+      path through the Transformer; instability would be a result, not a reason for unregistered fixes. (4) NOT implemented: Achievement-Distillation-style
+      objective (policy-side memory = reward-selected state: grey area under the EP-A observation rule, needs a ruling); Dyna data reuse (world model in
+      params_total + compute; gain would be compute, not architecture). (5) Env reward NOT changed (see TASK-022 notes).
+      PRE-REGISTERED RULES: S2 identical points for every arm (anchors ref = Dedieu 2025 Table 3, moon = Moon et al. 2023 with 64x64 rollout, t00 = old
+      default; 3 tuning seeds each; 6 random points RNG 20261004 on seed 1000, top-2 per arm -> seeds 1001-1002; 19 jobs/arm); selection max mean(reward_pct+score_pct)
+      over 3 tuning seeds; S3 5 Truck + 5 baseline variants x 3 seeds; S4 seeds 52-61 / test 434-443 (replicates k=10..19; 42-51 already seen).
+      S0 decision rule: Truck replication (t00, seeds 0-9) more than 2 combined SE below 39.19 -> TASK-017 number declared non-reproducible; else the
+      TASK-020 config (t04) is the cause of 34.19. Test venv lives at C:\v\e (short path: Windows MAX_PATH breaks orbax/jax installs in longer paths).
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
+  - >
+    Phase-1 runs are not bit-reproducible across sessions (same config + seed: tf_gru 41.4 vs 34.1, cnn_gru 29.0 vs 36.9), per-seed spread of
+    one config is ~10-20 reward_pct (Truck 22.5-39.8 on seeds 42-51), requirements*.txt are unpinned and pre-2026-10-04 result files record no
+    library versions or dirty flag: a difference below ~3 reward_pct between single runs or 2-seed means is noise, and any claim needs fresh
+    seeds plus recorded provenance (run_epa_mini.py now writes it). Run scripts/audit_phase1_results.py after every stage (TASK-20261004-022).
   - >
     src/model/candidates/*.py's MDP-search candidates (variant_5_1,
     variant_5_4, mdp_branch) route action selection through

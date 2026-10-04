@@ -32,7 +32,7 @@ models:
     proper_name: null
   Idea4_O01_D01_S00:
     arms: ["tfgru64x2w256"]
-    description: "Transformer tile encoder + GRU-256 memory, PPO (Phase-1 best at 1M steps)"
+    description: "Transformer tile encoder + GRU-256 memory, PPO (TASK-017 lead 39.2 not reproduced; TASK-020 34.2 = ppo_gru +1.7, n.s.; audit TASK-022)"
     status: provisional
     proper_name: "Truck"
     proper_name_by: operator   # named by the operator 2026-10-01
@@ -108,4 +108,60 @@ models:
     description: "frozen random-init control for Idea6_O01_D01_S00 (arm tf_wmq_random)"
     status: archived   # hidden from the MLflow Models tab; runs stay registered under this id
     archived_reason: "control for Idea6_O01_D01_S00"
+    proper_name: null
+  # --- TASK-20261004-023 (registered before the first run; arm strings = TFGRUArm / GRUArm names) ---
+  Base_O02_D02_S00:
+    arms: ["gru256+ln+skip"]
+    description: "gru256 with the reference-baseline recipe architecture: LayerNorm before every dense layer, heads read [h, embedding]"
+    status: provisional
+    proper_name: null
+  Base_O02_D02_S01:
+    arms: ["gru256+ln"]
+    description: "gru256 + LayerNorm before every dense layer (TASK-023 baseline variant)"
+    status: provisional
+    proper_name: null
+  Base_O02_D02_S02:
+    arms: ["gru256+skip"]
+    description: "gru256 with heads reading [h, embedding] (TASK-023 baseline variant)"
+    status: provisional
+    proper_name: null
+  Base_O02_D03_S00:
+    arms: ["gru512+ln+skip"]
+    description: "Base_O02_D02_S00 widened to GRU-512 (~3.3M params, near the 4.0M reference baseline; TASK-023 baseline variant)"
+    status: provisional
+    proper_name: null
+  Base_O02_D03_S01:
+    arms: ["gru384+ln+skip"]
+    description: "Base_O02_D02_S00 widened to GRU-384 (TASK-023 baseline variant)"
+    status: provisional
+    proper_name: null
+  Base_O02_D03_S02:
+    arms: ["gru512"]
+    description: "gru256 widened to GRU-512, no LayerNorm/skip (TASK-023 baseline variant)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S03:
+    arms: ["tfgru64x2w256+mem"]
+    description: "Truck + memory token: h_{t-1} enters the per-step Transformer so candidate-action tokens attend to memory"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S04:
+    arms: ["tfgru64x2w256+pa"]
+    description: "Truck + previous-action embedding added to the GRU input"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S05:
+    arms: ["tfgru64x2w256+hs"]
+    description: "Truck with logit-bias and value heads reading [LN(h), CLS]"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S06:
+    arms: ["tfgru64x2w256+mem+pa+hs"]
+    description: "Truck + memory token + previous action + [LN(h), CLS] heads"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S07:
+    arms: ["tfgru64x2w256+hs-nocand"]
+    description: "attribution control: Truck+hs without candidate-action tokens (logits from the head only)"
+    status: provisional
     proper_name: null

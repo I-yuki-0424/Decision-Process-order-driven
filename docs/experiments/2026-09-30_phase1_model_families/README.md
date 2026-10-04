@@ -1,5 +1,14 @@
 # Phase-1 model families on Craftax-Classic: pure RL vs Transformer vs Transformer+world-model vs ChunkPPO
 
+> **ERRATUM (2026-10-04, audit TASK-20261004-022, see `docs/experiments/2026-10-04_phase1_score_audit/README.md`).**
+> TL;DR item 3 and §4/§5 ("`tf_gru` clearly beats pure RL, 39.19 ± 1.27 vs 33.57, Δ +5.6 ± 1.5, passes the surpass test") are
+> **not reliable and must not be cited**: the tuning runs that chose `tf_gru`'s and `cnn_gru`'s learning rate were produced by
+> uncommitted code (their recorded commit cb35899 has no `tf_gru`/`cnn_gru` arm), the architecture was designed after seeing the other
+> arms' results on the same evaluation seeds, and the result did not replicate: TASK-020 measured Truck (`tf_gru`) at 34.19 ± 1.62 on fresh
+> seeds 42–51 (+1.7 vs `ppo_gru`, not distinguishable), and re-running its tuning seeds with the same config gave 34.1 / 34.0 instead of
+> 41.4 / 43.1. No number in this report was fabricated (all re-derived exactly from the stored per-achievement rates); the other verdicts
+> (no family beats pure RL, WM features = random WM, G1.0 fails) are unaffected.
+
 Task `TASK-20260930-017-phase1-model-families` (docs/core/STATE.yaml), roadmap v10, `current_phase = 1`. Everything was run locally (RTX 3060 Ti, Docker
 `dpod-local`, Kaggle quota exhausted) between 2026-09-30 18:40 and 2026-10-01 ~13:00. Raw results: `output/phase1/` (one JSON per arm/config, all per-seed values;
 `output/phase1/final_100k/`, `final_1000k/`, `final_1000k_derived/`, `final_100k_derived/`, tuning dirs `tune_*`, untrained reference `reference/`).

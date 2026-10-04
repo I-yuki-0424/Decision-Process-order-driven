@@ -10,9 +10,16 @@ Identical for every arm (only the `Arm` policy module differs, see src/model/epa
   * budget: every environment step of every env copy is counted in `env_steps_total`.
 Nothing here reads simulator state at decision time: the policy sees only the observation (and its own past
 observations/actions through the carry).
+
+Recipe options of the 1M-step reference baselines (Dedieu et al. 2025 Table 3; Moon et al. 2023), default off so earlier
+configs run unchanged: `value_norm` = EMA decay of the value-target mean/std (the critic then predicts standardized
+targets, GAE runs on de-standardized values), `adv_norm="batch"` standardizes the GAE once over the whole batch.
 """
+import hashlib
 import json
 import os
+import platform
+import subprocess
 import time
 from typing import NamedTuple
 
@@ -54,6 +61,21 @@ class PPOConfig(NamedTuple):
     ent: float = 0.01
     vf: float = 0.5
     max_grad_norm: float = 1.0
+    value_norm: float = 0.0        # EMA decay of the value-target mean/std; 0 = off (raw targets)
+    adv_norm: str = "minibatch"    # GAE standardization: "minibatch" (per minibatch) | "batch" (once per update)
+
+
+def _vn_stats(vn):
+    """(mean, std) of the value targets from the EMA accumulators vn = [E[R], E[R^2], debias weight]; (0, 1) before the first update."""
+    seen = vn[2] > 0
+    w = jnp.where(seen, vn[2], 1.0)
+    mean = jnp.where(seen, vn[0] / w, 0.0)
+    var = jnp.where(seen, vn[1] / w - mean ** 2, 1.0)
+    return mean, jnp.sqrt(jnp.maximum(var, 1e-2))
+
+
+def _vn_update(vn, ret, decay):
+    return decay * vn + (1.0 - decay) * jnp.stack([ret.mean(), (ret ** 2).mean(), jnp.ones(())])
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -114,6 +136,8 @@ class Trainer:
         N, T = cfg.num_envs, cfg.num_steps
         if (N * T) % cfg.minibatches or (arm.recurrent and N % cfg.minibatches):
             raise ValueError("num_envs*num_steps (flat) / num_envs (recurrent) must be divisible by minibatches")
+        if cfg.adv_norm not in ("minibatch", "batch") or not 0.0 <= cfg.value_norm < 1.0:
+            raise ValueError("adv_norm must be 'minibatch' or 'batch' and value_norm an EMA decay in [0, 1)")
         self.steps_per_update = N * T
         self.n_updates = cfg.total_steps // self.steps_per_update
         self.env_steps_total = self.n_updates * self.steps_per_update
@@ -128,7 +152,8 @@ class Trainer:
         params = self.arm.init(k1)
         obs, env_st = env_reset(jax.random.split(k2, self.cfg.num_envs))
         return dict(params=params, opt=self.opt.init(params), env=env_st, obs=obs,
-                    carry=self.arm.init_carry(self.cfg.num_envs), ep_ret=jnp.zeros((self.cfg.num_envs,)), key=k3)
+                    carry=self.arm.init_carry(self.cfg.num_envs), ep_ret=jnp.zeros((self.cfg.num_envs,)), key=k3,
+                    vn=jnp.zeros((3,)))
 
     # -- rollout -------------------------------------------------------------------------------------------------------
     def _rollout(self, params, st, key):
@@ -171,7 +196,7 @@ class Trainer:
         logp_all = jax.nn.log_softmax(logits)
         logp = jnp.take_along_axis(logp_all, mb["act"][..., None], -1)[..., 0]
         ratio = jnp.exp(logp - mb["logp"])
-        adv = (mb["adv"] - mb["adv"].mean()) / (mb["adv"].std() + 1e-8)
+        adv = mb["adv"] if cfg.adv_norm == "batch" else (mb["adv"] - mb["adv"].mean()) / (mb["adv"].std() + 1e-8)
         pg = -jnp.minimum(ratio * adv, jnp.clip(ratio, 1 - cfg.clip, 1 + cfg.clip) * adv).mean()
         vc = mb["val"] + jnp.clip(value - mb["val"], -cfg.clip, cfg.clip)
         vl = 0.5 * jnp.maximum((value - mb["ret"]) ** 2, (vc - mb["ret"]) ** 2).mean()
@@ -200,7 +225,17 @@ class Trainer:
         cfg, arm = self.cfg, self.arm
         key, kr, ku = jax.random.split(st["key"], 3)
         env_st, obs, carry, ep_ret, traj, last_v = self._rollout(st["params"], st, kr)
+        vn = st["vn"]
+        if cfg.value_norm:   # the critic predicts standardized targets: de-standardize for GAE, re-standardize with the updated stats
+            mu, sd = _vn_stats(vn)
+            traj, last_v = dict(traj, val=traj["val"] * sd + mu), last_v * sd + mu
         adv, ret = self._gae(traj, last_v)
+        if cfg.value_norm:
+            vn = _vn_update(vn, ret, cfg.value_norm)
+            mu, sd = _vn_stats(vn)
+            traj, ret = dict(traj, val=(traj["val"] - mu) / sd), (ret - mu) / sd   # old predictions in the new scale (value clip)
+        if cfg.adv_norm == "batch":
+            adv = (adv - adv.mean()) / (adv.std() + 1e-8)
         batch = dict(traj, adv=adv, ret=ret)
         nmb = cfg.minibatches
         if arm.recurrent:
@@ -235,7 +270,7 @@ class Trainer:
         (params, opt), aux = jax.lax.scan(epoch, (st["params"], st["opt"]), jax.random.split(ku, cfg.epochs))
         done = traj["done"]
         stats = jnp.concatenate([aux.mean((0, 1)), jnp.stack([traj["fin_ret"].sum(), done.sum().astype(jnp.float32)])])
-        return dict(params=params, opt=opt, env=env_st, obs=obs, carry=carry, ep_ret=ep_ret, key=key), stats
+        return dict(params=params, opt=opt, env=env_st, obs=obs, carry=carry, ep_ret=ep_ret, key=key, vn=vn), stats
 
     def train(self, seed: int, log_every: int = 0, log_fn=print):
         st = self.init(jax.random.PRNGKey(seed))
@@ -272,18 +307,66 @@ def mean_se(xs) -> tuple:
     return float(xs.mean()), float(xs.std(ddof=1) / np.sqrt(len(xs))) if len(xs) > 1 else float("nan")
 
 
+EVALUATOR_FILES = ("src/environment/craftax_env_adapter.py", "src/pipeline/epa_harness.py")
+_ENV_PACKAGES = ("jax", "jaxlib", "jax-cuda12-plugin", "flax", "optax", "craftax", "gymnax", "chex", "numpy")
+
+
+def _git(*args):
+    """git output, or None. `safe.directory` lets it run inside the Docker container, where /workspace has another owner."""
+    try:
+        return subprocess.check_output(["git", "-c", "safe.directory=*", *args], stderr=subprocess.DEVNULL).decode().strip()
+    except Exception:
+        return None
+
+
+def code_sha256(paths=("src",), extra_files=()):
+    """Content hash of every .py file under `paths` plus `extra_files`, as imported by this process. Identifies the code
+    even when the tree had uncommitted changes, which `git_commit` alone cannot (TASK-20261004-022 audit finding)."""
+    h = hashlib.sha256()
+    files = sorted({os.path.join(r, f) for p in paths for r, _, fs in os.walk(p) for f in fs if f.endswith(".py")} | set(extra_files))
+    for f in files:
+        h.update(f.replace(os.sep, "/").encode())
+        with open(f, "rb") as fh:
+            h.update(hashlib.sha256(fh.read()).digest())
+    return h.hexdigest()
+
+
+def run_provenance(extra_files=()):
+    """Code and software identity of a run (roadmap <reporting>: git commit and evaluator commit). Host-side values passed
+    by the sweep drivers (GIT_COMMIT, GIT_DIRTY, EVALUATOR_COMMIT) win over what git reports inside a container."""
+    from importlib import metadata
+    versions = {}
+    for pkg in _ENV_PACKAGES:
+        try:
+            versions[pkg] = metadata.version(pkg)
+        except Exception:
+            pass
+    dirty_env = os.environ.get("GIT_DIRTY")
+    status = _git("status", "--porcelain", "--", "src", "scripts", "tests", "docker", "requirements.txt", "requirements-cuda.txt")
+    dirty = (dirty_env == "1") if dirty_env in ("0", "1") else (None if status is None else bool(status))
+    dev = jax.devices()[0]
+    return dict(git_commit=os.environ.get("GIT_COMMIT") or _git("rev-parse", "HEAD") or "unknown", git_dirty=dirty,
+                evaluator_commit=os.environ.get("EVALUATOR_COMMIT") or _git("log", "-1", "--format=%H", "--", *EVALUATOR_FILES) or "unknown",
+                code_sha256=code_sha256(extra_files=extra_files), python=platform.python_version(), packages=versions,
+                backend=jax.default_backend(), device=getattr(dev, "device_kind", str(dev)), xla_flags=os.environ.get("XLA_FLAGS", ""))
+
+
 def make_record(arm_name, arm_key, arm_kwargs, cfg_dict, per_seed, role, protocol, env_steps_total, params_total,
-                params_deployed, tuning_budget, git_commit):
-    """Result-file fields required by roadmap <reporting>. Everything numeric is passed in from executed runs."""
+                params_deployed, tuning_budget, git_commit, provenance=None):
+    """Result-file fields required by roadmap <reporting>. Everything numeric is passed in from executed runs.
+    `provenance` (run_provenance()) adds the evaluator commit, a dirty-tree flag, a code hash and package versions."""
     rm, rs = mean_se([r["reward_pct"] for r in per_seed])
     sm, ss = mean_se([r["score_pct"] for r in per_seed])
-    return dict(phase=1, gate_id=None, protocol=protocol, role=role, arm=arm_name, arm_key=arm_key,
-                arm_kwargs=arm_kwargs, config=cfg_dict, git_commit=git_commit,
-                evaluator="masked_achievements (post 2026-09-29 auto-reset fix)", observation="symbolic_1345",
-                episode_limit=EPISODE_LIMIT, env_steps_total=env_steps_total, env_steps_auxiliary=0,
-                seeds=[r["seed"] for r in per_seed], per_seed=per_seed, reward_pct_mean=rm, reward_pct_se=rs,
-                score_pct_mean=sm, score_pct_se=ss, params_total=params_total, params_deployed=params_deployed,
-                tuning_budget=tuning_budget, policy="sampled, first episode of each eval env, final params")
+    rec = dict(phase=1, gate_id=None, protocol=protocol, role=role, arm=arm_name, arm_key=arm_key,
+               arm_kwargs=arm_kwargs, config=cfg_dict, git_commit=git_commit,
+               evaluator="masked_achievements (post 2026-09-29 auto-reset fix)", observation="symbolic_1345",
+               episode_limit=EPISODE_LIMIT, env_steps_total=env_steps_total, env_steps_auxiliary=0,
+               seeds=[r["seed"] for r in per_seed], per_seed=per_seed, reward_pct_mean=rm, reward_pct_se=rs,
+               score_pct_mean=sm, score_pct_se=ss, params_total=params_total, params_deployed=params_deployed,
+               tuning_budget=tuning_budget, policy="sampled, first episode of each eval env, final params")
+    if provenance is not None:
+        rec.update(evaluator_commit=provenance["evaluator_commit"], provenance=provenance)
+    return rec
 
 
 def write_json(path, obj):
