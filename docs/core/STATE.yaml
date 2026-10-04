@@ -1251,7 +1251,7 @@ tasks:
 
   - id: "TASK-20261004-023-truck-recipe-and-variants"
     created_at: "2026-10-04T00:00:00Z"
-    status: "queued"
+    status: "in_progress"
     description: >
       Operator accepted the 2026-10-04 proposals: (1) shared PPO recipe of the 1M-step reference baselines (gamma/lambda in both directions, value-target
       normalization, grad-norm 0.5, 8 minibatches, LayerNorm + [h, embedding] heads for the GRU baseline), equal budget for every arm (P9); (2) death-cause /
@@ -1277,6 +1277,11 @@ tasks:
       Trainer, PPOConfig, make_record, TFArm._one_h, TFGRUArm, GRUArm, CNNGRUArm (no LOCKED_CORE_THEORY); analyze_change_impact dependents =
       scripts/run_epa_mini.py, scripts/run_epa_chunkppo.py (make_record, new kwarg optional), tests/test_epa_harness.py, epa_policies.py internals;
       grep agrees (other hits are ChunkPPOConfig, unrelated). All reviewed; run_phase1_random_search.py (TASK-020 driver) left unchanged.
+    execution_2026_10_05: >
+      Operator ordered execution on 2026-10-05 (up to 10 h, local/Kaggle/TPU free choice, rebuild the container). Chosen: LOCAL RTX 3060 Ti in Docker (design is a
+      0.45M-param single-device job: no benefit from TPU/parallel; Kaggle adds setup risk). dpod-local rebuilt (requirements.txt had 'yaml' instead of 'pyyaml'; fixed);
+      environment.txt recorded. The full plan (~31 GPU-h) does not fit: 10 h profile pre-registered in docs/experiments/2026-10-04_truck_recipe_plan/README.md
+      (amendment) before any run: S0/S1 not run, 3 arms, anchors ref+moon x 2 tuning seeds, 2+2 variants, finals 10 seeds. Gate results go in this entry's result when done.
     blockers:
       - "Operator go-ahead per stage (training not authorized yet, 2026-10-04)."
       - "Docker image dpod-local:latest was deleted: rebuild (docker build -t dpod-local:latest -f docker/Dockerfile .) then run the 'env' stage to record versions."
