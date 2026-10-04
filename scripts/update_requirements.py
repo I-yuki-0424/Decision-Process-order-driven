@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 REQ = ROOT / "requirements.txt"
 # import name -> PyPI distribution (only where they differ or must be forced in)
-PYPI = {"kagglesdk": "kaggle"}
+PYPI = {"kagglesdk": "kaggle", "yaml": "pyyaml"}
 # Imports that are never PyPI deps (local modules, sibling scripts, notebook artefacts).
 IGNORE = {"src", "scripts", "tests", "file", "held"}
 ALWAYS = ["jax", "flax", "optax", "gymnax", "craftax", "numpy", "pandas", "matplotlib", "kaggle"]  # core stack, even if only imported lazily

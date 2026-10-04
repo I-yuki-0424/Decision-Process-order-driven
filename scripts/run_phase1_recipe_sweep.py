@@ -39,27 +39,24 @@ import time
 import numpy as np
 
 ROOT = "output/phase1/recipe_t023"
-TUNE_SEEDS = [1000, 1001, 1002]
+TUNE_SEEDS = [1000, 1001]   # 10 h profile (TASK-023 amendment 2026-10-05): 2 tuning seeds instead of 3
 FINAL_SEEDS = list(range(52, 62))
 TEST_SEED_OFFSET = 382
 RNG_SEED = 20261004
-N_RANDOM, N_PROMOTE = 6, 2
+N_RANDOM, N_PROMOTE = 0, 0   # 10 h profile: anchors only, no random points
 DET_FLAGS = "--xla_gpu_deterministic_ops=true"
 # arms: name -> (run_epa_mini --arm, arm kwargs, VRAM MiB at 4096-4608 steps/rollout, seconds per 1M steps with the GPU to itself)
 ARMS = {
     "ppo_gru": ("ppo_gru", {}, 900, 450),
     "ppo_gru_ln": ("ppo_gru", {"ln": True, "skip": True}, 1000, 500),
-    "cnn_gru": ("cnn_gru", {}, 1000, 600),
     "tf_gru": ("tf_gru", {}, 4800, 950),   # = Truck (Idea4_O01_D01_S00)
 }
-TRUCK_VARIANTS = {
-    "tf_gru_mem": {"mem_token": True}, "tf_gru_pa": {"prev_act": True}, "tf_gru_hs": {"head_skip": True},
+TRUCK_VARIANTS = {   # 10 h profile: 2 of the 5 registered variants (hs = cheapest generic change, mem_pa_hs = all three together)
+    "tf_gru_hs": {"head_skip": True},
     "tf_gru_mem_pa_hs": {"mem_token": True, "prev_act": True, "head_skip": True},
-    "tf_gru_hs_nocand": {"head_skip": True, "cand": False},   # attribution control: no candidate-action tokens
 }
 BASELINE_VARIANTS = {   # same count as TRUCK_VARIANTS (P9)
-    "gru256_ln": {"ln": True}, "gru256_skip": {"skip": True}, "gru384_ln_skip": {"width": 384, "ln": True, "skip": True},
-    "gru512_ln_skip": {"width": 512, "ln": True, "skip": True}, "gru512": {"width": 512},
+    "gru256_ln": {"ln": True}, "gru512_ln_skip": {"width": 512, "ln": True, "skip": True},
 }
 VARIANT_COST = {"tf_gru": (5200, 1050), "ppo_gru": (1600, 800)}
 # Anchors. lr/gamma/lambda/epochs/minibatches/clip/vf/grad-norm/value-norm/advantage standardization from the papers:
@@ -74,9 +71,7 @@ ANCHORS = {
                 max_grad_norm=0.5, value_norm=0.95, adv_norm="batch"),
     "moon": dict(n=64, t=64, lr=3e-4, epochs=3, minibatches=8, ent=0.01, lam=0.65, gamma=0.95, clip=0.2, vf=0.5,
                  max_grad_norm=0.5, value_norm=0.99, adv_norm="minibatch"),
-    "t00": dict(n=64, t=64, lr=1e-3, epochs=4, minibatches=4, ent=0.01, lam=0.8, gamma=0.99, clip=0.2, vf=0.5,
-                max_grad_norm=1.0, value_norm=0.0, adv_norm="minibatch"),
-}
+}   # t00 (the TASK-017/020 default) is not re-run in the 10 h profile: its numbers already exist (TASK-020)
 SHAPES = [(48, 96), (64, 64), (32, 128)]   # 4096-4608 steps per rollout; >= 8192 OOMs tf_gru on the 8 GiB card
 VRAM_BUDGET_MIB, GPU_MIB = 6000, 8192
 
@@ -118,8 +113,8 @@ def job(name, out, arm_key, kwargs, p, seed, role, protocol, budget, mem, sec, s
                 cmd=cli(arm_key, kwargs, p, seed, role, out, steps, protocol, budget, offset, save_params))
 
 
-TUNE_BUDGET = (f"TASK-023 recipe sweep: 3 anchors x 3 tuning seeds + {N_RANDOM} random points x seed 1000 + top-{N_PROMOTE} x seeds 1001-1002 "
-               "= 19 jobs per arm at 1M steps, identical points for every arm; selection = mean(reward_pct + score_pct) over 3 tuning seeds")
+TUNE_BUDGET = (f"TASK-023 10 h profile: {len(ANCHORS)} anchors (ref, moon) x {len(TUNE_SEEDS)} tuning seeds = {len(ANCHORS) * len(TUNE_SEEDS)} jobs per arm at 1M steps, "
+               f"identical points for every arm; selection = mean(reward_pct + score_pct) over {len(TUNE_SEEDS)} tuning seeds")
 
 
 def stage_jobs(stage):
@@ -171,7 +166,7 @@ def stage_jobs(stage):
                 mem, sec = VARIANT_COST[cost_key]
                 for s in TUNE_SEEDS:
                     jobs.append(job(f"{vname}__s{s}", f"{ROOT}/arch/{vname}__s{s}.json", a_key, kwv, p, s, "tune", "EP-A-tuning",
-                                    "TASK-023 variants: 5 per family x 3 tuning seeds at the family's selected recipe point", mem, sec))
+                                    f"TASK-023 10 h profile variants: {len(TRUCK_VARIANTS)} per family x {len(TUNE_SEEDS)} tuning seeds at the family's selected recipe point", mem, sec))
     elif stage == "final":
         sel = json.load(open(f"{ROOT}/arch/arch_selection.json"))
         for s in FINAL_SEEDS:
@@ -210,7 +205,7 @@ def check_tuning_file(d, path):
 
 
 def select():
-    pts, sel = all_points(), {"rule": "max over points with all 3 tuning seeds of mean(reward_pct + score_pct)", "arms": {}}
+    pts, sel = all_points(), {"rule": f"max over points with all {len(TUNE_SEEDS)} tuning seeds of mean(reward_pct + score_pct)", "arms": {}}
     for arm in ARMS:
         rows = []
         for pname, p in pts.items():
@@ -221,9 +216,9 @@ def select():
                 check_tuning_file(x, f"{arm}__{pname}__s{s}")
             r = float(np.mean([x["per_seed"][0]["reward_pct"] for x in ds]))
             sc = float(np.mean([x["per_seed"][0]["score_pct"] for x in ds]))
-            rows.append(dict(point_name=pname, point=p, reward_pct=r, score_pct=sc, metric=r + sc, n_seeds=3))
+            rows.append(dict(point_name=pname, point=p, reward_pct=r, score_pct=sc, metric=r + sc, n_seeds=len(TUNE_SEEDS)))
         if not rows:
-            raise SystemExit(f"{arm}: no point with 3 tuning seeds")
+            raise SystemExit(f"{arm}: no point with {len(TUNE_SEEDS)} tuning seeds")
         rows.sort(key=lambda x: -x["metric"])
         sel["arms"][arm] = dict(rows[0], table=rows)
         print(f"\n{arm}")
@@ -259,11 +254,8 @@ def select_arch():
             print(f"  {c['name']:18s} reward={c['reward_pct']:.2f} score={c['score_pct']:.2f} sum={c['metric']:.2f}")
         w = cands[0]
         fin[w["name"]] = dict(arm_key=w["arm_key"], arm_kwargs=w["arm_kwargs"], point=src["point"], mem=w["cost"][0], sec=w["cost"][1],
-                              family=fam, tuning_budget=TUNE_BUDGET + "; + 5 variants per family x 3 tuning seeds (TASK-023 S3)")
-    c = rsel["arms"]["cnn_gru"]   # ladder control, recipe-tuned like the others
-    fin["cnn_gru"] = dict(arm_key="cnn_gru", arm_kwargs={}, point=c["point"], mem=ARMS["cnn_gru"][2], sec=ARMS["cnn_gru"][3],
-                          family="control", tuning_budget=TUNE_BUDGET)
-    json.dump(dict(rule="max mean(reward_pct + score_pct) over 3 tuning seeds per family", finalists=fin),
+                              family=fam, tuning_budget=TUNE_BUDGET + f"; + {len(TRUCK_VARIANTS)} variants per family x {len(TUNE_SEEDS)} tuning seeds (TASK-023 S3, 10 h profile)")
+    json.dump(dict(rule="max mean(reward_pct + score_pct) over the tuning seeds per family", finalists=fin),
               open(f"{ROOT}/arch/arch_selection.json", "w"), indent=1)
     print("\nfinalists:", list(fin))
 
@@ -351,14 +343,14 @@ def plan():
     print(f"anchor and random points (identical for every arm, RNG {RNG_SEED}):")
     for k, p in all_points().items():
         print(f"  {k:5s} {p}")
-    for stage in ("replicate", "diag", "tune"):
+    for stage in ("tune",):
         js = stage_jobs(stage)
         h = sum(j["sec"] for j in js) / 3600
         total += h
         print(f"{stage:9s}: {len(js):3d} jobs, ~{h:.1f} GPU-h")
-    est = {"tune2": len(ARMS) * N_PROMOTE * 2 * np.mean([a[3] for a in ARMS.values()]),
-           "arch": 3 * (len(TRUCK_VARIANTS) * VARIANT_COST["tf_gru"][1] + len(BASELINE_VARIANTS) * VARIANT_COST["ppo_gru"][1]),
-           "final": len(FINAL_SEEDS) * (VARIANT_COST["tf_gru"][1] + VARIANT_COST["ppo_gru"][1] + ARMS["cnn_gru"][3])}
+    est = {
+           "arch": len(TUNE_SEEDS) * (len(TRUCK_VARIANTS) * VARIANT_COST["tf_gru"][1] + len(BASELINE_VARIANTS) * VARIANT_COST["ppo_gru"][1]),
+           "final": len(FINAL_SEEDS) * (VARIANT_COST["tf_gru"][1] + VARIANT_COST["ppo_gru"][1])}
     for stage, s in est.items():
         total += s / 3600
         print(f"{stage:9s}: ~{s / 3600:.1f} GPU-h (job list depends on the previous selection)")

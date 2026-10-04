@@ -66,3 +66,19 @@ Total ≈ 31 GPU-h on the RTX 3060 Ti (one GPU-saturating job at a time). Cheape
    params_total and compute; any gain would be compute, not architecture).
 5. Not changed: the env reward. Setting the +0.3 net reward of a zombie hit on a sleeper (+1 wake_up − 0.7 health) to 0 would violate
    EP-A ("reward unchanged") and P5 (no reward shaping). S1 measures how often agents die asleep instead.
+
+## Amendment 2026-10-05: 10 h profile (operator: "train the improved Truck, finish Phase 1, up to 10 h"; written BEFORE any real run)
+
+The full plan needs ~31 GPU-h; the operator's limit is 10 h wall clock on one RTX 3060 Ti (Docker image `dpod-local` rebuilt on 2026-10-05
+after fixing `requirements.txt`: `yaml` -> `pyyaml`; versions in `output/phase1/recipe_t023/environment.txt`: jax 0.10.2, flax 0.12.8,
+craftax 1.6.1). The same rules (P7-P9) apply, the search is only smaller, and identically so for every arm:
+
+* S0 (replication/determinism) and S1 (death diagnostic) are NOT run. The TASK-017 non-reproducibility question stays open.
+* S2: arms `ppo_gru`, `ppo_gru_ln`, `tf_gru` (Truck); `cnn_gru` dropped. Points: anchors `ref` (Dedieu Table 3) and `moon` only (no `t00`, no random
+  points) x tuning seeds 1000, 1001 = 4 jobs per arm. Selection = max mean(reward_pct + score_pct) over the 2 seeds.
+* S3: 2 Truck variants (`tf_gru_hs`, `tf_gru_mem_pa_hs`) at Truck's selected point, 2 baseline variants (`gru256_ln`, `gru512_ln_skip`) at the best baseline's point,
+  x tuning seeds 1000, 1001. The unmodified arm competes with its S2 numbers. Not run: `tf_gru_mem`, `tf_gru_pa`, `tf_gru_hs_nocand`, `gru256_skip`,
+  `gru384_ln_skip`, `gru512`.
+* S4: Truck-family winner and baseline-family winner, seeds 52-61, test 434-443, EP-A, clean tree.
+* Consequence: 2 tuning seeds with per-seed spread ~10-20 reward_pct cannot separate options closer than ~5 reward_pct; selections are coarse and the
+  finals (10 seeds) are the only trustworthy numbers.
