@@ -23,7 +23,7 @@ import jax  # noqa: E402
 import numpy as np  # noqa: E402
 
 from src.model.epa_policies import ARM_BUILDERS  # noqa: E402
-from src.pipeline.epa_harness import PPOConfig, Trainer, curve_summary, make_record, run_provenance, write_json  # noqa: E402
+from src.pipeline.epa_harness import PPOConfig, Trainer, curve_summary, diag_summary, make_record, run_provenance, write_json  # noqa: E402
 
 
 def git_commit():
@@ -66,6 +66,8 @@ def main():
     ap.add_argument("--max-grad-norm", type=float, default=1.0)
     ap.add_argument("--value-norm", type=float, default=0.0, help="EMA decay of the value-target mean/std (0 = off)")
     ap.add_argument("--adv-norm", default="minibatch", choices=["minibatch", "batch"])
+    ap.add_argument("--warmup", type=float, default=0.0, help="fraction of optimiser steps with linear lr ramp-up (0 = off)")
+    ap.add_argument("--remat", action="store_true", help="recompute the per-step forward in the backward pass (recurrent arms): same maths, less VRAM")
     ap.add_argument("--save-params", default="", help="directory: also write the final params of every seed (pickle of numpy arrays)")
     ap.add_argument("--allow-dirty", action="store_true", help="let a final run start from a tree with uncommitted changes (recorded)")
     ap.add_argument("--eval-envs", type=int, default=256)
@@ -91,7 +93,7 @@ def main():
     arm = ARM_BUILDERS[a.arm](**json.loads(a.arm_kwargs))
     cfg = PPOConfig(total_steps=a.steps, num_envs=a.num_envs, num_steps=a.num_steps, epochs=a.epochs,
                     minibatches=a.minibatches, lr=a.lr, ent=a.ent, lam=a.lam, gamma=a.gamma, clip=a.clip, vf=a.vf,
-                    max_grad_norm=a.max_grad_norm, value_norm=a.value_norm, adv_norm=a.adv_norm)
+                    max_grad_norm=a.max_grad_norm, value_norm=a.value_norm, adv_norm=a.adv_norm, warmup=a.warmup, remat=a.remat)
     tr = Trainer(arm, cfg)
     print(f"arm={arm.name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
     print(f"provenance: commit={prov['git_commit'][:8]} dirty={prov['git_dirty']} code={prov['code_sha256'][:12]} "
@@ -105,7 +107,7 @@ def main():
             p_total, p_dep = arm.param_counts(params)
         row = dict(seed=s, test_seed=s + a.eval_seed_offset, reward_pct=ev["reward_pct"], score_pct=ev["score_pct"], eval_episodes=ev["eval_episodes"],
                    eval_censored=ev["eval_censored"], eval_mean_length=ev["eval_mean_length"],
-                   achievement_rates_pct=ev["achievement_rates_pct"], train_curve_return=curve_summary(curve),
+                   achievement_rates_pct=ev["achievement_rates_pct"], train_curve_return=curve_summary(curve), train_diag=diag_summary(curve),
                    train_seconds=train_s, wall_seconds=time.time() - t0)
         per_seed.append(row)
         print(f"seed {s}: reward_pct={row['reward_pct']:.2f} score_pct={row['score_pct']:.2f} "
