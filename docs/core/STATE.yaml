@@ -1251,7 +1251,7 @@ tasks:
 
   - id: "TASK-20261004-023-truck-recipe-and-variants"
     created_at: "2026-10-04T00:00:00Z"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator accepted the 2026-10-04 proposals: (1) shared PPO recipe of the 1M-step reference baselines (gamma/lambda in both directions, value-target
       normalization, grad-norm 0.5, 8 minibatches, LayerNorm + [h, embedding] heads for the GRU baseline), equal budget for every arm (P9); (2) death-cause /
@@ -1282,10 +1282,15 @@ tasks:
       0.45M-param single-device job: no benefit from TPU/parallel; Kaggle adds setup risk). dpod-local rebuilt (requirements.txt had 'yaml' instead of 'pyyaml'; fixed);
       environment.txt recorded. The full plan (~31 GPU-h) does not fit: 10 h profile pre-registered in docs/experiments/2026-10-04_truck_recipe_plan/README.md
       (amendment) before any run: S0/S1 not run, 3 arms, anchors ref+moon x 2 tuning seeds, 2+2 variants, finals 10 seeds. Gate results go in this entry's result when done.
-    blockers:
-      - "Operator go-ahead per stage (training not authorized yet, 2026-10-04)."
-      - "Docker image dpod-local:latest was deleted: rebuild (docker build -t dpod-local:latest -f docker/Dockerfile .) then run the 'env' stage to record versions."
-      - "MLflow store not rebuilt after the registry edits (mlflow not installed in this session): rm -rf mlflow_local && python scripts/mlflow_ingest.py --root output in the checkout used."
+    result_execution_2026_10_05: >
+      EXECUTED (10 h profile, local GPU). G1.0 FAIL (narrow): baseline gru512 (2.80M) reward_pct 41.56 +- 0.28 (< 42.7), score_pct 13.59 +- 0.17 (>= 9.6), 10 seeds
+      52-61 / test 434-443, EP-A, clean tree, commit d3afaefd. G1.1 FAIL: Truck-improved (tfgru64x2w256+mem+pa+hs, 0.467M) reward_pct 39.29 +- 2.17 (< 47.40), score_pct
+      11.08 +- 1.25 (> 10.71, within noise). G1.2 FAIL. Phase 1 open. Recipe fixed the baseline (32.45 -> 41.56) but Truck is not distinguishable from / not better than it.
+      Details, selections, caveats: docs/experiments/2026-10-04_truck_recipe_plan/RESULTS_2026-10-05.md. Metric check: reward_pct/score_pct computed by the existing
+      evaluator (masked_achievements / calculate_crafter_score; unchanged, audited in TASK-022). MLflow: ingested into mlflow_local in this checkout (68 runs, 0 UNREGISTERED),
+      Truck r00/r02 OOM recorded as failed runs. Impact check: no src/ symbol modified in this execution (only scripts/run_phase1_recipe_sweep.py, requirements). 
+      Not run: S0, S1, cnn_gru, 4 of 6 random points (r04/r05), t00 anchor; 2 tuning seeds instead of 3.
+    blockers: []
     notes: >
       CRITICAL REVIEW (before implementing): (1) recipe changes are shared by every arm (P9): they can close G1.0 and lift Truck, but are not evidence for
       the architecture; only S3 (equal-count variants) and S4 can show a Truck-specific gain. (2) gru512+ln+skip (~3.3M) is calibration toward the 4.0M
