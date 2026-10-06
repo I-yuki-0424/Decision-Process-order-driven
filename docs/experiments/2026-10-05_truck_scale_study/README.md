@@ -83,3 +83,18 @@ Stage D (seeds 2000-2003, 4 seeds, one change from C2 = d64 w128 warm 5 % ent 0.
 
 Stage E (seeds 2000-2003; base D3): `E1` D3 + gamma 0.97, `E2` D3 + 4 epochs, `E3` D3 + gamma 0.97 + 4 epochs, `E4` D3 with lr 7e-4. Then the parameter-scale sweep is repeated at the best
 of {D3, E1-E4} (stage S: d32w128, d64w256, d128w256, d128w512 at that recipe, 4 seeds), since stage AB's scale results were obtained at a recipe that is unstable for large models.
+
+## Stage E result and amendment 4 (2026-10-07 01:35; written before stage F/S)
+Stage E (seeds 2000-2003; base D3 = d64 w128, warm 5 %, ent 0.01, lr 1e-3, gamma 0.99, lambda 0.625, 3 epochs):
+
+| config | reward_pct (sd) | score_pct (sd) | r+s | per-seed reward |
+|---|---|---|---|---|
+| **E1 gamma 0.97** | **48.15 +- 0.62 (1.3)** | **17.19 (3.0)** | **65.3** | 47 48 47 50 |
+| E2 4 epochs | 44.88 +- 1.16 (2.3) | 14.56 (1.6) | 59.4 | 42 47 46 44 |
+| E3 gamma 0.97 + 4 epochs | 46.76 +- 1.67 (3.3) | 16.13 (2.1) | 62.9 | 46 48 50 43 |
+| E4 lr 7e-4 | 39.96 +- 2.45 (4.9) | 12.37 (1.6) | 52.3 | 40 41 45 33 |
+
+E1 is the new base. These are tuning-seed numbers (4 seeds each, many comparisons on the same seeds: optimistic); only stage F-final on fresh seeds counts.
+Stage F/S (seeds 2000-2003): `F1` E1 with gamma 0.95, `F2` E1 with lambda 0.55; scale at the E1 recipe: `S1` d32 w128 (0.14M), `S2` d64 w256 (0.47M), `S3` d128 w256 (0.93M), `S4` d128 w512 (1.66M);
+E1 itself (d64 w128, 0.28M) is the 5th size. Then: the baseline gru512 + warm-up check (3 tuning seeds, equal effort) and EP-A finals (seeds 62-71 / test 444-453) for the best Truck config
+by mean r+s over {E1, F1, F2, S1-S4}; if a different size is within 3 points of the best, the smaller is preferred. A second final is run for the best config at another size only if time allows.

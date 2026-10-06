@@ -70,6 +70,13 @@ CONFIGS = {
     "E2": cfg(warmup=0.05, ent=0.01, lr=1e-3, epochs=4, arm=dict(width=128)),
     "E3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, epochs=4, arm=dict(width=128)),
     "E4": cfg(warmup=0.05, ent=0.01, lr=7e-4, arm=dict(width=128)),
+    # --- F: neighbours of E1 (d64 w128, warm 5 %, ent 0.01, lr 1e-3, gamma 0.97); S: parameter scale at the E1 recipe ---------------------
+    "F1": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.95, arm=dict(width=128)),
+    "F2": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, lam=0.55, arm=dict(width=128)),
+    "S1": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(d=32, width=128)),
+    "S2": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=256)),
+    "S3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, remat=True, arm=dict(d=128, width=256)),
+    "S4": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, remat=True, arm=dict(d=128, width=512)),
 }
 
 
