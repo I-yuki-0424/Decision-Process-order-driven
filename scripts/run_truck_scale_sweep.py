@@ -71,7 +71,7 @@ def cost(name):
     a = CONFIGS[name]["arm"]
     d, w = a.get("d", 64), a.get("width", 256)
     scale = (d / 64) * 0.6 + 0.4 + (w / 256 - 1) * 0.2
-    return int(2300 * max(scale, 0.8)), int(900 * max(scale, 0.7))
+    return 4400, int(500 * max(scale, 0.7))   # one job at a time (workers=1): 2 concurrent jobs ran 2.5x slower each in stage AB
 
 
 def command(name, seed, out, role, steps=1_000_000, offset=0, protocol="EP-A-tuning", budget="TASK-024 screening, 6 tuning seeds per config"):
