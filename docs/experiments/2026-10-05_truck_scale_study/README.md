@@ -117,3 +117,12 @@ so size does not buy accuracy but does cost stability once the recipe is fixed. 
 Finals (EP-A, seeds 62-71 / test 444-453, clean tree, 10 seeds each), in this order, each only started if it can end before 12:40 on 2026-10-07: (1) E1; (2) the equal-effort baseline check
 (gru512 at the TASK-023 point + 5 % warm-up, 3 tuning seeds; a baseline final on the same seeds 62-71 follows only if warm-up helps it by >= 2 r+s points, else the TASK-023 baseline finals
 (41.56 / 13.59, seeds 52-61) stay the reference); (3) S2 0.47M; (4) S3 0.93M; (5) S1 0.14M -- these three give the final-seed scale curve the operator asked for.
+
+## E1 final result and amendment 6: equal-effort baseline (2026-10-07 06:50; written before any baseline job of this study)
+E1 final (EP-A, seeds 62-71 / test 444-453, clean tree, commit 764b4d17): reward_pct **48.54 +- 1.50** (sd 4.8), score_pct **17.78 +- 1.25**, params_total 0.2836M; per-seed reward
+53.0 46.3 50.4 53.2 41.2 46.1 47.4 48.9 56.1 42.6. Point estimates exceed the G1.1 thresholds (47.40 / 10.71, params <= 4.0M) and the G1.2 *score* (16.77), not the G1.2 reward (55.49).
+Why this is not yet a gate statement: (i) G1.0 (baseline >= 42.7 reward) failed with the TASK-023 baseline (41.56) so Phase-1 comparisons are formally invalid; (ii) P9 equal effort: Truck got far more
+tuning (~110 tuning jobs since TASK-023, 4 knob families) than the baseline (TASK-023: 4+ jobs/point, no warm-up/lr/gamma search at the Truck point). Therefore, BEFORE the remaining scale finals, the baseline gets the
+same knobs: `B1` TASK-023 baseline (gru512, ref point) + 5 % warm-up; `B2` gru512 at Truck's E1 recipe point; `B3` gru256+ln+skip at E1 point; `B4` gru512+ln+skip (3.3M) at E1 point; `B5` B2 with lr 5e-4;
+`B6` B1 with lr 1e-3; 3 tuning seeds each (2000-2002); best by mean r+s -> baseline final on seeds 62-71 (same seeds as Truck). Order afterwards: S2 final, S3 final, S1 final while time remains
+(hard stop 2026-10-07 12:40 for starting jobs).
