@@ -19,6 +19,11 @@ CONFIGS = {
     "B4": (G512LS, E1PT),
     "B5": (G512, dict(E1PT, lr=5e-4)),
     "B6": (G512, dict(REF, lr=1e-3)),
+    # round 2 (around the round-1 winner B3 = gru256+ln+skip at the Truck E1 point; same knobs that mattered for Truck)
+    "G1": (G256LS, dict(E1PT, lr=1.5e-3)),
+    "G2": (G256LS, dict(E1PT, gamma=0.95)),
+    "G3": (G256LS, dict(E1PT, ent=0.003)),
+    "G4": (G256LS, dict(E1PT, epochs=4)),
 }
 
 
@@ -34,6 +39,17 @@ def build(names, seeds, role):
             cmd += ["--warmup", str(p["warmup"])]
             jobs.append(dict(name=f"{n}__s{s}", out=out, seed=s, mem=2500, sec=400, env={}, extra=[], cmd=cmd))
     return jobs
+
+
+def best_config():
+    """Max mean(reward_pct + score_pct) over the 3 tuning seeds; configs within 3 points of the best -> the one with fewer parameters."""
+    rows = {}
+    for f in glob.glob("output/phase1/truck_scale_t024/baseline/*.json"):
+        j = json.load(open(f)); r = j["per_seed"][0]
+        rows.setdefault(os.path.basename(f).split("__s")[0], []).append((r["reward_pct"] + r["score_pct"], j["params_total"]))
+    rows = {n: (np.mean([x[0] for x in v]), v[0][1]) for n, v in rows.items() if len(v) == 3}
+    top = max(v[0] for v in rows.values())
+    return min((n for n, v in rows.items() if v[0] >= top - 3), key=lambda n: rows[n][1])
 
 
 def report():
@@ -58,6 +74,9 @@ if __name__ == "__main__":
     if a.cmd == "report":
         sys.exit(report())
     lo, _, hi = (a.seeds if a.cmd == "tune" else "62-71").partition("-")
+    if a.configs == "best":
+        a.configs = best_config()
+        print("baseline config selected on tuning seeds:", a.configs, flush=True)
     prov = rs.host_provenance()
     if a.cmd == "final" and prov["GIT_DIRTY"] == "1":
         raise SystemExit("commit first")

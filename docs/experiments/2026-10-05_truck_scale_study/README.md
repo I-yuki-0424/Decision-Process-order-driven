@@ -126,3 +126,10 @@ tuning (~110 tuning jobs since TASK-023, 4 knob families) than the baseline (TAS
 same knobs: `B1` TASK-023 baseline (gru512, ref point) + 5 % warm-up; `B2` gru512 at Truck's E1 recipe point; `B3` gru256+ln+skip at E1 point; `B4` gru512+ln+skip (3.3M) at E1 point; `B5` B2 with lr 5e-4;
 `B6` B1 with lr 1e-3; 3 tuning seeds each (2000-2002); best by mean r+s -> baseline final on seeds 62-71 (same seeds as Truck). Order afterwards: S2 final, S3 final, S1 final while time remains
 (hard stop 2026-10-07 12:40 for starting jobs).
+
+## Baseline round 1 and amendment 7 (2026-10-07 08:15; written before round 2)
+Round 1 (seeds 2000-2002; mean reward / score): B1 gru512 ref+warm-up 40.95 / 13.20; B2 gru512 at Truck's E1 point 42.50 / 13.57; **B3 gru256+ln+skip (1.01M) at the E1 point 44.68 / 14.52**
+(r+s 59.2); B4 gru512+ln+skip (3.33M) 43.89 / 15.02 (58.9); B5 (B2, lr 5e-4) 41.48 / 12.48; B6 (B1, lr 1e-3) 39.73 / 12.32. Truck E1 on the same first three seeds: 47, 48, 47 reward (r+s ~65).
+The baseline profits from the Truck recipe point too (+4 reward), so the Truck-vs-baseline claim must use the re-tuned baseline. Round 2 around B3: `G1` lr 1.5e-3, `G2` gamma 0.95,
+`G3` entropy 0.003, `G4` 4 epochs (3 seeds each). Baseline final = argmax mean(r+s) over B1-B6, G1-G4 on tuning seeds (within 3 points -> fewer parameters), 10 seeds 62-71 / test 444-453.
+Order: round 2 -> baseline final -> S2 final -> S3 final (jobs start only if they can end before 12:40; an unfinished final is reported as incomplete, never as a result).
