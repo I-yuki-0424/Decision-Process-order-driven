@@ -52,3 +52,19 @@ d64w512 3 seeds, d32w128/d32w256 4, d96w256/d128w256/d128w512/d192w384/d256w512 
 * Stage F: EP-A finals (seeds 62-71 / test 444-453) for ONE config, the one with the best mean r+s among {warm5, ent01, d64w128, C1-C4} on seeds 2000-2002 (ties / differences
   < 3 points: the one with fewer parameters). Started no later than 15:30 so it can end before the 20 h limit (about 17:45). No further screening after that choice.
 * Stage-B claims are limited to what 2-4 seeds can show; the table (per-seed values) is reported as is.
+
+## Stage C result and amendment 2 (2026-10-06 20:00; written before stage D)
+Jobs now run one at a time (2 concurrent jobs were 2.5x slower each: 9 min per job alone). Time frame: operator granted a fresh 20 h at 2026-10-06 18:12.
+Stage C (seeds 2000-2002; T0 on the same seeds: 35.97 / 9.58, per-seed 35 33 40):
+
+| config | params | reward_pct | sd | score_pct | per-seed reward |
+|---|---|---|---|---|---|
+| C1 warm 5 % + ent 0.01 (d64 w256) | 0.467M | 42.00 +- 1.75 | 3.0 | 13.91 | 42 45 39 |
+| C2 C1 + GRU width 128 | 0.284M | 44.43 +- 1.64 | 2.8 | 14.76 | 41 46 46 |
+| C3 C1 + d 128, lr 7e-4 | 0.928M | 43.47 +- 1.90 | 3.3 | 13.92 | 45 46 40 |
+| C4 C1 + d 32, width 128 | 0.143M | 40.21 +- 0.34 | 0.6 | 13.08 | 41 40 40 |
+
+Reading: the warm-up + higher entropy recipe removes most of the instability and lifts every size; parameter count between 0.14M and 0.93M barely matters once the recipe is right.
+Stage D (seeds 2000-2003, 4 seeds, C2 re-run on 2003 for pairing), one change at a time from C2: `D1` warm-up 15 %, `D2` entropy 0.02, `D3` lr 1e-3, `D4` gamma 0.97,
+`D5` 2 epochs. Selection value mean(reward_pct + score_pct); the base of the finals = best of {C2, D1-D5} (differences < 3 points: fewer parameters / simpler). Afterwards: the
+same two knobs (warm-up, entropy) are applied to the gru512 baseline on 3 tuning seeds for equal effort (P9) before any comparison.

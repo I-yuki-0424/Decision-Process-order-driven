@@ -59,6 +59,12 @@ CONFIGS = {
     "C2": cfg(warmup=0.05, ent=0.01, arm=dict(width=128)),
     "C3": cfg(warmup=0.05, ent=0.01, lr=7e-4, remat=True, arm=dict(d=128)),
     "C4": cfg(warmup=0.05, ent=0.01, arm=dict(d=32, width=128)),
+    # --- D: recipe refinement around C2 (d 64, GRU width 128, warm-up 5 %, entropy 0.01) -------------------------------------------
+    "D1": cfg(warmup=0.15, ent=0.01, arm=dict(width=128)),
+    "D2": cfg(warmup=0.05, ent=0.02, arm=dict(width=128)),
+    "D3": cfg(warmup=0.05, ent=0.01, lr=1e-3, arm=dict(width=128)),
+    "D4": cfg(warmup=0.05, ent=0.01, gamma=0.97, arm=dict(width=128)),
+    "D5": cfg(warmup=0.05, ent=0.01, epochs=2, arm=dict(width=128)),
 }
 
 
