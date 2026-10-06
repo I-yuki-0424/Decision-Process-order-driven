@@ -54,6 +54,11 @@ CONFIGS = {
     "d128w512": cfg(remat=True, arm=dict(d=128, width=512)),
     "d192w384": cfg(remat=True, arm=dict(d=192, heads=6, width=384)),
     "d256w512": cfg(remat=True, arm=dict(d=256, heads=8, width=512)),
+    # --- C: combinations chosen from the (incomplete) stage AB, see README amendment ----------------------------------------------
+    "C1": cfg(warmup=0.05, ent=0.01),
+    "C2": cfg(warmup=0.05, ent=0.01, arm=dict(width=128)),
+    "C3": cfg(warmup=0.05, ent=0.01, lr=7e-4, remat=True, arm=dict(d=128)),
+    "C4": cfg(warmup=0.05, ent=0.01, arm=dict(d=32, width=128)),
 }
 
 

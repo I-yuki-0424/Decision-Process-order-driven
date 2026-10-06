@@ -42,3 +42,13 @@ Metric: mean and sd of reward_pct and score_pct over the 6 seeds; selection valu
 * The Stage-A/B tests answer *which factor drives the variance*; they do not close a gate. Gates only via Stage F under EP-A and G1.0's baseline calibration,
   which stays failed (41.56 < 42.7) until a baseline run says otherwise: any Truck-vs-gate statement carries that caveat.
 * Everything that fails or is excluded (OOM etc.) is recorded; nothing is selected on the final seeds.
+
+## Amendment 2026-10-06 13:00 (after stage AB; written before any stage-C job)
+Stage AB ran from 2026-10-05 23:16 until its deadline 2026-10-06 08:00 (the wall clock advanced while the session was idle). Jobs ran ~2.5x slower than the TASK-023
+jobs (2 concurrent, ~21 min each, CPU-bound containers) so only 45 of the 96 planned jobs finished: T0 3 seeds (2000-2002), warm5/ent01/lr7e-4/lr3e-4/env128/env256/d64w128/
+d64w512 3 seeds, d32w128/d32w256 4, d96w256/d128w256/d128w512/d192w384/d256w512 2. Seeds 2003-2005 are missing for most configs. With ~4.8 h left of the 20 h the plan is cut:
+* Stage C (3 seeds 2000-2002, paired with T0's): `C1` warm-up 5 % + entropy 0.01 (0.467M); `C2` = C1 with GRU width 128 (0.284M); `C3` = C1 with d 128, lr 7e-4
+  (the "more parameters, lr scaled down" test; 0.93M); `C4` = C1 with d 32, width 128 (0.143M, the "fewer parameters" test).
+* Stage F: EP-A finals (seeds 62-71 / test 444-453) for ONE config, the one with the best mean r+s among {warm5, ent01, d64w128, C1-C4} on seeds 2000-2002 (ties / differences
+  < 3 points: the one with fewer parameters). Started no later than 15:30 so it can end before the 20 h limit (about 17:45). No further screening after that choice.
+* Stage-B claims are limited to what 2-4 seeds can show; the table (per-seed values) is reported as is.
