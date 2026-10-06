@@ -65,6 +65,11 @@ CONFIGS = {
     "D3": cfg(warmup=0.05, ent=0.01, lr=1e-3, arm=dict(width=128)),
     "D4": cfg(warmup=0.05, ent=0.01, gamma=0.97, arm=dict(width=128)),
     "D5": cfg(warmup=0.05, ent=0.01, epochs=2, arm=dict(width=128)),
+    # --- E: combinations around D3 (lr 1e-3) ---------------------------------------------------------------------------------------------
+    "E1": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128)),
+    "E2": cfg(warmup=0.05, ent=0.01, lr=1e-3, epochs=4, arm=dict(width=128)),
+    "E3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, epochs=4, arm=dict(width=128)),
+    "E4": cfg(warmup=0.05, ent=0.01, lr=7e-4, arm=dict(width=128)),
 }
 
 

@@ -68,3 +68,18 @@ Reading: the warm-up + higher entropy recipe removes most of the instability and
 Stage D (seeds 2000-2003, 4 seeds, C2 re-run on 2003 for pairing), one change at a time from C2: `D1` warm-up 15 %, `D2` entropy 0.02, `D3` lr 1e-3, `D4` gamma 0.97,
 `D5` 2 epochs. Selection value mean(reward_pct + score_pct); the base of the finals = best of {C2, D1-D5} (differences < 3 points: fewer parameters / simpler). Afterwards: the
 same two knobs (warm-up, entropy) are applied to the gru512 baseline on 3 tuning seeds for equal effort (P9) before any comparison.
+
+## Stage D result and amendment 3 (2026-10-06 23:00; written before stage E)
+Stage D (seeds 2000-2003, 4 seeds, one change from C2 = d64 w128 warm 5 % ent 0.01 lr 1.4954e-3 gamma 0.99 3 epochs):
+
+| config | reward_pct (sd) | score_pct | r+s | per-seed reward |
+|---|---|---|---|---|
+| C2 | 43.53 +- 1.47 (2.9) | 14.20 | 57.7 | 41 46 46 41 |
+| D1 warm-up 15 % | 43.67 +- 1.50 (3.0) | 14.48 | 58.2 | 44 48 42 41 |
+| D2 entropy 0.02 | 42.92 +- 2.68 (5.4) | 13.46 | 56.4 | 46 46 45 35 |
+| **D3 lr 1e-3** | **46.52 +- 0.99 (2.0)** | 14.83 | **61.4** | 47 48 44 47 |
+| D4 gamma 0.97 | 44.78 +- 2.23 (4.5) | 15.58 | 60.4 | 45 47 49 39 |
+| D5 2 epochs | 37.82 +- 0.54 (1.1) | 10.94 | 48.8 | 38 37 39 37 |
+
+Stage E (seeds 2000-2003; base D3): `E1` D3 + gamma 0.97, `E2` D3 + 4 epochs, `E3` D3 + gamma 0.97 + 4 epochs, `E4` D3 with lr 7e-4. Then the parameter-scale sweep is repeated at the best
+of {D3, E1-E4} (stage S: d32w128, d64w256, d128w256, d128w512 at that recipe, 4 seeds), since stage AB's scale results were obtained at a recipe that is unstable for large models.
