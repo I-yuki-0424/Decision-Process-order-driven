@@ -98,3 +98,22 @@ E1 is the new base. These are tuning-seed numbers (4 seeds each, many comparison
 Stage F/S (seeds 2000-2003): `F1` E1 with gamma 0.95, `F2` E1 with lambda 0.55; scale at the E1 recipe: `S1` d32 w128 (0.14M), `S2` d64 w256 (0.47M), `S3` d128 w256 (0.93M), `S4` d128 w512 (1.66M);
 E1 itself (d64 w128, 0.28M) is the 5th size. Then: the baseline gru512 + warm-up check (3 tuning seeds, equal effort) and EP-A finals (seeds 62-71 / test 444-453) for the best Truck config
 by mean r+s over {E1, F1, F2, S1-S4}; if a different size is within 3 points of the best, the smaller is preferred. A second final is run for the best config at another size only if time allows.
+
+## Stage F/S result and amendment 5: finals plan (2026-10-07 05:15; written before any final job)
+Stage F/S (seeds 2000-2003; E1 = d64 w128, 0.284M, lr 1e-3, gamma 0.97, lambda 0.625, warm-up 5 %, entropy 0.01, 3 epochs x 8 minibatches, 64 envs x 64 steps):
+
+| config | params | reward_pct (sd) | score_pct (sd) | r+s | per-seed reward |
+|---|---|---|---|---|---|
+| E1 | 0.284M | 48.15 (1.3) | 17.19 (3.0) | 65.3 | 47 48 47 50 |
+| F1 gamma 0.95 | 0.284M | 46.61 (4.1) | 15.84 | 62.5 | 44 44 53 46 |
+| F2 lambda 0.55 | 0.284M | 47.23 (5.6) | 17.28 | 64.5 | 45 49 54 41 |
+| S1 d32 w128 | 0.143M | 40.82 (2.4) | 12.66 | 53.5 | 38 41 43 41 |
+| S2 d64 w256 | 0.467M | 48.89 (3.4) | 18.13 | 67.0 | 45 48 48 54 |
+| S3 d128 w256 | 0.928M | 47.39 (6.0) | 17.42 | 64.8 | 54 40 50 45 |
+| S4 d128 w512 | 1.655M | 46.48 (7.7) | 17.60 | 64.1 | 55 42 38 50 |
+
+Reading: mean performance plateaus between 0.28M and 1.7M parameters and drops at 0.14M; the seed-to-seed sd grows with size (1.3 -> 3.4 -> 6.0 -> 7.7 reward points from 0.28M to 1.66M),
+so size does not buy accuracy but does cost stability once the recipe is fixed. Selection per the pre-registered rule: E1 (0.28M) is within 3 r+s points of the best (S2, 0.47M) -> E1 is the Truck of record.
+Finals (EP-A, seeds 62-71 / test 444-453, clean tree, 10 seeds each), in this order, each only started if it can end before 12:40 on 2026-10-07: (1) E1; (2) the equal-effort baseline check
+(gru512 at the TASK-023 point + 5 % warm-up, 3 tuning seeds; a baseline final on the same seeds 62-71 follows only if warm-up helps it by >= 2 r+s points, else the TASK-023 baseline finals
+(41.56 / 13.59, seeds 52-61) stay the reference); (3) S2 0.47M; (4) S3 0.93M; (5) S1 0.14M -- these three give the final-seed scale curve the operator asked for.
