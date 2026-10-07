@@ -77,6 +77,12 @@ CONFIGS = {
     "S2": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=256)),
     "S3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, remat=True, arm=dict(d=128, width=256)),
     "S4": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, remat=True, arm=dict(d=128, width=512)),
+    # --- X: architecture ablation at the E1 recipe (E1 = d64 w128 + mem + pa + hs); `arm` overrides T0_ARM, so unwanted options are switched off explicitly --------
+    "X1": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, cand=False)),                  # no candidate-action tokens
+    "X2": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, mem_token=False)),              # no memory token
+    "X3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, prev_act=False)),               # no previous-action input
+    "X4": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, head_skip=False)),              # heads read h only
+    "X5": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, mem_token=False, prev_act=False, head_skip=False)),   # original Truck structure
 }
 
 

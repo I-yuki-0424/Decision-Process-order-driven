@@ -139,3 +139,12 @@ Round 2 (seeds 2000-2002, B3 base = gru256+ln+skip at the Truck E1 point; mean r
 **G4 4 epochs 45.99 / 15.00 / 61.00**; (B3 44.68 / 14.52 / 59.19). Four configs (B3, G1, G4; B4 3.3M excluded by size) are within 3 points of the best; all three small ones have the same parameter count.
 The automatic selector broke that tie by dictionary order and started a B3 final; that run was stopped after its first job (no result file existed, nothing was read) because the tie-break rule was underspecified
 and arbitrary. Rule fixed to "fewer parameters, then higher mean r+s" -> **G4** is the baseline of record, final on seeds 62-71 / test 444-453. The selection function was corrected (this commit).
+
+## Finals done; amendment 9: architecture attribution at the stable recipe (2026-10-07 18:30 machine time = 19:30 JST; written before any stage-X job)
+Final results are in `RESULTS.md` (E1 48.54 / 17.78, S2 46.17 / 16.87, S3 47.15 / 17.46, baseline G4 45.68 / 15.42; G1.0 pass, G1.1 pass on point estimates, G1.2 fail).
+Completion deadline given by the operator: 2026-10-08 11:30 JST = 10:30 machine time; no job may start after 07:00 machine time on 10-08, the written report must be in the repo by 09:30.
+Open question: with the stable recipe, which of Truck's structural parts matter? Stage X (seeds 2000-2003, same as E1's tuning seeds 47 / 48 / 47 / 50 reward) removes one part from E1 at a time:
+`X1` no candidate-action tokens (logits from the head only), `X2` no memory token, `X3` no previous-action input, `X4` heads read h only, `X5` all three options off (the original Truck structure, d64 w128).
+Decision rules (fixed now): a part "matters" if removing it lowers mean reward+score by >= 6 points (about 2 SE of a 4-seed mean) AND the sign is the same for reward and score; a part whose removal changes the mean by < 3 points is
+"not shown to matter". Only the finals decide anything on the gates; a new final (seeds 72-81 / test 454-463 are reserved) is run only for a configuration that is not clearly worse than E1 AND has fewer parameters/parts, to test
+whether a simpler Truck is as good, or for a variant that beats E1 by >= 6 r+s on the 4 seeds.
