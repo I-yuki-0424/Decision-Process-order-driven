@@ -165,3 +165,49 @@ models:
     description: "attribution control: Truck+hs without candidate-action tokens (logits from the head only)"
     status: provisional
     proper_name: null
+  # --- TASK-20261005-024: Truck-improved (Idea4_O01_D01_S06) hidden-dimension scale study; the training recipe is in the run parameters ---
+  Idea4_O01_D04_S00:
+    arms: ["tfgru64x2w128+mem+pa+hs"]
+    description: "Truck-improved (mem+pa+hs) with GRU width 128 (0.28M): the E1 model of TASK-024"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S01:
+    arms: ["tfgru32x2w128+mem+pa+hs"]
+    description: "Truck-improved d=32, GRU width 128 (0.14M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S02:
+    arms: ["tfgru128x2w256+mem+pa+hs"]
+    description: "Truck-improved d=128, GRU width 256 (0.93M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S03:
+    arms: ["tfgru32x2w256+mem+pa+hs"]
+    description: "Truck-improved d=32, GRU width 256 (0.31M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S04:
+    arms: ["tfgru64x2w512+mem+pa+hs"]
+    description: "Truck-improved d=64, GRU width 512 (1.13M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S05:
+    arms: ["tfgru96x2w256+mem+pa+hs"]
+    description: "Truck-improved d=96, GRU width 256 (0.67M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S06:
+    arms: ["tfgru128x2w512+mem+pa+hs"]
+    description: "Truck-improved d=128, GRU width 512 (1.66M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S07:
+    arms: ["tfgru192x2w384+mem+pa+hs"]
+    description: "Truck-improved d=192, 6 heads, GRU width 384 (1.93M)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S08:
+    arms: ["tfgru256x2w512+mem+pa+hs"]
+    description: "Truck-improved d=256, 8 heads, GRU width 512 (3.30M)"
+    status: provisional
+    proper_name: null
