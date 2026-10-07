@@ -148,3 +148,11 @@ Open question: with the stable recipe, which of Truck's structural parts matter?
 Decision rules (fixed now): a part "matters" if removing it lowers mean reward+score by >= 6 points (about 2 SE of a 4-seed mean) AND the sign is the same for reward and score; a part whose removal changes the mean by < 3 points is
 "not shown to matter". Only the finals decide anything on the gates; a new final (seeds 72-81 / test 454-463 are reserved) is run only for a configuration that is not clearly worse than E1 AND has fewer parameters/parts, to test
 whether a simpler Truck is as good, or for a variant that beats E1 by >= 6 r+s on the 4 seeds.
+
+## Stage X result and amendment 10: replication block and attribution finals (2026-10-07 21:10 machine time = 22:10 JST; written before any of these jobs)
+Stage X (seeds 2000-2003; E1 on the same seeds: 48.15 reward / 17.19 score, r+s 65.3): X1 no candidate tokens 46.05 / 16.62 (r+s 62.7); X2 no memory token 46.21 / 15.01 (61.2); X3 no previous action 45.76 / 14.90 (60.7);
+X4 no head skip 46.27 / 15.32 (61.6); X5 original structure (no mem/pa/hs) 46.09 / 15.78 (61.9). Every removal costs 2.7-4.6 r+s points, none reaches the pre-registered 6-point rule -> no single part is shown to matter
+(4 seeds cannot see effects below ~5 points); in particular the candidate-action tokens (the 4th-idea readout) are not shown to contribute.
+Next, in this order (each a 10-seed EP-A final, clean tree, seeds 72-81 / test 454-463, the block reserved in amendment 9):
+(1) E1 and (2) baseline G4 on the new block (a replication of the thin G1.1 margin and an equal-seed comparison; pooled with seeds 62-71 -> 20 seeds each), then (3) X1 and (4) X5 (simplest Truck variants; 'does the structure matter at 10 seeds').
+Start of any job after 2026-10-08 07:00 machine time (08:00 JST) is forbidden; the report is finalised by 09:30 machine time (10:30 JST).

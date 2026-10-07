@@ -175,7 +175,7 @@ def main():
     if a.cmd == "final":
         if prov["GIT_DIRTY"] == "1":
             raise SystemExit("uncommitted changes under src/ scripts/ tests/ docker/: commit before the final stage")
-        jobs = jobs_for("final", [a.config], FINAL_SEEDS, role="final", offset=TEST_SEED_OFFSET, protocol="EP-A",
+        jobs = jobs_for("final", [a.config], parse_seeds(a.seeds) if a.seeds != "2000-2005" else FINAL_SEEDS, role="final", offset=TEST_SEED_OFFSET, protocol="EP-A",
                         budget=f"TASK-024: config chosen from screening on tuning seeds 2000-2999 ({a.config})")
         root = f"{ROOT}/final"
     else:

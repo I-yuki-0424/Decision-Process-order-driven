@@ -68,12 +68,12 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["tune", "final", "report"])
     ap.add_argument("--configs", default="B1,B2,B3,B4,B5,B6")
-    ap.add_argument("--seeds", default="2000-2002")
+    ap.add_argument("--seeds", default="")
     ap.add_argument("--deadline", default="")
     a = ap.parse_args()
     if a.cmd == "report":
         sys.exit(report())
-    lo, _, hi = (a.seeds if a.cmd == "tune" else "62-71").partition("-")
+    lo, _, hi = (a.seeds or ("2000-2002" if a.cmd == "tune" else "62-71")).partition("-")
     if a.configs == "best":
         a.configs = best_config()
         print("baseline config selected on tuning seeds:", a.configs, flush=True)
