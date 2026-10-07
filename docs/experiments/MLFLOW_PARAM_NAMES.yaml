@@ -47,7 +47,7 @@ params:
   eval.windows:          {aliases: [eval_windows]}
   arch.d_model:          {aliases: [d_model]}
   arch.n_layers:         {aliases: [n_layers, num_layers]}
-  arch.n_heads:          {aliases: [n_heads, num_heads]}
+  arch.n_heads:          {aliases: [n_heads, num_heads, heads]}
   arch.hidden_width:     {aliases: [mlp_width, hidden_width]}
   arch.n_hidden_layers:  {aliases: [mlp_layers, n_hidden_layers]}
   arch.critic_width:     {aliases: [critic_width]}
