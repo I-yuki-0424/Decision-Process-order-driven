@@ -161,3 +161,9 @@ Start of any job after 2026-10-08 07:00 machine time (08:00 JST) is forbidden; t
 E1 on the reserved block (seeds 72-81 / test 454-463, clean tree): reward 45.70 +- 1.18 (sd 3.7), score 16.76 +- 1.15; per-seed reward 50.3 43.9 47.0 50.8 44.1 47.7 38.9 44.7 41.8 47.8.
 Pooled over both blocks (20 seeds): reward **47.12 +- 0.99** (sd 4.4), score **17.27 +- 0.84**. The first block's 48.54 was a favourable draw: G1.1's reward threshold (47.40) is NOT met by the pooled estimate (-0.28, -0.3 SE)
 and the claim "G1.1 passes as written" in RESULTS.md section 3 is withdrawn: G1.1 reward is undecided (at the threshold within noise); the G1.1 score condition (> 10.71) holds in both blocks.
+
+## Amendment 11: recipe round R (2026-10-07 22:40 machine time = 23:40 JST; written before any R job)
+Because the replication leaves E1 at the G1.1 reward threshold, the remaining time goes first to a recipe round around E1 (one change each; tuning seeds 2000-2003, E1 on these seeds: 48.15 / 17.19, r+s 65.3):
+`R1` clip 0.1, `R2` 16 minibatches (4 envs each), `R3` vf coefficient 0.5, `R4` entropy 0.005, `R5` rollouts of 128 steps with 32 envs, `R6` value-norm decay 0.95.
+Rule: a config qualifies for a 10-seed final (seeds 72-81, test 454-463) only if its 4-seed mean r+s exceeds E1's 65.3 by >= 4 points; the best qualifying one by mean r+s goes (at most one final).
+Order afterwards: baseline G4 final on 72-81 (running), R, X1 final (attribution), the R winner's final if any, X5 final if time remains; nothing starts after 2026-10-08 07:00 machine time.

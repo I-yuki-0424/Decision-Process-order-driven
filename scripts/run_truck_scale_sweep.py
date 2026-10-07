@@ -83,6 +83,13 @@ CONFIGS = {
     "X3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, prev_act=False)),               # no previous-action input
     "X4": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, head_skip=False)),              # heads read h only
     "X5": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, arm=dict(width=128, mem_token=False, prev_act=False, head_skip=False)),   # original Truck structure
+    # --- R: recipe neighbours of E1, one change each (stage R) --------------------------------------------------------------------------
+    "R1": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, clip=0.1, arm=dict(width=128)),
+    "R2": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, minibatches=16, arm=dict(width=128)),
+    "R3": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, vf=0.5, arm=dict(width=128)),
+    "R4": cfg(warmup=0.05, ent=0.005, lr=1e-3, gamma=0.97, arm=dict(width=128)),
+    "R5": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, n=32, t=128, arm=dict(width=128)),
+    "R6": cfg(warmup=0.05, ent=0.01, lr=1e-3, gamma=0.97, value_norm=0.95, arm=dict(width=128)),
 }
 
 
