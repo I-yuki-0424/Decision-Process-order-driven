@@ -172,3 +172,8 @@ Order afterwards: baseline G4 final on 72-81 (running), R, X1 final (attribution
 Baseline G4 on seeds 72-81 (test 454-463): reward 45.15 +- 0.47, score 15.54 +- 0.46 (sd 1.5); pooled with seeds 62-71: **45.42 +- 0.30 / 15.48 +- 0.27** (20 seeds).
 Pooled E1 - G4 (20 vs 20 seeds): reward +1.70 +- 1.03 (z 1.65), score +1.78 +- 0.88 (z 2.03); block 1 alone +2.86 / +2.35, block 2 alone +0.55 / +1.21.
 Reading: Truck-improved E1 is probably slightly better than the re-tuned baseline (borderline at 2 SE on score, not on reward) with 3.6x fewer parameters and 3-4x the seed spread; G1.0 holds for the baseline in both blocks.
+
+### Stage R result (seeds 2000-2003; E1 on the same seeds: 48.15 / 17.19, r+s 65.3)
+R1 clip 0.1: 43.39 / 15.19 (58.6, sd 6.8); **R2 16 minibatches: 48.72 / 17.56 (66.3, sd 1.7)**; R3 vf 0.5: 45.51 / 16.03 (61.5); **R4 entropy 0.005: 48.73 / 16.68 (65.4)**; R5 128-step rollouts: 43.68 / 14.49 (58.2); R6 value-norm 0.95: 45.57 / 16.03 (61.6).
+No config reaches E1 + 4 r+s -> by the rule of amendment 11 no R final is run. R2 and R4 are equal to E1 within noise (r+s +1.0 / +0.1): the recipe has plateaued at ~48 reward on the tuning seeds.
+Remaining order (unchanged): X1 final (running, seeds 72-81), then X5 final if it can start before 2026-10-08 07:00 machine time.
