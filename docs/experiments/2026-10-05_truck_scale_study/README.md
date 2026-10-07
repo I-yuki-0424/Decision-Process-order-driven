@@ -177,3 +177,8 @@ Reading: Truck-improved E1 is probably slightly better than the re-tuned baselin
 R1 clip 0.1: 43.39 / 15.19 (58.6, sd 6.8); **R2 16 minibatches: 48.72 / 17.56 (66.3, sd 1.7)**; R3 vf 0.5: 45.51 / 16.03 (61.5); **R4 entropy 0.005: 48.73 / 16.68 (65.4)**; R5 128-step rollouts: 43.68 / 14.49 (58.2); R6 value-norm 0.95: 45.57 / 16.03 (61.6).
 No config reaches E1 + 4 r+s -> by the rule of amendment 11 no R final is run. R2 and R4 are equal to E1 within noise (r+s +1.0 / +0.1): the recipe has plateaued at ~48 reward on the tuning seeds.
 Remaining order (unchanged): X1 final (running, seeds 72-81), then X5 final if it can start before 2026-10-08 07:00 machine time.
+
+### X1 final (no candidate-action tokens; EP-A, seeds 72-81 / test 454-463, clean tree)
+reward 45.70 +- 1.45 (sd 4.6), score 15.88 +- 1.16, params 0.2825M; per-seed reward 45.2 54.7 46.3 38.5 52.0 43.4 45.0 43.4 44.6 43.8.
+Same block, same recipe: E1 (with candidate tokens) 45.70 +- 1.18 / 16.76 +- 1.15 -> difference 0.00 +- 1.87 reward, -0.88 +- 1.63 score: **the candidate-action tokens are not shown to contribute**
+(the confidence interval excludes effects larger than ~+-4 reward). The baseline on that block: 45.15 +- 0.47 / 15.54 +- 0.46.
