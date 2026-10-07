@@ -156,3 +156,8 @@ X4 no head skip 46.27 / 15.32 (61.6); X5 original structure (no mem/pa/hs) 46.09
 Next, in this order (each a 10-seed EP-A final, clean tree, seeds 72-81 / test 454-463, the block reserved in amendment 9):
 (1) E1 and (2) baseline G4 on the new block (a replication of the thin G1.1 margin and an equal-seed comparison; pooled with seeds 62-71 -> 20 seeds each), then (3) X1 and (4) X5 (simplest Truck variants; 'does the structure matter at 10 seeds').
 Start of any job after 2026-10-08 07:00 machine time (08:00 JST) is forbidden; the report is finalised by 09:30 machine time (10:30 JST).
+
+### Replication result (2026-10-07 22:30 machine time = 23:30 JST), recorded when it came in
+E1 on the reserved block (seeds 72-81 / test 454-463, clean tree): reward 45.70 +- 1.18 (sd 3.7), score 16.76 +- 1.15; per-seed reward 50.3 43.9 47.0 50.8 44.1 47.7 38.9 44.7 41.8 47.8.
+Pooled over both blocks (20 seeds): reward **47.12 +- 0.99** (sd 4.4), score **17.27 +- 0.84**. The first block's 48.54 was a favourable draw: G1.1's reward threshold (47.40) is NOT met by the pooled estimate (-0.28, -0.3 SE)
+and the claim "G1.1 passes as written" in RESULTS.md section 3 is withdrawn: G1.1 reward is undecided (at the threshold within noise); the G1.1 score condition (> 10.71) holds in both blocks.
