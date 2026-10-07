@@ -1306,7 +1306,7 @@ tasks:
 
   - id: "TASK-20261005-024-truck-variance-and-scale"
     created_at: "2026-10-05T21:50:00+08:00"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator request (2026-10-05, 20 h, extended 2026-10-06/07): find the cause of Truck's seed-to-seed variance (learning rate / optimiser vs parameter count vs batch size),
       try fewer and more parameters (hidden-dimension direction); goal = better Truck, not baseline.
@@ -1317,14 +1317,15 @@ tasks:
       - "python scripts/run_truck_scale_sweep.py report --stage FS"
       - "python scripts/audit_phase1_results.py output/phase1/truck_scale_t024"
     result: >
-      PARTIAL (details: RESULTS.md next to the spec). Variance was mostly the recipe: warm-up 5 % + entropy 0.01 + lr 1e-3 + gamma 0.97 turned Truck-improved (0.284M) from
-      39.29 +- 2.17 reward / 11.08 score (TASK-023 final) into 48.54 +- 1.50 / 17.78 +- 1.25 (EP-A, 10 fresh seeds 62-71 / test 444-453, clean tree). Sizes 0.28M-0.93M are a plateau on final seeds
-      (S2 0.47M 46.17 / 16.87, S3 0.93M 47.15 / 17.46); 0.14M is worse on tuning seeds; seed sd grows with size. Baseline given the same recipe knobs (G4 gru256+ln+skip 1.01M):
-      45.68 +- 0.37 / 15.42 +- 0.33. G1.0 PASS; G1.1 PASS as written on point estimates (reward margin +1.14 = 0.76 SE); G1.2 FAIL (reward 48.54 < 55.49).
-      E1 - G4 = +2.86 +- 1.55 reward, +2.35 +- 1.30 score (z 1.8): not significant at 2 SE. Architecture attribution (mem/pa/hs/candidate tokens) at the stable recipe is not yet tested.
-      Code: PPOConfig.warmup/remat, per-update KL/clip/grad-norm diagnostics (train_diag), scripts/run_truck_scale_sweep.py, run_baseline_warmup_check.py; tests.test_epa_harness 22/22 OK;
-      MLflow ingested (259 runs, 0 UNREGISTERED). Impact check (scip-neo4j, index = commit 9383ead): Trainer and PPOConfig ALLOWED (no LOCKED_CORE_THEORY); dependents run_epa_mini.py and
-      tests/test_epa_harness.py reviewed; defaults unchanged (tests pass, remat gradients equal to 1e-4).
+      DONE (details and caveats: docs/experiments/2026-10-05_truck_scale_study/RESULTS.md). Variance was mostly the recipe: warm-up 5 % + entropy 0.01 + lr 1e-3 + gamma 0.97 turned Truck-improved (0.284M, E1)
+      from 39.29 +- 2.17 reward / 11.08 score (TASK-023 final) into 47.12 +- 0.99 / 17.27 +- 0.84 (EP-A, 20 fresh seeds: block 1 seeds 62-71 / test 444-453 = 48.54 / 17.78, replication block 72-81 / 454-463 =
+      45.70 / 16.76). Parameter scale: plateau 0.28M-0.93M on final seeds (S2 0.47M 46.17 / 16.87, S3 0.93M 47.15 / 17.46), 0.14M worse on tuning seeds, seed sd grows with size. Baseline re-tuned with the same knobs
+      (G4 gru256+ln+skip 1.01M): 45.42 +- 0.30 / 15.48 +- 0.27 (20 seeds). E1 - G4 = +1.70 +- 1.03 reward, +1.78 +- 0.88 score (z 1.65 / 2.03). Attribution (block 2): no candidate tokens 45.70 / 15.88 (= E1),
+      original structure 44.26 / 13.76 (score -3.0, z 2.4): candidate tokens not shown to contribute. Gates: G1.0 PASS (baseline 45.42 >= 42.7, 15.48 >= 9.6); G1.1 NOT ESTABLISHED (reward 48.54 in block 1, 45.70 in block 2,
+      pooled 47.12 < 47.40; score and params conditions hold); G1.2 FAIL (reward 47.12 < 55.49). Phase 1 open. Code: PPOConfig.warmup/remat, per-update KL / clip / grad-norm diagnostics (train_diag),
+      scripts/run_truck_scale_sweep.py, run_baseline_warmup_check.py; tests.test_epa_harness 22/22 OK; MLflow rebuilt in this checkout (343 runs, 0 UNREGISTERED; Truck r00/r02 OOM recorded as failed runs).
+      Impact check (scip-neo4j, index = commit 9383ead): Trainer and PPOConfig ALLOWED (no LOCKED_CORE_THEORY); dependents run_epa_mini.py and tests/test_epa_harness.py reviewed; defaults unchanged
+      (tests pass, remat gradients equal to 1e-4).
     blockers: []
     notes: >
       Operator deadlines are JST; the machine clock (TST) is JST-1h. Completion deadline 2026-10-08 11:30 JST = 10:30 machine time. Caveats: tuning seeds 2000-2005 reused (optimistic),

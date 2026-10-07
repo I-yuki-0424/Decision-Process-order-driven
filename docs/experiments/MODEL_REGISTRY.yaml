@@ -211,3 +211,28 @@ models:
     description: "Truck-improved d=256, 8 heads, GRU width 512 (3.30M)"
     status: provisional
     proper_name: null
+  Idea4_O01_D04_S09:
+    arms: ["tfgru64x2w128+mem+pa+hs-nocand"]
+    description: "E1 without candidate-action tokens (TASK-024 stage X1)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S10:
+    arms: ["tfgru64x2w128+pa+hs"]
+    description: "E1 without the memory token (X2)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S11:
+    arms: ["tfgru64x2w128+mem+hs"]
+    description: "E1 without the previous-action input (X3)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S12:
+    arms: ["tfgru64x2w128+mem+pa"]
+    description: "E1 without head skip (X4)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D04_S13:
+    arms: ["tfgru64x2w128"]
+    description: "original Truck structure at d64 / GRU width 128 (X5; the stable recipe)"
+    status: provisional
+    proper_name: null
