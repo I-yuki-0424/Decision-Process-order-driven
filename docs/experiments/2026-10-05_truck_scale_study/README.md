@@ -167,3 +167,8 @@ Because the replication leaves E1 at the G1.1 reward threshold, the remaining ti
 `R1` clip 0.1, `R2` 16 minibatches (4 envs each), `R3` vf coefficient 0.5, `R4` entropy 0.005, `R5` rollouts of 128 steps with 32 envs, `R6` value-norm decay 0.95.
 Rule: a config qualifies for a 10-seed final (seeds 72-81, test 454-463) only if its 4-seed mean r+s exceeds E1's 65.3 by >= 4 points; the best qualifying one by mean r+s goes (at most one final).
 Order afterwards: baseline G4 final on 72-81 (running), R, X1 final (attribution), the R winner's final if any, X5 final if time remains; nothing starts after 2026-10-08 07:00 machine time.
+
+### Baseline replication result
+Baseline G4 on seeds 72-81 (test 454-463): reward 45.15 +- 0.47, score 15.54 +- 0.46 (sd 1.5); pooled with seeds 62-71: **45.42 +- 0.30 / 15.48 +- 0.27** (20 seeds).
+Pooled E1 - G4 (20 vs 20 seeds): reward +1.70 +- 1.03 (z 1.65), score +1.78 +- 0.88 (z 2.03); block 1 alone +2.86 / +2.35, block 2 alone +0.55 / +1.21.
+Reading: Truck-improved E1 is probably slightly better than the re-tuned baseline (borderline at 2 SE on score, not on reward) with 3.6x fewer parameters and 3-4x the seed spread; G1.0 holds for the baseline in both blocks.
