@@ -133,3 +133,9 @@ Round 1 (seeds 2000-2002; mean reward / score): B1 gru512 ref+warm-up 40.95 / 13
 The baseline profits from the Truck recipe point too (+4 reward), so the Truck-vs-baseline claim must use the re-tuned baseline. Round 2 around B3: `G1` lr 1.5e-3, `G2` gamma 0.95,
 `G3` entropy 0.003, `G4` 4 epochs (3 seeds each). Baseline final = argmax mean(r+s) over B1-B6, G1-G4 on tuning seeds (within 3 points -> fewer parameters), 10 seeds 62-71 / test 444-453.
 Order: round 2 -> baseline final -> S2 final -> S3 final (jobs start only if they can end before 12:40; an unfinished final is reported as incomplete, never as a result).
+
+## Baseline round 2 and amendment 8 (2026-10-07 09:05)
+Round 2 (seeds 2000-2002, B3 base = gru256+ln+skip at the Truck E1 point; mean reward / score / r+s): G1 lr 1.5e-3 43.84 / 15.10 / 58.95; G2 gamma 0.95 43.06 / 14.58 / 57.63; G3 entropy 0.003 43.18 / 12.52 / 55.71;
+**G4 4 epochs 45.99 / 15.00 / 61.00**; (B3 44.68 / 14.52 / 59.19). Four configs (B3, G1, G4; B4 3.3M excluded by size) are within 3 points of the best; all three small ones have the same parameter count.
+The automatic selector broke that tie by dictionary order and started a B3 final; that run was stopped after its first job (no result file existed, nothing was read) because the tie-break rule was underspecified
+and arbitrary. Rule fixed to "fewer parameters, then higher mean r+s" -> **G4** is the baseline of record, final on seeds 62-71 / test 444-453. The selection function was corrected (this commit).

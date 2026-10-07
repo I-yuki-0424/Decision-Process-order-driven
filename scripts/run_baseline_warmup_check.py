@@ -49,7 +49,7 @@ def best_config():
         rows.setdefault(os.path.basename(f).split("__s")[0], []).append((r["reward_pct"] + r["score_pct"], j["params_total"]))
     rows = {n: (np.mean([x[0] for x in v]), v[0][1]) for n, v in rows.items() if len(v) == 3}
     top = max(v[0] for v in rows.values())
-    return min((n for n, v in rows.items() if v[0] >= top - 3), key=lambda n: rows[n][1])
+    return min((n for n, v in rows.items() if v[0] >= top - 3), key=lambda n: (rows[n][1], -rows[n][0]))   # fewer parameters, then higher mean r+s
 
 
 def report():
