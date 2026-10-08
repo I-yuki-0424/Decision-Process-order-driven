@@ -63,6 +63,8 @@ class PPOConfig(NamedTuple):
     max_grad_norm: float = 1.0
     value_norm: float = 0.0        # EMA decay of the value-target mean/std; 0 = off (raw targets)
     adv_norm: str = "minibatch"    # GAE standardization: "minibatch" (per minibatch) | "batch" (once per update)
+    warmup: float = 0.0            # fraction of optimiser steps with a linear lr ramp-up from 0 (0 = off)
+    remat: bool = False            # recompute the per-step policy forward in the backward pass (recurrent arms): same maths, less VRAM
 
 
 def _vn_stats(vn):
@@ -143,6 +145,10 @@ class Trainer:
         self.env_steps_total = self.n_updates * self.steps_per_update
         n_opt = max(self.n_updates * cfg.epochs * cfg.minibatches, 1)
         lr = optax.linear_schedule(cfg.lr, 0.0, n_opt) if cfg.anneal_lr else cfg.lr
+        if cfg.warmup:
+            nw = max(int(cfg.warmup * n_opt), 1)
+            decay = lr if callable(lr) else (lambda c, v=lr: v)
+            lr = lambda c, decay=decay, nw=nw: decay(c) * jnp.minimum((c + 1) / nw, 1.0)
         self.opt = make_optimizer(arm, lr, cfg.max_grad_norm)
         self.update = jax.jit(self._update)
         self.eval_fn = make_eval_chunk(arm, 250)
@@ -201,12 +207,14 @@ class Trainer:
         vc = mb["val"] + jnp.clip(value - mb["val"], -cfg.clip, cfg.clip)
         vl = 0.5 * jnp.maximum((value - mb["ret"]) ** 2, (vc - mb["ret"]) ** 2).mean()
         ent = -(jnp.exp(logp_all) * logp_all).sum(-1).mean()
-        return pg + cfg.vf * vl - cfg.ent * ent, jnp.stack([pg, vl, ent])
+        kl = ((ratio - 1.0) - (logp - mb["logp"])).mean()   # k3 estimate of KL(old || new)
+        clipfrac = (jnp.abs(ratio - 1.0) > cfg.clip).mean()
+        return pg + cfg.vf * vl - cfg.ent * ent, jnp.stack([pg, vl, ent]), jnp.stack([kl, clipfrac])
 
     def _loss_flat(self, params, mb):
         logits, value, wl = self.arm.train_forward(params, mb)
-        loss, aux = self._ppo_terms(logits, value, mb)
-        return loss + wl, jnp.concatenate([aux, wl[None]])
+        loss, aux, ex = self._ppo_terms(logits, value, mb)
+        return loss + wl, jnp.concatenate([aux, wl[None], ex])
 
     def _loss_rec(self, params, mb):
         def body(h, x):
@@ -214,11 +222,12 @@ class Trainer:
             logits, value, h2 = self.arm.step(params, h, obs)
             return self.arm.advance(h2, obs, act, done), (logits, value)
 
-        _, (logits, value) = jax.lax.scan(body, mb["carry"][0], (mb["obs"], mb["act"], mb["done"]))
-        loss, aux = self._ppo_terms(logits, value, mb)
+        _, (logits, value) = jax.lax.scan(jax.checkpoint(body) if self.cfg.remat else body, mb["carry"][0],
+                                          (mb["obs"], mb["act"], mb["done"]))
+        loss, aux, ex = self._ppo_terms(logits, value, mb)
         flat = {k: mb[k].reshape((-1,) + mb[k].shape[2:]) for k in ("obs", "act", "rew", "nobs", "done")}
         wl = self.arm.aux_loss(params, flat)   # world-model loss of arms that have one (zeros otherwise)
-        return loss + wl, jnp.concatenate([aux, wl[None]])
+        return loss + wl, jnp.concatenate([aux, wl[None], ex])
 
     # -- one PPO update ------------------------------------------------------------------------------------------------
     def _update(self, st):
@@ -263,13 +272,14 @@ class Trainer:
                 p, o = c
                 (_, aux), g = jax.value_and_grad(loss_fn, has_aux=True)(p, mb)
                 upd, o = self.opt.update(g, o, p)
-                return (optax.apply_updates(p, upd), o), aux
+                return (optax.apply_updates(p, upd), o), jnp.concatenate([aux, optax.global_norm(g)[None]])
 
             return jax.lax.scan(mb_step, carry_, mbs)
 
         (params, opt), aux = jax.lax.scan(epoch, (st["params"], st["opt"]), jax.random.split(ku, cfg.epochs))
         done = traj["done"]
-        stats = jnp.concatenate([aux.mean((0, 1)), jnp.stack([traj["fin_ret"].sum(), done.sum().astype(jnp.float32)])])
+        m = aux.mean((0, 1))   # [pg, vl, ent, wm, kl, clipfrac, grad_norm]; stats keeps the old layout [pg, vl, ent, wm, fin_ret, n_done] + extras
+        stats = jnp.concatenate([m[:4], jnp.stack([traj["fin_ret"].sum(), done.sum().astype(jnp.float32)]), m[4:]])
         return dict(params=params, opt=opt, env=env_st, obs=obs, carry=carry, ep_ret=ep_ret, key=key, vn=vn), stats
 
     def train(self, seed: int, log_every: int = 0, log_fn=print):
@@ -282,7 +292,7 @@ class Trainer:
                 s = np.asarray(s)
                 log_fn(f"  update {u + 1}/{self.n_updates} steps={(u + 1) * self.steps_per_update} "
                        f"ep_return={s[4] / max(s[5], 1):.2f} episodes={int(s[5])} ent={s[2]:.3f} wm={s[3]:.3f}")
-        curve = np.asarray(jnp.stack(curve)) if curve else np.zeros((0, 6))
+        curve = np.asarray(jnp.stack(curve)) if curve else np.zeros((0, 9))
         return st["params"], curve, time.time() - t0
 
     def evaluate(self, params, seed: int, n_envs: int = 256):
@@ -300,6 +310,15 @@ def curve_summary(curve: np.ndarray, n_points: int = 10) -> list:
         return []
     bins = np.array_split(np.arange(len(curve)), min(n_points, len(curve)))
     return [float(curve[b, 4].sum() / max(curve[b, 5].sum(), 1)) for b in bins]
+
+
+def diag_summary(curve: np.ndarray, n_points: int = 10) -> dict:
+    """Binned training diagnostics: policy entropy, value loss, approx. KL(old||new), clip fraction, gradient norm (pre-clip)."""
+    if len(curve) == 0:
+        return {}
+    bins = np.array_split(np.arange(len(curve)), min(n_points, len(curve)))
+    cols = {"entropy": 2, "value_loss": 1, "approx_kl": 6, "clip_frac": 7, "grad_norm": 8}
+    return {k: [float(curve[b, c].mean()) for b in bins] for k, c in cols.items()}
 
 
 def mean_se(xs) -> tuple:

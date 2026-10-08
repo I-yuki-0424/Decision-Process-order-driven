@@ -10,5 +10,5 @@ mlflow
 numpy
 optax
 pandas
+pyyaml
 requests
-yaml

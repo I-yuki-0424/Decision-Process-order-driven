@@ -66,3 +66,27 @@ Total ≈ 31 GPU-h on the RTX 3060 Ti (one GPU-saturating job at a time). Cheape
    params_total and compute; any gain would be compute, not architecture).
 5. Not changed: the env reward. Setting the +0.3 net reward of a zombie hit on a sleeper (+1 wake_up − 0.7 health) to 0 would violate
    EP-A ("reward unchanged") and P5 (no reward shaping). S1 measures how often agents die asleep instead.
+
+## Amendment 2026-10-05: 10 h profile (operator: "train the improved Truck, finish Phase 1, up to 10 h"; written BEFORE any real run)
+
+The full plan needs ~31 GPU-h; the operator's limit is 10 h wall clock on one RTX 3060 Ti (Docker image `dpod-local` rebuilt on 2026-10-05
+after fixing `requirements.txt`: `yaml` -> `pyyaml`; versions in `output/phase1/recipe_t023/environment.txt`: jax 0.10.2, flax 0.12.8,
+craftax 1.6.1). The same rules (P7-P9) apply, the search is only smaller, and identically so for every arm:
+
+* S0 (replication/determinism) and S1 (death diagnostic) are NOT run. The TASK-017 non-reproducibility question stays open.
+* S2: arms `ppo_gru`, `ppo_gru_ln`, `tf_gru` (Truck); `cnn_gru` dropped. Points: anchors `ref` (Dedieu Table 3) and `moon` only (no `t00`, no random
+  points) x tuning seeds 1000, 1001 = 4 jobs per arm. Selection = max mean(reward_pct + score_pct) over the 2 seeds.
+* S3: 2 Truck variants (`tf_gru_hs`, `tf_gru_mem_pa_hs`) at Truck's selected point, 2 baseline variants (`gru256_ln`, `gru512_ln_skip`) at the best baseline's point,
+  x tuning seeds 1000, 1001. The unmodified arm competes with its S2 numbers. Not run: `tf_gru_mem`, `tf_gru_pa`, `tf_gru_hs_nocand`, `gru256_skip`,
+  `gru384_ln_skip`, `gru512`.
+* S4: Truck-family winner and baseline-family winner, seeds 52-61, test 434-443, EP-A, clean tree.
+* Consequence: 2 tuning seeds with per-seed spread ~10-20 reward_pct cannot separate options closer than ~5 reward_pct; selections are coarse and the
+  finals (10 seeds) are the only trustworthy numbers.
+
+### Second amendment 2026-10-05 (after S2a anchors finished, before any later job): extend the search
+S2a ran faster than estimated (1M-step jobs: GRU ~4.5 min, Truck ~6 min effective with 2 workers), so the remaining time allows more search. The extension is
+symmetric for every arm and was fixed before any random-point or variant job ran. Seen at that moment: anchors `ref` >> `moon` for both baselines
+(ppo_gru ref 37.3/36.4 vs moon 30.2/28.1; ppo_gru_ln ref 40.3/39.6 vs moon 34.5/34.6) and Truck ref 38.6/36.8, with seed spread ~1 reward_pct.
+* S2: + random points `r00..r03` (first 4 of the registered 6; same RNG 20261004) x seed 1000, top-2 per arm promoted to seed 1001 (`tune2`).
+* S3: all 5 registered Truck variants and 5 baseline variants (instead of 2 + 2), tuning seeds 1000, 1001.
+* S4 unchanged. S0/S1/`cnn_gru` stay dropped.

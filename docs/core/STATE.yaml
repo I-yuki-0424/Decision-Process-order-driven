@@ -1251,7 +1251,7 @@ tasks:
 
   - id: "TASK-20261004-023-truck-recipe-and-variants"
     created_at: "2026-10-04T00:00:00Z"
-    status: "queued"
+    status: "done"
     description: >
       Operator accepted the 2026-10-04 proposals: (1) shared PPO recipe of the 1M-step reference baselines (gamma/lambda in both directions, value-target
       normalization, grad-norm 0.5, 8 minibatches, LayerNorm + [h, embedding] heads for the GRU baseline), equal budget for every arm (P9); (2) death-cause /
@@ -1277,10 +1277,20 @@ tasks:
       Trainer, PPOConfig, make_record, TFArm._one_h, TFGRUArm, GRUArm, CNNGRUArm (no LOCKED_CORE_THEORY); analyze_change_impact dependents =
       scripts/run_epa_mini.py, scripts/run_epa_chunkppo.py (make_record, new kwarg optional), tests/test_epa_harness.py, epa_policies.py internals;
       grep agrees (other hits are ChunkPPOConfig, unrelated). All reviewed; run_phase1_random_search.py (TASK-020 driver) left unchanged.
-    blockers:
-      - "Operator go-ahead per stage (training not authorized yet, 2026-10-04)."
-      - "Docker image dpod-local:latest was deleted: rebuild (docker build -t dpod-local:latest -f docker/Dockerfile .) then run the 'env' stage to record versions."
-      - "MLflow store not rebuilt after the registry edits (mlflow not installed in this session): rm -rf mlflow_local && python scripts/mlflow_ingest.py --root output in the checkout used."
+    execution_2026_10_05: >
+      Operator ordered execution on 2026-10-05 (up to 10 h, local/Kaggle/TPU free choice, rebuild the container). Chosen: LOCAL RTX 3060 Ti in Docker (design is a
+      0.45M-param single-device job: no benefit from TPU/parallel; Kaggle adds setup risk). dpod-local rebuilt (requirements.txt had 'yaml' instead of 'pyyaml'; fixed);
+      environment.txt recorded. The full plan (~31 GPU-h) does not fit: 10 h profile pre-registered in docs/experiments/2026-10-04_truck_recipe_plan/README.md
+      (amendment) before any run: S0/S1 not run, 3 arms, anchors ref+moon x 2 tuning seeds, 2+2 variants, finals 10 seeds. Gate results go in this entry's result when done.
+    result_execution_2026_10_05: >
+      EXECUTED (10 h profile, local GPU). G1.0 FAIL (narrow): baseline gru512 (2.80M) reward_pct 41.56 +- 0.28 (< 42.7), score_pct 13.59 +- 0.17 (>= 9.6), 10 seeds
+      52-61 / test 434-443, EP-A, clean tree, commit d3afaefd. G1.1 FAIL: Truck-improved (tfgru64x2w256+mem+pa+hs, 0.467M) reward_pct 39.29 +- 2.17 (< 47.40), score_pct
+      11.08 +- 1.25 (> 10.71, within noise). G1.2 FAIL. Phase 1 open. Recipe fixed the baseline (32.45 -> 41.56) but Truck is not distinguishable from / not better than it.
+      Details, selections, caveats: docs/experiments/2026-10-04_truck_recipe_plan/RESULTS_2026-10-05.md. Metric check: reward_pct/score_pct computed by the existing
+      evaluator (masked_achievements / calculate_crafter_score; unchanged, audited in TASK-022). MLflow: ingested into mlflow_local in this checkout (68 runs, 0 UNREGISTERED),
+      Truck r00/r02 OOM recorded as failed runs. Impact check: no src/ symbol modified in this execution (only scripts/run_phase1_recipe_sweep.py, requirements). 
+      Not run: S0, S1, cnn_gru, 4 of 6 random points (r04/r05), t00 anchor; 2 tuning seeds instead of 3.
+    blockers: []
     notes: >
       CRITICAL REVIEW (before implementing): (1) recipe changes are shared by every arm (P9): they can close G1.0 and lift Truck, but are not evidence for
       the architecture; only S3 (equal-count variants) and S4 can show a Truck-specific gain. (2) gru512+ln+skip (~3.3M) is calibration toward the 4.0M
@@ -1293,6 +1303,33 @@ tasks:
       over 3 tuning seeds; S3 5 Truck + 5 baseline variants x 3 seeds; S4 seeds 52-61 / test 434-443 (replicates k=10..19; 42-51 already seen).
       S0 decision rule: Truck replication (t00, seeds 0-9) more than 2 combined SE below 39.19 -> TASK-017 number declared non-reproducible; else the
       TASK-020 config (t04) is the cause of 34.19. Test venv lives at C:\v\e (short path: Windows MAX_PATH breaks orbax/jax installs in longer paths).
+
+  - id: "TASK-20261005-024-truck-variance-and-scale"
+    created_at: "2026-10-05T21:50:00+08:00"
+    status: "done"
+    description: >
+      Operator request (2026-10-05, 20 h, extended 2026-10-06/07): find the cause of Truck's seed-to-seed variance (learning rate / optimiser vs parameter count vs batch size),
+      try fewer and more parameters (hidden-dimension direction); goal = better Truck, not baseline.
+    spec_ref: "docs/experiments/2026-10-05_truck_scale_study/README.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_epa_harness"
+      - "python scripts/run_truck_scale_sweep.py report --stage FS"
+      - "python scripts/audit_phase1_results.py output/phase1/truck_scale_t024"
+    result: >
+      DONE (details and caveats: docs/experiments/2026-10-05_truck_scale_study/RESULTS.md). Variance was mostly the recipe: warm-up 5 % + entropy 0.01 + lr 1e-3 + gamma 0.97 turned Truck-improved (0.284M, E1)
+      from 39.29 +- 2.17 reward / 11.08 score (TASK-023 final) into 47.12 +- 0.99 / 17.27 +- 0.84 (EP-A, 20 fresh seeds: block 1 seeds 62-71 / test 444-453 = 48.54 / 17.78, replication block 72-81 / 454-463 =
+      45.70 / 16.76). Parameter scale: plateau 0.28M-0.93M on final seeds (S2 0.47M 46.17 / 16.87, S3 0.93M 47.15 / 17.46), 0.14M worse on tuning seeds, seed sd grows with size. Baseline re-tuned with the same knobs
+      (G4 gru256+ln+skip 1.01M): 45.42 +- 0.30 / 15.48 +- 0.27 (20 seeds). E1 - G4 = +1.70 +- 1.03 reward, +1.78 +- 0.88 score (z 1.65 / 2.03). Attribution (block 2): no candidate tokens 45.70 / 15.88 (= E1),
+      original structure 44.26 / 13.76 (score -3.0, z 2.4): candidate tokens not shown to contribute. Gates: G1.0 PASS (baseline 45.42 >= 42.7, 15.48 >= 9.6); G1.1 NOT ESTABLISHED (reward 48.54 in block 1, 45.70 in block 2,
+      pooled 47.12 < 47.40; score and params conditions hold); G1.2 FAIL (reward 47.12 < 55.49). Phase 1 open. Code: PPOConfig.warmup/remat, per-update KL / clip / grad-norm diagnostics (train_diag),
+      scripts/run_truck_scale_sweep.py, run_baseline_warmup_check.py; tests.test_epa_harness 22/22 OK; MLflow rebuilt in this checkout (343 runs, 0 UNREGISTERED; Truck r00/r02 OOM recorded as failed runs).
+      Impact check (scip-neo4j, index = commit 9383ead): Trainer and PPOConfig ALLOWED (no LOCKED_CORE_THEORY); dependents run_epa_mini.py and tests/test_epa_harness.py reviewed; defaults unchanged
+      (tests pass, remat gradients equal to 1e-4).
+    blockers: []
+    notes: >
+      Operator deadlines are JST; the machine clock (TST) is JST-1h. Completion deadline 2026-10-08 11:30 JST = 10:30 machine time. Caveats: tuning seeds 2000-2005 reused (optimistic),
+      stage AB incomplete (45/96), baseline effort below Truck effort (P9 only roughly met); see RESULTS.md section 4.
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
