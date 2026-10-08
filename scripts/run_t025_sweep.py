@@ -50,6 +50,12 @@ CONFIGS = {
     "TP03": truck(arm=dict(tp_coef=0.3)),
     # --- EA: entropy coefficient annealed 0.01 -> 0 over training ----------------------------------------------------------------------
     "EA": truck(ent_final=0.0),
+    # --- baseline with the same method changes (P9) ------------------------------------------------------------------------------------
+    "G4TP1": base(arm=dict(tp_coef=1.0)),
+    "G4TP03": base(arm=dict(tp_coef=0.3)),
+    "G4EA": base(ent_final=0.0),
+    "G4K1": base(t=32),
+    "G4K2": base(n=32),
 }
 
 
@@ -95,6 +101,8 @@ def load_stage(stage):
     for f in sorted(glob.glob(f"{ROOT}/{stage}/*.json")):
         d = json.load(open(f))
         n = os.path.basename(f).split("__s")[0]
+        dev = d.get("provenance", {}).get("device", "?")
+        n += "@kag" if "T4" in dev or "P100" in dev else ""   # platform tag: configs are compared on the same platform only
         r = d["per_seed"][0]
         rows.setdefault(n, []).append(dict(seed=d["seeds"][0], reward=r["reward_pct"], score=r["score_pct"], params=d["params_total"],
                                            diag=r.get("train_diag", {}), curve=r["train_curve_return"], length=r["eval_mean_length"],

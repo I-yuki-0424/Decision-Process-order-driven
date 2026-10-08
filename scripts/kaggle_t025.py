@@ -79,6 +79,10 @@ def build(a):
         if min(seeds) < 3000:
             raise SystemExit("tuning seeds are 3000-3999")
         jobs = sw.jobs_for(a.stage, a.configs.split(","), seeds)
+        if a.diag:   # diagnostic runs: role diag + saved final params (for scripts/diagnose_phase1_deaths.py), never selected
+            for j in jobs:
+                j["cmd"][j["cmd"].index("--role") + 1] = "diag"
+                j["cmd"] += ["--save-params", f"{sw.ROOT}/{a.stage}/params"]
         for spec in a.extra:   # additional "stage:configs:seeds" groups in the same kernel
             st, cf, sd = spec.split(":")
             jobs += sw.jobs_for(st, cf.split(","), sw.parse_seeds(sd))
@@ -136,6 +140,13 @@ def fetch(a):
             d = os.path.join(os.path.dirname(j["out"]), "logs")
             os.makedirs(d, exist_ok=True)
             shutil.copy(lg, os.path.join(d, j["name"] + ".kaggle.log"))
+    for r, _, fs in os.walk(tmp):
+        for f in fs:
+            if f.endswith(".pkl"):
+                rel = os.path.relpath(os.path.join(r, f), tmp)
+                os.makedirs(os.path.dirname(rel), exist_ok=True)
+                shutil.copy(os.path.join(r, f), rel)
+                print("params:", rel)
     print(f"fetched {n}/{len(jobs)} result files")
 
 
@@ -147,6 +158,7 @@ def main():
     ap.add_argument("--configs", default="")
     ap.add_argument("--seeds", default="")
     ap.add_argument("--final", action="store_true")
+    ap.add_argument("--diag", action="store_true", help="role diag + --save-params (pickles fetched too)")
     ap.add_argument("--extra", action="append", default=[], help="more job groups 'stage:configs:seeds' (tuning only)")
     a = ap.parse_args()
     if a.cmd == "build":
