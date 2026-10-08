@@ -81,6 +81,7 @@ class Arm:
     name = "arm"
     recurrent = False
     hist_len = 0
+    tp_coef = 0.0   # weight of the transition-prediction auxiliary loss (recurrent learner; 0 = off)
 
     def init_carry(self, n):
         return ()
@@ -98,6 +99,34 @@ class Arm:
 
     def frozen(self):
         return False
+
+    def step_pred(self, params, carry, obs, act):
+        """step() plus the transition prediction (N, OBS_DIM + 1) = [obs delta, reward] for the EXECUTED action `act`."""
+        raise NotImplementedError
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Transition-prediction auxiliary (TASK-025): S_{t+1} - S_t and r_t of the executed action, learned from executed transitions only
+# ----------------------------------------------------------------------------------------------------------------------
+def init_tp_head(key, din, hidden):
+    """MLP head [features, one-hot(action)] -> hidden -> (OBS_DIM + 1); used where no per-action token exists (GRU baseline)."""
+    k1, k2 = jax.random.split(key)
+    return {"h": _ortho(k1, din + N_ACT, hidden, jnp.sqrt(2.0)), "o": _dense(k2, hidden, OBS_DIM + 1, 0.1)}
+
+
+def tp_head(p, feat, act):
+    return _ap(p["o"], jnp.tanh(_ap(p["h"], jnp.concatenate([feat, jax.nn.one_hot(act, N_ACT)], -1))))
+
+
+def tp_loss(pred, obs, nobs, rew, done):
+    """Same target and scale as wm_loss: 100 x MSE of the observation delta + MSE of the reward. Transitions that ended an
+    episode are dropped (the returned next observation belongs to a fresh episode). No simulator access: (obs, act, nobs, rew)
+    are the executed transitions already in the PPO batch, so no extra environment steps are used."""
+    w = 1.0 - done.astype(jnp.float32)
+    den = jnp.maximum(w.sum(), 1.0)
+    l_obs = (((pred[..., :OBS_DIM] - (nobs - obs)) ** 2).mean(-1) * w).sum() / den
+    l_rew = (((pred[..., OBS_DIM] - rew) ** 2) * w).sum() / den
+    return 100.0 * l_obs + l_rew
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -129,9 +158,9 @@ class GRUArm(Arm):
     Both default off = the original gru baseline."""
     recurrent = True
 
-    def __init__(self, width=256, ln=False, skip=False):
-        self.width, self.ln, self.skip = width, ln, skip
-        self.name = f"gru{width}" + ("+ln" if ln else "") + ("+skip" if skip else "")
+    def __init__(self, width=256, ln=False, skip=False, tp_coef=0.0, tp_hidden=128):
+        self.width, self.ln, self.skip, self.tp_coef, self.tp_hidden = width, ln, skip, tp_coef, tp_hidden
+        self.name = f"gru{width}" + ("+ln" if ln else "") + ("+skip" if skip else "") + (f"+tp{tp_coef:g}" if tp_coef else "")
 
     def init(self, key):
         k = iter(jax.random.split(key, 8))
@@ -143,6 +172,8 @@ class GRUArm(Arm):
         if self.ln:
             pi["ln"] = {"in": _ln_params(OBS_DIM), "gru_in": _ln_params(w), "actor": [_ln_params(hin), _ln_params(w)],
                         "critic": [_ln_params(hin), _ln_params(w)]}
+        if self.tp_coef:   # own key stream: every other parameter keeps its init
+            pi["tp"] = init_tp_head(jax.random.fold_in(key, 0x7D), hin, self.tp_hidden)
         return {"pi": pi}
 
     def init_carry(self, n):
@@ -152,6 +183,13 @@ class GRUArm(Arm):
         return jnp.tanh(_ap(p["embed"], _ln(obs, p["ln"]["in"]["g"], p["ln"]["in"]["b"]) if self.ln else obs))
 
     def step(self, params, h, obs):
+        return self._core(params, h, obs)[:3]
+
+    def step_pred(self, params, h, obs, act):
+        logits, value, h2, hh = self._core(params, h, obs)
+        return logits, value, h2, tp_head(params["pi"]["tp"], hh, act)
+
+    def _core(self, params, h, obs):
         p = params["pi"]
         x = self._embed(p, obs)
         gi, gh = _ap(p["gru"]["wi"], _ln(x, p["ln"]["gru_in"]["g"], p["ln"]["gru_in"]["b"]) if self.ln else x), _ap(p["gru"]["wh"], h)
@@ -162,8 +200,8 @@ class GRUArm(Arm):
         h2 = (1.0 - z) * n + z * h
         hh = jnp.concatenate([h2, x], -1) if self.skip else h2
         if self.ln:
-            return _ln_tanh_mlp(p["actor"], p["ln"]["actor"], hh), _ln_tanh_mlp(p["critic"], p["ln"]["critic"], hh)[..., 0], h2
-        return _tanh_mlp(p["actor"], hh), _tanh_mlp(p["critic"], hh)[..., 0], h2
+            return _ln_tanh_mlp(p["actor"], p["ln"]["actor"], hh), _ln_tanh_mlp(p["critic"], p["ln"]["critic"], hh)[..., 0], h2, hh
+        return _tanh_mlp(p["actor"], hh), _tanh_mlp(p["critic"], hh)[..., 0], h2, hh
 
     def advance(self, h_next, obs, act, done):
         return h_next * (1.0 - done.astype(jnp.float32))[:, None]
@@ -354,17 +392,23 @@ class TFGRUArm(TFArm):
       prev_act  : an embedding of the previous action (own past action, an allowed EP-A input) is added to the GRU input;
                   the carry is then [h, one-hot(previous action or 'none')]
       head_skip : logit-bias and value heads read [LN(h_t), CLS_t] instead of h_t
-      cand=False: no candidate-action tokens; logits come from the head only (attribution control for the 4th-idea readout)"""
+      cand=False: no candidate-action tokens; logits come from the head only (attribution control for the 4th-idea readout)
+      tp_coef   : transition-prediction auxiliary (TASK-025). With candidate tokens (tp_src="cand") the token of the EXECUTED
+                  action predicts [S_{t+1} - S_t, r_t] through one linear map (the 4th idea's S_{t+1} = S_t + W_res[A_t], learned);
+                  tp_src="head" uses the GRU baseline's MLP head on [head features, one-hot(action)] instead (control)."""
     recurrent = True
 
     def __init__(self, d=64, layers=2, heads=4, width=256, wm_mode="none", wm_hidden=256, wm_coef=1.0,
-                 mem_token=False, prev_act=False, head_skip=False, cand=True):
+                 mem_token=False, prev_act=False, head_skip=False, cand=True, tp_coef=0.0, tp_src="cand", tp_hidden=128):
         assert cand or wm_mode == "none", "world-model features are attached to the candidate-action tokens"
+        assert tp_src in ("cand", "head") and (cand or tp_src == "head" or not tp_coef), "tp_src='cand' needs candidate tokens"
         super().__init__(d=d, layers=layers, heads=heads, hist=0, wm_mode=wm_mode, wm_hidden=wm_hidden, wm_coef=wm_coef,
                          critic="shared")
         self.width, self.mem_token, self.prev_act, self.head_skip, self.cand = width, mem_token, prev_act, head_skip, cand
+        self.tp_coef, self.tp_src, self.tp_hidden = tp_coef, tp_src, tp_hidden
         self.name = (f"tfgru{d}x{layers}w{width}" + ("+mem" if mem_token else "") + ("+pa" if prev_act else "")
-                     + ("+hs" if head_skip else "") + ("" if cand else "-nocand") + ("" if wm_mode == "none" else f"+wm_{wm_mode}"))
+                     + ("+hs" if head_skip else "") + ("" if cand else "-nocand") + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
+                     + ((f"+tp{tp_coef:g}" + ("h" if tp_src == "head" else "")) if tp_coef else ""))
 
     def init(self, key):
         k1, k2, k3, k4, k5 = jax.random.split(key, 5)
@@ -383,6 +427,9 @@ class TFGRUArm(TFArm):
             pi["pa_emb"] = jax.random.normal(kx[2], (N_ACT + 1, d)) * 0.02
         if not self.cand:
             del pi["cand"], pi["logit"]
+        if self.tp_coef:   # own key stream: every other parameter keeps its init
+            kt = jax.random.fold_in(key, 0x7D)
+            pi["tp"] = _dense(kt, d, OBS_DIM + 1, 0.1) if self.tp_src == "cand" else init_tp_head(kt, hin, self.tp_hidden)
         return out
 
     def init_carry(self, n):
@@ -392,14 +439,25 @@ class TFGRUArm(TFArm):
         return jnp.concatenate([h, jax.nn.one_hot(jnp.full((n,), N_ACT), N_ACT + 1)], -1)   # previous action 'none'
 
     def step(self, params, carry, obs):
+        return self._core(params, carry, obs)[:3]
+
+    def step_pred(self, params, carry, obs, act):
+        logits, value, h2, ch, hh = self._core(params, carry, obs)
+        tp = params["pi"]["tp"]
+        if self.tp_src == "cand":
+            sel = jnp.take_along_axis(ch, act[:, None, None], axis=1)[:, 0]   # candidate token of the executed action
+            return logits, value, h2, _ap(tp, sel)
+        return logits, value, h2, tp_head(tp, hh, act)
+
+    def _core(self, params, carry, obs):
         pi, w = params["pi"], self.width
         h = carry[:, :w] if self.prev_act else carry
         z = jnp.zeros((obs.shape[0], 0, OBS_DIM)), jnp.zeros((obs.shape[0], 0), jnp.int32), jnp.zeros((obs.shape[0], 0), jnp.bool_)
         if self.mem_token:
             mem = _ap(pi["mem_in"], h) + pi["mem_type"]
-            lc, _, _, cls = jax.vmap(lambda o, a, b, c, m: self._one_h(params, o, a, b, c, mem=m, use_cand=self.cand))(obs, *z, mem)
+            lc, _, ch, cls = jax.vmap(lambda o, a, b, c, m: self._one_h(params, o, a, b, c, mem=m, use_cand=self.cand))(obs, *z, mem)
         else:
-            lc, _, _, cls = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c, use_cand=self.cand))(obs, *z)
+            lc, _, ch, cls = jax.vmap(lambda o, a, b, c: self._one_h(params, o, a, b, c, use_cand=self.cand))(obs, *z)
         x = cls + carry[:, w:] @ pi["pa_emb"] if self.prev_act else cls
         ir, iz, inn = jnp.split(_ap(pi["gru_wi"], x), 3, -1)
         hr, hz, hn = jnp.split(_ap(pi["gru_wh"], h), 3, -1)
@@ -407,7 +465,7 @@ class TFGRUArm(TFArm):
         h2 = (1.0 - zg) * jnp.tanh(inn + r * hn) + zg * h
         hh = jnp.concatenate([_ln(h2, pi["h_ln_g"], pi["h_ln_b"]), cls], -1) if self.head_skip else h2
         logits = lc + _ap(pi["h_logit"], hh) if self.cand else _ap(pi["h_logit"], hh)
-        return logits, _ap(pi["h_value"], hh)[:, 0], h2
+        return logits, _ap(pi["h_value"], hh)[:, 0], h2, ch, hh
 
     def advance(self, h_next, obs, act, done):
         h = h_next * (1.0 - done.astype(jnp.float32))[:, None]
@@ -420,7 +478,7 @@ class TFGRUArm(TFArm):
 
     def param_counts(self, params):
         pi = params["pi"]
-        return n_params(params), n_params({k: v for k, v in pi.items() if k != "h_value"}) + n_params(params.get("wm", {}))
+        return n_params(params), n_params({k: v for k, v in pi.items() if k not in ("h_value", "tp")}) + n_params(params.get("wm", {}))
 
 
 class CNNGRUArm(GRUArm):
