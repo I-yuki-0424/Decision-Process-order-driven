@@ -56,3 +56,13 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
   baseline final = **G4TP1** (tp_coef 1.0, MLP head, 1.254M params_total, 0.880M deployed). Both arms screened the same 4 coefficients.
 * Final runs: block A (82-91 / test 464-473) LOCAL for E1, G4, TP1, G4TP1 (one platform, clean commit); block B (92-101 / 474-483) on KAGGLE
   T4 for TP1, G4TP1, G4, E1 (one platform). Gate G1.1 / G1.2 evaluated on block A (TP1); block B = replication.
+
+## Amendment 3 (2026-10-09 21:05 JST, after final block B of TP1 / G4TP1 / G4, BEFORE any block-A result of TP1 or G4TP1 exists)
+* Block B (Kaggle, 92-101 / 474-483): G4TP1 48.14 +- 0.33 / 17.88 +- 0.55; G4 45.32 +- 0.50 / 15.27 +- 0.43; TP1 (Truck) 43.71 +- 0.97 / 14.63 +- 0.85.
+  TP1 did not reproduce its tuning number (48.69, 4 seeds): winner's curse on a high-variance arm. TP on the GRU reproduced (+2.8 reward vs G4).
+* Added gate candidate (config fixed in amendment 2, before any final): **G4TP1 = GRU baseline + transition-prediction auxiliary** ("GRU-TP").
+  It was registered as the baseline arm; promoting it to a gate candidate is a decision taken after seeing block B, so block B is NOT used
+  as its gate evidence. Its gate test is block A (local, pending), with block C as replication.
+* Block C (train 102-111 / test 484-493, never used) on Kaggle for G4TP1, G4, TP1, E1 as time allows; report all blocks, never select blocks.
+* Truck vs baseline (operator question) is reported per block for both pairs (E1 vs G4, TP1 vs G4TP1); no claim of superiority unless the pooled
+  difference is > 2 SE in the same direction in every block.
