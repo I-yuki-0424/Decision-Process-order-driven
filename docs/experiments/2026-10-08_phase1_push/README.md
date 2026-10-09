@@ -35,3 +35,16 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
 * Gate evaluation: G1.1 / G1.2 on block A exactly as defined (10 seeds, mean - 2 SE > reference on both metrics, params_total <= 4.0M for G1.1);
   block B and the pooled 20 seeds reported alongside; a gate is called "robustly passed" only if block B passes too.
 * Truck vs baseline: difference of means with SE (independent seeds, same seed numbers), per block and pooled.
+
+## Amendment 1 (2026-10-09 13:15 JST, after screening round 1, before round 2 and before any final run)
+* Session interruption: the agent session stalled at a tool-permission prompt on 2026-10-08 ~19:10 JST; the local GPU was idle from 20:20 (end of
+  stage K) to 13:05 on 10-09. The operator then extended the deadline to 2026-10-10 11:30 JST and waived all confirmations.
+* Round 1 (tuning seeds 3000-3003; mean reward / score, r+s): local E1 43.50 / 14.80 (58.3); K1 43.96 / 15.42 (59.4); K2 44.07 / 14.39 (58.5);
+  Kaggle E1 (2 seeds) 43.17 / 13.78 (57.0); EA 43.19 / 13.74 (56.9); **TP1 48.69 / 18.17 (66.9)**; TP03 46.54 / 17.24 (63.8);
+  Kaggle G4 45.85 / 16.79 (62.6); **G4TP1 48.69 / 17.77 (66.5)**; G4TP03 48.10 / 17.58 (65.7).
+* Only TP qualifies (>= E1 + 3 r+s on the same platform), and it lifts the baseline too. Consequences, fixed now:
+  (1) the gate attempt uses Truck + TP; (2) the Truck-vs-baseline comparison is Truck+TP vs G4+TP at the SAME tp_coef choice rule
+  (each arm's best coefficient on these tuning seeds, equal number of coefficients screened per arm: {0.3, 1, 3, 10});
+  (3) plain E1 and plain G4 are run on final block A as well, so the TP effect is measured on fresh seeds for both arms;
+  (4) attribution control TP1h (Truck, TP through an MLP head instead of the candidate tokens) is screened on the same seeds.
+* Round 2: TP3, TP10 (Truck), G4TP3, G4TP10, TP1h on Kaggle; EV03, EV1 (local); TP1+EV0.3 (TP1EV) if EV qualifies.
