@@ -90,3 +90,7 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
 * Block C (Kaggle): TP1h 50.23 +- 1.70 / 19.84 +- 1.36 (post-hoc arm, amendment 4); E1 47.28 +- 1.12 / 17.09 +- 0.93.
 * Block G (train 142-151 / test 524-533, never used) on Kaggle for TP1h and G4TP1: TP1h stays a post-hoc arm (chosen after block B); its
   evidence is blocks C, F, G together, all reported. No other new configs.
+
+## Amendment 8 (2026-10-10 02:15 JST)
+* Block H (train 152-161 / test 534-543, never used) on Kaggle for E1, G4, G4TP1, TP1h: more power for every comparison; reported with all
+  other blocks. Last block of this task (runs must end by ~09:00 JST for the 11:30 report).
