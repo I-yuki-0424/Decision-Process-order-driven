@@ -51,6 +51,11 @@ CONFIGS = {
     "TP3": truck(arm=dict(tp_coef=3.0)),
     "TP10": truck(arm=dict(tp_coef=10.0)),
     "TP1EV": truck(arm=dict(tp_coef=1.0, ev_coef=0.3)),
+    # --- round 3: recipe / size neighbours of TP1 (does TP change what the recipe and size study found?) --------------------------
+    "TP1K1": truck(t=32, arm=dict(tp_coef=1.0)),
+    "TP1g99": truck(gamma=0.99, arm=dict(tp_coef=1.0)),
+    "TP1S2": truck(arm=dict(tp_coef=1.0, width=256)),
+    "TP1L3": truck(arm=dict(tp_coef=1.0, layers=3)),
     # --- EA: entropy coefficient annealed 0.01 -> 0 over training ----------------------------------------------------------------------
     "EA": truck(ent_final=0.0),
     # --- EV: next-reward-event contrastive auxiliary (intra-trajectory, Moon et al. 2023 style, no achievement memory) ----------------
