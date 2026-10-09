@@ -78,3 +78,10 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
 ## Amendment 5 (2026-10-09 23:50 JST, after block C of G4TP1 / G4; block A TP arms 13/20 done)
 * Block E (train 122-131 / test 504-513, never used) on Kaggle for E1 and G4: more power for the pre-registered E1-vs-G4 comparison
   (all blocks pooled, none selected). No further screening; no new configs.
+
+## Amendment 6 (2026-10-10 00:45 JST, after block A of TP1 / G4TP1)
+* Block A (pre-registered gate block, local): TP1 47.22 +- 1.53 / 16.55 +- 1.14 (G1.1 fail); G4TP1 48.40 +- 0.51 / 18.59 +- 0.71: reward - 2 SE
+  = 47.38 < 47.40 -> **G1.1 NOT passed on its gate block** (by 0.02); blocks B and C (Kaggle) pass. Under the rules above G1.1 stays not passed.
+* Block F (train 132-141 / test 514-523, never used) LOCAL for G4TP1 and TP1h after block D: one more fresh replication, reported together
+  with every other block. It cannot by itself turn the block-A result into a pass; the report gives the count of passing blocks and the
+  pooled estimate, all seeds listed.
