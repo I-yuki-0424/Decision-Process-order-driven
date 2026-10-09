@@ -17,7 +17,8 @@ BLOCKS = [("T024-1", "output/phase1/truck_scale_t024/final", range(62, 72)), ("T
           ("A", "output/phase1/push_t025/finalA", range(82, 92)), ("B", "output/phase1/push_t025/finalB", range(92, 102)),
           ("C", "output/phase1/push_t025/finalC", range(102, 112)), ("D", "output/phase1/push_t025/finalD", range(112, 122)),
           ("E", "output/phase1/push_t025/finalE", range(122, 132)),
-          ("F", "output/phase1/push_t025/finalF", range(132, 142))]
+          ("F", "output/phase1/push_t025/finalF", range(132, 142)),
+          ("G", "output/phase1/push_t025/finalG", range(142, 152))]
 ARMS = ["E1", "G4", "TP1", "G4TP1", "TP1h"]
 
 
@@ -60,7 +61,7 @@ def main():
     print("\n## Differences (independent seeds, same seed numbers within a block): mean diff +- SE (z)\n")
     print("| pair | block | reward diff | score diff |")
     print("|---|---|---|---|")
-    for x, y in [("E1", "G4"), ("TP1", "G4TP1"), ("G4TP1", "G4"), ("TP1", "E1"), ("TP1h", "E1")]:
+    for x, y in [("E1", "G4"), ("TP1", "G4TP1"), ("G4TP1", "G4"), ("TP1", "E1"), ("TP1h", "E1"), ("TP1h", "G4TP1")]:
         pooled = {"reward": [], "score": []}
         for b, _, _ in BLOCKS:
             vx, vy = data[(b, x)], data[(b, y)]

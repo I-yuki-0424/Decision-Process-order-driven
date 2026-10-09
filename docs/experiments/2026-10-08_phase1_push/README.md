@@ -85,3 +85,8 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
 * Block F (train 132-141 / test 514-523, never used) LOCAL for G4TP1 and TP1h after block D: one more fresh replication, reported together
   with every other block. It cannot by itself turn the block-A result into a pass; the report gives the count of passing blocks and the
   pooled estimate, all seeds listed.
+
+## Amendment 7 (2026-10-10 01:50 JST, after block C of E1 / TP1h)
+* Block C (Kaggle): TP1h 50.23 +- 1.70 / 19.84 +- 1.36 (post-hoc arm, amendment 4); E1 47.28 +- 1.12 / 17.09 +- 0.93.
+* Block G (train 142-151 / test 524-533, never used) on Kaggle for TP1h and G4TP1: TP1h stays a post-hoc arm (chosen after block B); its
+  evidence is blocks C, F, G together, all reported. No other new configs.
