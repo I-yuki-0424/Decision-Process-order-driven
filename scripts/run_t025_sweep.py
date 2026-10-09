@@ -48,6 +48,9 @@ CONFIGS = {
     # --- TP: transition-prediction auxiliary (candidate token of the executed action predicts S_{t+1} - S_t and r_t) ----------------
     "TP1": truck(arm=dict(tp_coef=1.0)),
     "TP03": truck(arm=dict(tp_coef=0.3)),
+    "TP3": truck(arm=dict(tp_coef=3.0)),
+    "TP10": truck(arm=dict(tp_coef=10.0)),
+    "TP1EV": truck(arm=dict(tp_coef=1.0, ev_coef=0.3)),
     # --- EA: entropy coefficient annealed 0.01 -> 0 over training ----------------------------------------------------------------------
     "EA": truck(ent_final=0.0),
     # --- EV: next-reward-event contrastive auxiliary (intra-trajectory, Moon et al. 2023 style, no achievement memory) ----------------
@@ -57,6 +60,8 @@ CONFIGS = {
     # --- baseline with the same method changes (P9) ------------------------------------------------------------------------------------
     "G4TP1": base(arm=dict(tp_coef=1.0)),
     "G4TP03": base(arm=dict(tp_coef=0.3)),
+    "G4TP3": base(arm=dict(tp_coef=3.0)),
+    "G4TP10": base(arm=dict(tp_coef=10.0)),
     "G4EA": base(ent_final=0.0),
     "G4EV03": base(arm=dict(ev_coef=0.3)),
     "G4EV1": base(arm=dict(ev_coef=1.0)),
