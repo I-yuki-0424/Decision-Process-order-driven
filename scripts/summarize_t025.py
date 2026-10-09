@@ -59,10 +59,20 @@ def main():
             print(f"| {b} | {a} | {len(v)} | {v[0]['device'].replace('NVIDIA GeForce ', '')} | {v[0]['params']:,} | {rm:.2f} +- {rs:.2f} | {sm:.2f} +- {ss:.2f} | "
                   f"{('PASS' if g['G1.1'] else 'fail') if full else 'n<10'} ({rm - 2 * rs:.2f} / {sm - 2 * ss:.2f}) | "
                   f"{('PASS' if g['G1.2'] else 'fail') if full else 'n<10'} |")
+    print("\n## Pooled over all blocks (every seed one sample; descriptive only, the gates are defined per 10-seed block)\n")
+    print("| arm | blocks | n | reward | score | reward - 2 SE | score - 2 SE |")
+    print("|---|---|---|---|---|---|---|")
+    for a in ARMS:
+        v = [x for b, _, _ in BLOCKS for x in data[(b, a)]]
+        if len(v) > 1:
+            rm, rs = ms([x["reward"] for x in v])
+            sm, ss = ms([x["score"] for x in v])
+            bl = ",".join(b for b, _, _ in BLOCKS if data[(b, a)])
+            print(f"| {a} | {bl} | {len(v)} | {rm:.2f} +- {rs:.2f} | {sm:.2f} +- {ss:.2f} | {rm - 2 * rs:.2f} | {sm - 2 * ss:.2f} |")
     print("\n## Differences (independent seeds, same seed numbers within a block): mean diff +- SE (z)\n")
     print("| pair | block | reward diff | score diff |")
     print("|---|---|---|---|")
-    for x, y in [("E1", "G4"), ("TP1", "G4TP1"), ("G4TP1", "G4"), ("TP1", "E1"), ("TP1h", "E1"), ("TP1h", "G4TP1")]:
+    for x, y in [("E1", "G4"), ("TP1", "G4TP1"), ("G4TP1", "G4"), ("TP1", "E1"), ("TP1h", "E1"), ("TP1h", "G4TP1"), ("G4TP1", "E1")]:
         pooled = {"reward": [], "score": []}
         for b, _, _ in BLOCKS:
             vx, vy = data[(b, x)], data[(b, y)]
