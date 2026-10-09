@@ -74,3 +74,7 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
   (its question is answered by blocks A + B).
 * Block D (train 112-121 / test 494-503, never used) LOCAL for E1 and G4 after block A, to add power to the pre-registered Truck-vs-baseline
   comparison (pooled over every block of both TASK-024 and TASK-025, no block selection).
+
+## Amendment 5 (2026-10-09 23:50 JST, after block C of G4TP1 / G4; block A TP arms 13/20 done)
+* Block E (train 122-131 / test 504-513, never used) on Kaggle for E1 and G4: more power for the pre-registered E1-vs-G4 comparison
+  (all blocks pooled, none selected). No further screening; no new configs.
