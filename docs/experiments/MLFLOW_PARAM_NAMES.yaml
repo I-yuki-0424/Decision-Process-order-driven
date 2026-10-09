@@ -27,6 +27,10 @@ params:
   train.adv_norm:        {aliases: [adv_norm]}                     # GAE standardization scope: minibatch | batch (TASK-023)
   train.lr_warmup_frac:  {aliases: [warmup, lr_warmup_frac]}       # fraction of optimiser steps with linear lr ramp-up; 0 = off (TASK-024)
   train.remat:           {aliases: [remat]}                        # recompute the per-step forward in backward (same maths, less VRAM) (TASK-024)
+  train.ent_final:       {aliases: [ent_final]}                    # entropy coefficient annealed linearly to this value; < 0 = constant (TASK-025)
+  train.tp_coef:         {aliases: [tp_coef]}                      # transition-prediction auxiliary weight (obs delta + reward of the executed action) (TASK-025)
+  train.tp_hidden:       {aliases: [tp_hidden]}                    # hidden width of the MLP transition-prediction head (TASK-025)
+  train.ev_coef:         {aliases: [ev_coef]}                      # next-reward-event contrastive auxiliary weight (TASK-025)
   train.dist_coef:       {aliases: [dist_coef]}
   train.dist_max_gap:    {aliases: [dist_max_gap]}
   train.aux_coef:        {aliases: [aux_coef]}
@@ -62,6 +66,7 @@ params:
   arch.memory_token:     {aliases: [mem_token]}                    # Truck: h_{t-1} as an extra Transformer token
   arch.prev_action_input: {aliases: [prev_act]}                    # Truck: previous-action embedding into the GRU input
   arch.candidate_tokens: {aliases: [cand]}                         # Truck: candidate-action tokens on/off (attribution control)
+  arch.tp_source:        {aliases: [tp_src]}                       # Truck TP readout: cand (executed action token) | head (MLP head) (TASK-025)
   env.id:                {aliases: [env]}
   env.episode_limit:     {aliases: [episode_limit, max_episode_steps]}
   env.latency_delta:     {aliases: [latency_delta]}
