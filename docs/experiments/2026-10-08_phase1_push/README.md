@@ -66,3 +66,11 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
 * Block C (train 102-111 / test 484-493, never used) on Kaggle for G4TP1, G4, TP1, E1 as time allows; report all blocks, never select blocks.
 * Truck vs baseline (operator question) is reported per block for both pairs (E1 vs G4, TP1 vs G4TP1); no claim of superiority unless the pooled
   difference is > 2 SE in the same direction in every block.
+
+## Amendment 4 (2026-10-09 22:30 JST, after block B for all four arms; block A TP arms 2/10 seeds done)
+* Block B: E1 46.22 +- 0.91 / 16.21 +- 0.77 (vs G4 45.32 / 15.27, TP1 43.71 / 14.63). TP lowers Truck on block B (-2.5 reward) while it raises the GRU (+2.8).
+* POST-HOC (labelled as such, never gate evidence for a claim decided before): hypothesis "TP conflicts with the logit readout of the candidate
+  tokens" -> test TP1h (Truck, TP through a separate MLP head; config fixed in round 2) on block C (Kaggle) next to E1. TP1 is dropped from block C
+  (its question is answered by blocks A + B).
+* Block D (train 112-121 / test 494-503, never used) LOCAL for E1 and G4 after block A, to add power to the pre-registered Truck-vs-baseline
+  comparison (pooled over every block of both TASK-024 and TASK-025, no block selection).
