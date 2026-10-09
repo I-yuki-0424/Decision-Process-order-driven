@@ -48,3 +48,11 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
   (3) plain E1 and plain G4 are run on final block A as well, so the TP effect is measured on fresh seeds for both arms;
   (4) attribution control TP1h (Truck, TP through an MLP head instead of the candidate tokens) is screened on the same seeds.
 * Round 2: TP3, TP10 (Truck), G4TP3, G4TP10, TP1h on Kaggle; EV03, EV1 (local); TP1+EV0.3 (TP1EV) if EV qualifies.
+
+## Amendment 2 (2026-10-09 19:40 JST, after screening round 2, before any TP final run)
+* Round 2 (Kaggle, seeds 3000-3003; reward / score, r+s): TP3 47.57 / 15.90 (63.5); TP10 41.69 / 13.38 (55.1); TP1h 47.15 / 16.94 (64.1);
+  G4TP3 46.82 / 16.86 (63.7); G4TP10 42.81 / 14.41 (57.2). EV (local, 1 seed each, stopped): EV03 32.7, EV1 30.7 vs E1 41.6 on seed 3000.
+* Selection (rule of amendment 1): Truck final = **TP1** (tp_coef 1.0, candidate-token readout, 0.371M params_total, 0.283M deployed);
+  baseline final = **G4TP1** (tp_coef 1.0, MLP head, 1.254M params_total, 0.880M deployed). Both arms screened the same 4 coefficients.
+* Final runs: block A (82-91 / test 464-473) LOCAL for E1, G4, TP1, G4TP1 (one platform, clean commit); block B (92-101 / 474-483) on KAGGLE
+  T4 for TP1, G4TP1, G4, E1 (one platform). Gate G1.1 / G1.2 evaluated on block A (TP1); block B = replication.
