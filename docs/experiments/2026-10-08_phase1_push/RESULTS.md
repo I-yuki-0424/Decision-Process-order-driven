@@ -1,25 +1,28 @@
-# TASK-20261008-025 results: Phase-1 push (executed 2026-10-08 18:20 .. 2026-10-10 ~07:00 JST)
+# TASK-20261008-025 results: Phase-1 push (executed 2026-10-08 18:20 .. 2026-10-10 08:10 JST)
 
-Pre-registration and amendments 1-8 (each written before the runs it covers): `README.md` in this directory. Tables in sections 3-5 are the
+Pre-registration and amendments 1-9 (each written before the runs it covers): `README.md` in this directory. Tables in sections 3-5 are the
 output of `python scripts/summarize_t025.py` and `python scripts/adhoc/t025_achievements.py` (reading only result files under `output/phase1/`).
-Result files: `output/phase1/push_t025/{K,Kkag,L,M,N,diag,finalA..finalH}/`. Protocol EP-A throughout (Craftax-Classic symbolic 1345-d, default
+Result files: `output/phase1/push_t025/{K,Kkag,L,M,N,diag,finalA..finalI}/`. Protocol EP-A throughout (Craftax-Classic symbolic 1345-d, default
 episode length, 999,424 env steps per run, sampled policy, first episode of 256 fresh envs per seed, final parameters, clean commit for every final).
 
 ## 1. Bottom line
-* **Phase 1 is NOT closed.** G1.2 (reward - 2SE > 55.49) fails for every arm in every block (best block mean 50.5). No method found in this task
+* **Phase 1 is NOT closed.** G1.2 (reward - 2SE > 55.49) fails for every arm in every block (best block mean 50.72, TP1h block F). No method found in this task
   moves reward by the ~+8 that G1.2 needs; G1.2 is out of reach for this model family at 1M steps with the levers tried.
-* **G1.1 is not passed under the pre-registered rule, but is met in 5 of 6 fresh blocks by a 1.25M-parameter model.** "GRU-TP" (the GRU baseline +
-  a transition-prediction auxiliary loss, section 2) meets the G1.1 surpass relation in blocks B, C, F, G, H and misses its pre-registered gate block A
-  by 0.02 reward (47.38 vs 47.40; the score condition passes there by +6.5). Pooled over 60 seeds: 48.42 +- 0.17 reward / 18.46 +- 0.22 score, with
-  3.2x fewer parameters than the 4.0M reference (MFRL_4M_reimpl, Dedieu et al. 2025 Table 1: 47.40 / 10.71). Truck + TP through a separate head
-  (TP1h, 0.48M, post-hoc arm) meets it in 2 of 4 blocks (F 50.72 +- 1.21, H 49.93 +- 1.21; fails C and G on its larger seed spread); pooled 40 seeds
-  49.50 +- 0.65 / 18.93 +- 0.61. The pre-registered verdict stays "G1.1 not passed"; the replication record is given in full for the operator to judge.
+* **G1.1: PASSED on a pre-registered gate block by GRU-TP (1.25M params), at the second attempt.** "GRU-TP" = the GRU baseline + a transition-
+  prediction auxiliary loss (section 2). Gate block I (amendment 9, registered before its runs; seeds 162-171, Kaggle T4): reward **48.72 +- 0.36**
+  (- 2 SE = 48.01 > 47.40), score **18.82 +- 0.58** (- 2 SE = 17.67 > 10.71), params_total 1,254,358 <= 4.0M (reference MFRL_4M_reimpl, Dedieu et al.
+  2025 Table 1: 47.40 / 10.71, 4.0M). Disclosure: its first pre-registered gate block A (seeds 82-91, local) FAILED by 0.02 reward (47.38 vs 47.40,
+  score passed); it met the relation in all 6 other blocks (B, C, F, G, H, I). Pooled over 70 seeds: 48.46 +- 0.15 / 18.51 +- 0.21.
+  Whether a pass at the second pre-registered attempt closes G1.1 is the operator's call; nothing was selected or dropped.
+* **Truck does not pass G1.1.** Truck + TP through a separate head (TP1h, 0.48M, post-hoc arm) meets the relation in 2 of 5 blocks and FAILS its
+  pre-registered gate block I (48.78 +- 0.96, - 2 SE = 46.85); its mean is the highest of any arm (pooled 50 seeds 49.36 +- 0.55 / 18.64 +- 0.52)
+  but its seed spread (sd ~3-5) makes 2 SE too large. Plain Truck E1 fails in all 8 blocks for the same reason (pooled 80 seeds 47.21 +- 0.41).
 * **Truck clearly beats the baseline without more parameters (plain models).** Truck-improved E1 (0.284M) vs the re-tuned baseline G4 (1.01M): ahead in
   all 8 blocks (80 seeds each, TASK-024 + TASK-025), pooled **+1.77 +- 0.44 reward (z 4.0), +1.54 +- 0.37 score (z 4.2)**, with 3.6x fewer parameters.
   Effect size is modest (~+4 % relative); it is significant because it repeats in every block.
 * **The transition-prediction auxiliary (TP)** is the one lever that worked: on the GRU baseline +3.06 +- 0.35 reward / +2.86 +- 0.35 score (4 blocks,
   z 8.7 / 8.2). On Truck it HURTS when the 4th-idea candidate-action tokens carry it (TP1: -2.0 vs E1) and helps when a separate head carries it
-  (TP1h: +2.35 +- 1.26 vs E1, post-hoc arm, z 1.9). Truck+TP(head) ties GRU-TP (+0.51 +- 0.60 reward, 4 blocks) at 2.6x fewer parameters (0.48M vs 1.25M; deployed 0.28M vs 0.88M).
+  (TP1h: +2.35 +- 1.26 vs E1, post-hoc arm, z 1.9). Truck+TP(head) ties GRU-TP (+0.40 +- 0.52 reward, 5 blocks) at 2.6x fewer parameters (0.48M vs 1.25M; deployed 0.28M vs 0.88M).
 
 ## 2. What was tried (all generic: no game knowledge, executed transitions only, no extra env steps)
 * **TP (transition prediction)**: from the step's features and the executed action, predict the observation change S_{t+1} - S_t (1345-d) and the
@@ -65,6 +68,8 @@ episode length, 999,424 env steps per run, sampled policy, first episode of 256 
 | H | G4 | 10 | Tesla T4 | 1,012,884 | 45.16 +- 0.56 | 15.54 +- 0.41 | fail (44.03 / 14.71) | fail |
 | H | G4TP1 | 10 | Tesla T4 | 1,254,358 | 48.71 +- 0.44 | 18.51 +- 0.39 | PASS (47.82 / 17.72) | fail |
 | H | TP1h | 10 | Tesla T4 | 484,117 | 49.93 +- 1.21 | 19.00 +- 1.21 | PASS (47.51 / 16.57) | fail |
+| I | G4TP1 | 10 | Tesla T4 | 1,254,358 | 48.72 +- 0.36 | 18.82 +- 0.58 | PASS (48.01 / 17.67) | fail |
+| I | TP1h | 10 | Tesla T4 | 484,117 | 48.78 +- 0.96 | 17.49 +- 0.83 | fail (46.85 / 15.83) | fail |
 
 ### Pooled over all blocks (every seed one sample; descriptive only, the gates are defined per 10-seed block)
 
@@ -73,8 +78,8 @@ episode length, 999,424 env steps per run, sampled policy, first episode of 256 
 | E1 | T024-1,T024-2,A,B,C,D,E,H | 80 | 47.21 +- 0.41 | 17.22 +- 0.35 | 46.38 | 16.52 |
 | G4 | T024-1,T024-2,A,B,C,D,E,H | 80 | 45.31 +- 0.17 | 15.50 +- 0.15 | 44.97 | 15.20 |
 | TP1 | A,B | 20 | 45.47 +- 0.97 | 15.59 +- 0.73 | 43.53 | 14.14 |
-| G4TP1 | A,B,C,F,G,H | 60 | 48.42 +- 0.17 | 18.46 +- 0.22 | 48.08 | 18.02 |
-| TP1h | C,F,G,H | 40 | 49.50 +- 0.65 | 18.93 +- 0.61 | 48.20 | 17.71 |
+| G4TP1 | A,B,C,F,G,H,I | 70 | 48.46 +- 0.15 | 18.51 +- 0.21 | 48.16 | 18.10 |
+| TP1h | C,F,G,H,I | 50 | 49.36 +- 0.55 | 18.64 +- 0.52 | 48.25 | 17.61 |
 
 ### Differences (independent seeds, same seed numbers within a block): mean diff +- SE (z)
 
@@ -107,7 +112,8 @@ episode length, 999,424 env steps per run, sampled policy, first episode of 256 
 | TP1h - G4TP1 | F | +2.44 +- 1.24 (z 2.0) | +1.69 +- 1.36 (z 1.2) |
 | TP1h - G4TP1 | G | -1.19 +- 0.92 (z -1.3) | -2.19 +- 0.98 (z -2.2) |
 | TP1h - G4TP1 | H | +1.22 +- 1.29 (z 0.9) | +0.49 +- 1.28 (z 0.4) |
-| TP1h - G4TP1 | pooled (4 blocks) | +0.51 +- 0.60 (z 0.8) | -0.17 +- 0.62 (z -0.3) |
+| TP1h - G4TP1 | I | +0.06 +- 1.03 (z 0.1) | -1.33 +- 1.01 (z -1.3) |
+| TP1h - G4TP1 | pooled (5 blocks) | +0.40 +- 0.52 (z 0.8) | -0.48 +- 0.53 (z -0.9) |
 | G4TP1 - E1 | A | +0.25 +- 1.39 (z 0.2) | -0.02 +- 1.40 (z -0.0) |
 | G4TP1 - E1 | B | +1.91 +- 0.96 (z 2.0) | +1.67 +- 0.95 (z 1.8) |
 | G4TP1 - E1 | C | +1.38 +- 1.22 (z 1.1) | +1.33 +- 1.14 (z 1.2) |
@@ -144,6 +150,8 @@ episode length, 999,424 env steps per run, sampled policy, first episode of 256 
 - H G4: 152: 44.3/13.6, 153: 44.3/15.1, 154: 47.3/16.8, 155: 45.3/16.0, 156: 44.4/14.6, 157: 43.3/14.0, 158: 42.6/14.9, 159: 47.4/17.6, 160: 45.1/15.9, 161: 47.7/16.7  (commit ['1e2ea33d'], dirty ['False'], steps 999,424, params_deployed 879,763)
 - H G4TP1: 152: 51.0/18.1, 153: 46.9/17.5, 154: 48.6/17.8, 155: 48.8/19.7, 156: 48.7/20.5, 157: 48.8/19.8, 158: 50.6/18.8, 159: 49.3/18.9, 160: 46.8/16.7, 161: 47.5/17.3  (commit ['1e2ea33d'], dirty ['False'], steps 999,424, params_deployed 879,763)
 - H TP1h: 152: 54.5/25.4, 153: 51.7/20.5, 154: 47.1/17.5, 155: 49.0/15.5, 156: 51.6/18.6, 157: 45.7/15.3, 158: 49.6/18.0, 159: 42.9/13.7, 160: 52.6/21.5, 161: 54.5/24.0  (commit ['1e2ea33d'], dirty ['False'], steps 999,424, params_deployed 283,410)
+- I G4TP1: 162: 47.0/17.0, 163: 49.2/20.9, 164: 50.0/18.9, 165: 48.1/17.0, 166: 49.2/19.6, 167: 48.5/18.0, 168: 49.9/19.5, 169: 46.9/16.7, 170: 48.6/18.2, 171: 49.9/22.3  (commit ['eabe82ae'], dirty ['False'], steps 999,424, params_deployed 879,763)
+- I TP1h: 162: 43.1/14.3, 163: 51.0/19.7, 164: 47.0/16.1, 165: 53.0/17.9, 166: 49.1/17.0, 167: 46.7/18.5, 168: 52.6/23.5, 169: 46.5/16.0, 170: 49.5/15.9, 171: 49.2/16.1  (commit ['eabe82ae'], dirty ['False'], steps 999,424, params_deployed 283,410)
 
 ## 5. Achievement unlock rates (%) and evaluation episode length, mean over all TASK-025 final seeds of each arm (scripts/adhoc/t025_achievements.py)
 
@@ -191,13 +199,13 @@ often (47 vs 10 %) and collecting more coal (26 vs 14 %) while eating/drinking l
   Truck still had more earlier recipe screening (TASK-024: ~160 jobs vs ~30); GRU-TP's tuning is therefore if anything less than Truck's.
 * **Session interruptions.** The agent stalled at a tool-permission prompt on 10-08 ~19:10; tool calls issued at 10-09 13:05 only executed at
   ~18:15; the local GPU idled ~22 h. A process-level keep-awake (SetThreadExecutionState, no settings change) was then used until the deadline.
-* Kaggle time used: 14 kernel sessions (t025-a .. t025-n, 2 x T4 each, ~1-3.5 h each, ~25 session-hours). Local: ~22 h of GPU jobs.
+* Kaggle time used: 16 kernel sessions (t025-a .. t025-p, 2 x T4 each, ~1-3.5 h each, ~25 session-hours). Local: ~22 h of GPU jobs.
 * The 39-d adapters were not used (EP-A observation only). No simulator access at decision time (the death diagnostic reads simulator state after training only).
 * Death diagnostic (one tuning seed per arm, Kaggle-trained params evaluated on CPU, illustrative only): zombies cause 70-82 % of deaths for every arm,
   ~55 % at night; TP lengthens episodes (Truck 191 -> 241 steps, GRU 217 -> 230). Achievements never reached by any arm: eat_plant, diamond, iron tools.
 
 ## 7. Suggested next steps (not done)
-* Close G1.1 cleanly: one more pre-registered block for GRU-TP and Truck+TP(head) together, with the gate rule fixed in advance (both are now known).
+* Truck for G1.1: reduce its seed spread (the mean is already high enough); e.g. TP head + the TASK-024 variance knobs, checked on >= 10 fresh seeds.
 * Truck: make TP the default with a separate head; the candidate-action tokens are not shown to help (TASK-024 X1) and hurt when they carry TP.
 * G1.2 needs ~+8 reward: the remaining failure is survival (zombie deaths at ~200 steps) and long tool chains (stone tools 9-19 %, coal 14-31 %).
   Levers not tried here: Dyna-style use of the learned transition model (the TP head is already a one-step model; P10 is unaffected, params count),
