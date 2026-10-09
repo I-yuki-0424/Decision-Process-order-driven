@@ -1328,18 +1328,35 @@ tasks:
       (tests pass, remat gradients equal to 1e-4).
     blockers: []
     notes: >
-      Operator deadlines are JST; the machine clock (TST) is JST-1h. Completion deadline 2026-10-08 11:30 JST = 10:30 machine time. Caveats: tuning seeds 2000-2005 reused (optimistic),
+      Operator deadlines are JST; the machine clock (TST) is JST-1h [CORRECTED by TASK-025: TST = Tokyo Standard Time = JST]. Completion deadline 2026-10-08 11:30 JST = 10:30 machine time. Caveats: tuning seeds 2000-2005 reused (optimistic),
       stage AB incomplete (45/96), baseline effort below Truck effort (P9 only roughly met); see RESULTS.md section 4.
 
   - id: "TASK-20261008-025-phase1-push"
     created_at: "2026-10-08T18:20:00+09:00"
-    status: "in_progress"
+    status: "done"
     description: >
-      Operator request (2026-10-08, unreachable, deadline 2026-10-09 11:30 JST, local + Kaggle authorized): complete Phase 1 (G1.x) with Truck and clearly,
-      significantly beat the baseline by means other than more parameters; run experiments and report.
-    spec_ref: "docs/experiments/2026-10-08_phase1_push/README.md"
+      Operator request (2026-10-08, unreachable, deadline 2026-10-09 11:30 JST, extended 2026-10-09 to 2026-10-10 11:30 JST, local + Kaggle authorized,
+      all confirmations waived): complete Phase 1 (G1.x) with Truck and clearly, significantly beat the baseline by means other than more parameters.
+    spec_ref: "docs/experiments/2026-10-08_phase1_push/README.md (pre-registration + amendments 1-8); results: RESULTS.md in the same directory"
     validation_commands: []
-    result: null
+    result: >
+      DONE, Phase 1 NOT closed. EP-A, 999,424 env steps, 256 fresh envs/seed, all seeds listed in RESULTS.md; references quoted from MASTER_GUIDANCE
+      (MFRL_4M_reimpl 47.40 / 10.71, MFRL_best 55.49 / 16.77, Dedieu et al. 2025 Table 1). G1.2 FAIL for every arm in every block (best block 50.72).
+      G1.1 NOT PASSED under the pre-registered rule: gate candidate GRU-TP (gru256+ln+skip + transition-prediction auxiliary, 1.25M params_total,
+      Base_O02_D04_S00) misses its pre-registered gate block A (seeds 82-91, local) by 0.02: reward 48.40 +- 0.51 (-2SE 47.38 < 47.40), score 18.59 +- 0.71
+      (pass); it meets G1.1 in the 5 replication blocks B 48.14 +- 0.33, C 48.66 +- 0.50, F 48.28 +- 0.29, G 48.32 +- 0.40, H 48.71 +- 0.44
+      (pooled 60 seeds 48.42 +- 0.17 / 18.46 +- 0.22). Truck + TP via separate head (TP1h, 0.48M, post-hoc arm) meets it in 2 of 4 blocks
+      (F 50.72 +- 1.21, H 49.93 +- 1.21; C 50.23 +- 1.70 and G 47.14 +- 0.83 fail); pooled 40 seeds 49.50 +- 0.65 / 18.93 +- 0.61.
+      TRUCK VS BASELINE (plain, no new method): E1 (0.284M) ahead of G4 (1.01M) in all 8 blocks (TASK-024 + TASK-025, 80 seeds each), inverse-variance
+      pooled +1.77 +- 0.44 reward (z 4.0), +1.54 +- 0.37 score (z 4.2). TP: GRU +3.06 +- 0.35 / +2.86 +- 0.35 (4 blocks); Truck via candidate tokens
+      (TP1, pre-registered final) -2.03 +- 1.11 vs E1; via separate head +2.35 +- 1.26 vs E1 (post hoc); TP1h - GRU-TP +0.51 +- 0.60 (tie, 2.6x fewer params).
+      EV contrastive auxiliary harmful (stopped); K1/K2/EA/gamma 0.99/width 256/3 layers: no gain. CORRECTION: TASK-024's "block 1 alone passed G1.1"
+      (48.54 +- 1.50) is a fail under the surpass definition (45.53 < 47.40). Validation: pre_commit_ban_check passed; tests.test_epa_harness 22/22 OK
+      (CPU venv); summarize_t025.py / run_t025_sweep.py report run; audit_phase1_results.py: 320 files, 8 PROVENANCE:code_absent (round-1 tuning files of
+      TP1/TP03 run from the uncommitted TP code at commit 98e89476, identified by code_sha256; tuning only); MLflow ingested in this checkout
+      (push_t025: 320 runs, 0 UNREGISTERED; 1 interrupted EV run recorded). Impact check (scip-neo4j, index = main 98e8947): Trainer._loss_rec,
+      Trainer._update, GRUArm.step, TFGRUArm.step ALLOWED (no LOCKED_CORE_THEORY); dependents run_epa_mini.py, tests/test_epa_harness.py,
+      epa_diagnostics (arm.step unchanged signature); new options default off and bit-identical (param hashes equal to HEAD for E1 and G4).
     blockers: []
     notes: >
       No validation_commands were supplied by the operator (missing); the TASK-024 set is used: pre_commit_ban_check, tests.test_epa_harness,
