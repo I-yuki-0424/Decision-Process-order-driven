@@ -3,7 +3,7 @@
   python scripts/summarize_t025.py            # prints markdown tables; reads only result files under output/phase1/
 
 Blocks: TASK-024 finals (62-71, 72-81; local) and TASK-025 finals A (82-91, local), B (92-101, Kaggle T4), C (102-111, Kaggle T4),
-D (112-121, local). Reference values are quoted from MASTER_GUIDANCE <references> (Dedieu et al. 2025, Table 1); not edited here.
+D (112-121, local), E (122-131, Kaggle T4). Reference values are quoted from MASTER_GUIDANCE <references> (Dedieu et al. 2025, Table 1); not edited here.
 """
 import glob
 import json
@@ -15,7 +15,8 @@ REF = {"G1.1": dict(src="MFRL_4M_reimpl", reward=47.40, score=10.71, params=4.0e
        "G1.2": dict(src="MFRL_best", reward=55.49, score=16.77, params=None)}           # SOURCE: MASTER_GUIDANCE ref MFRL_best
 BLOCKS = [("T024-1", "output/phase1/truck_scale_t024/final", range(62, 72)), ("T024-2", "output/phase1/truck_scale_t024/final", range(72, 82)),
           ("A", "output/phase1/push_t025/finalA", range(82, 92)), ("B", "output/phase1/push_t025/finalB", range(92, 102)),
-          ("C", "output/phase1/push_t025/finalC", range(102, 112)), ("D", "output/phase1/push_t025/finalD", range(112, 122))]
+          ("C", "output/phase1/push_t025/finalC", range(102, 112)), ("D", "output/phase1/push_t025/finalD", range(112, 122)),
+          ("E", "output/phase1/push_t025/finalE", range(122, 132))]
 ARMS = ["E1", "G4", "TP1", "G4TP1", "TP1h"]
 
 
