@@ -82,6 +82,7 @@ class Arm:
     recurrent = False
     hist_len = 0
     tp_coef = 0.0   # weight of the transition-prediction auxiliary loss (recurrent learner; 0 = off)
+    ev_coef = 0.0   # weight of the next-reward-event contrastive auxiliary loss (recurrent learner; 0 = off)
 
     def init_carry(self, n):
         return ()
@@ -130,6 +131,46 @@ def tp_loss(pred, obs, nobs, rew, done):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Next-reward-event auxiliary (TASK-025, "EV"; intra-trajectory prediction in the style of Moon et al. 2023, without their
+# achievement memory / policy conditioning): the features of (s_t, a_t) predict, contrastively, the features of the NEXT transition
+# in the same episode whose environment reward exceeded `thresh` (an achievement unlock: the Craftax reward is +1 per new
+# achievement plus 0.1 x health change). Only executed transitions and the env reward are used; no achievement identities,
+# hierarchy or extra environment steps. Negatives: every other reward-event transition in the minibatch.
+# ----------------------------------------------------------------------------------------------------------------------
+def init_ev_heads(key, din, dim=64, hidden=128):
+    k1, k2, k3 = jax.random.split(key, 3)
+    return {"q1": _ortho(k1, din + N_ACT, hidden, jnp.sqrt(2.0)), "q2": _dense(k2, hidden, dim), "k": _dense(k3, din + N_ACT, dim)}
+
+
+def next_event_index(ev, done):
+    """(T, N) index of the next event strictly after t in the same episode and window, -1 if none (reverse scan)."""
+    def body(carry, x):
+        e, d, t = x
+        out = jnp.where(d, -1, carry)                      # transition t ended the episode: later events belong to another one
+        return jnp.where(e, t, out), out
+    T, N = ev.shape
+    _, nxt = jax.lax.scan(body, jnp.full((N,), -1, jnp.int32), (ev, done, jnp.arange(T, dtype=jnp.int32)), reverse=True)
+    return nxt
+
+
+def ev_loss(p, feat, act, rew, done, temp=0.1, thresh=0.5):
+    """feat (T, N, F), act / rew / done (T, N). InfoNCE of query(s_t, a_t) against key(next event transition)."""
+    T, N = act.shape
+    x = jnp.concatenate([feat, jax.nn.one_hot(act, N_ACT)], -1)
+    q = _ap(p["q2"], jnp.tanh(_ap(p["q1"], x))).reshape(T * N, -1)
+    k = _ap(p["k"], x).reshape(T * N, -1)
+    q = q / (jnp.linalg.norm(q, axis=-1, keepdims=True) + 1e-6)
+    k = k / (jnp.linalg.norm(k, axis=-1, keepdims=True) + 1e-6)
+    ev = rew > thresh
+    nxt = next_event_index(ev, done)
+    tgt = (nxt * N + jnp.arange(N)[None, :]).reshape(-1)
+    valid = (nxt >= 0).reshape(-1).astype(jnp.float32)
+    logits = jnp.where(ev.reshape(1, -1), q @ k.T / temp, -1e9)
+    ce = jax.nn.logsumexp(logits, -1) - jnp.take_along_axis(logits, jnp.maximum(tgt, 0)[:, None], -1)[:, 0]
+    return (ce * valid).sum() / jnp.maximum(valid.sum(), 1.0)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # Pure RL: MLP
 # ----------------------------------------------------------------------------------------------------------------------
 class MLPArm(Arm):
@@ -158,9 +199,10 @@ class GRUArm(Arm):
     Both default off = the original gru baseline."""
     recurrent = True
 
-    def __init__(self, width=256, ln=False, skip=False, tp_coef=0.0, tp_hidden=128):
-        self.width, self.ln, self.skip, self.tp_coef, self.tp_hidden = width, ln, skip, tp_coef, tp_hidden
-        self.name = f"gru{width}" + ("+ln" if ln else "") + ("+skip" if skip else "") + (f"+tp{tp_coef:g}" if tp_coef else "")
+    def __init__(self, width=256, ln=False, skip=False, tp_coef=0.0, tp_hidden=128, ev_coef=0.0):
+        self.width, self.ln, self.skip, self.tp_coef, self.tp_hidden, self.ev_coef = width, ln, skip, tp_coef, tp_hidden, ev_coef
+        self.name = (f"gru{width}" + ("+ln" if ln else "") + ("+skip" if skip else "") + (f"+tp{tp_coef:g}" if tp_coef else "")
+                     + (f"+ev{ev_coef:g}" if ev_coef else ""))
 
     def init(self, key):
         k = iter(jax.random.split(key, 8))
@@ -174,6 +216,8 @@ class GRUArm(Arm):
                         "critic": [_ln_params(hin), _ln_params(w)]}
         if self.tp_coef:   # own key stream: every other parameter keeps its init
             pi["tp"] = init_tp_head(jax.random.fold_in(key, 0x7D), hin, self.tp_hidden)
+        if self.ev_coef:
+            pi["ev"] = init_ev_heads(jax.random.fold_in(key, 0x7E), hin)
         return {"pi": pi}
 
     def init_carry(self, n):
@@ -188,6 +232,12 @@ class GRUArm(Arm):
     def step_pred(self, params, h, obs, act):
         logits, value, h2, hh = self._core(params, h, obs)
         return logits, value, h2, tp_head(params["pi"]["tp"], hh, act)
+
+    def step_aux(self, params, h, obs, act):
+        """(logits, value, next carry, transition prediction or (N, 0), head features) for the auxiliary losses."""
+        logits, value, h2, hh = self._core(params, h, obs)
+        pred = tp_head(params["pi"]["tp"], hh, act) if self.tp_coef else jnp.zeros((obs.shape[0], 0))
+        return logits, value, h2, pred, hh
 
     def _core(self, params, h, obs):
         p = params["pi"]
@@ -399,16 +449,16 @@ class TFGRUArm(TFArm):
     recurrent = True
 
     def __init__(self, d=64, layers=2, heads=4, width=256, wm_mode="none", wm_hidden=256, wm_coef=1.0,
-                 mem_token=False, prev_act=False, head_skip=False, cand=True, tp_coef=0.0, tp_src="cand", tp_hidden=128):
+                 mem_token=False, prev_act=False, head_skip=False, cand=True, tp_coef=0.0, tp_src="cand", tp_hidden=128, ev_coef=0.0):
         assert cand or wm_mode == "none", "world-model features are attached to the candidate-action tokens"
         assert tp_src in ("cand", "head") and (cand or tp_src == "head" or not tp_coef), "tp_src='cand' needs candidate tokens"
         super().__init__(d=d, layers=layers, heads=heads, hist=0, wm_mode=wm_mode, wm_hidden=wm_hidden, wm_coef=wm_coef,
                          critic="shared")
         self.width, self.mem_token, self.prev_act, self.head_skip, self.cand = width, mem_token, prev_act, head_skip, cand
-        self.tp_coef, self.tp_src, self.tp_hidden = tp_coef, tp_src, tp_hidden
+        self.tp_coef, self.tp_src, self.tp_hidden, self.ev_coef = tp_coef, tp_src, tp_hidden, ev_coef
         self.name = (f"tfgru{d}x{layers}w{width}" + ("+mem" if mem_token else "") + ("+pa" if prev_act else "")
                      + ("+hs" if head_skip else "") + ("" if cand else "-nocand") + ("" if wm_mode == "none" else f"+wm_{wm_mode}")
-                     + ((f"+tp{tp_coef:g}" + ("h" if tp_src == "head" else "")) if tp_coef else ""))
+                     + ((f"+tp{tp_coef:g}" + ("h" if tp_src == "head" else "")) if tp_coef else "") + (f"+ev{ev_coef:g}" if ev_coef else ""))
 
     def init(self, key):
         k1, k2, k3, k4, k5 = jax.random.split(key, 5)
@@ -430,6 +480,8 @@ class TFGRUArm(TFArm):
         if self.tp_coef:   # own key stream: every other parameter keeps its init
             kt = jax.random.fold_in(key, 0x7D)
             pi["tp"] = _dense(kt, d, OBS_DIM + 1, 0.1) if self.tp_src == "cand" else init_tp_head(kt, hin, self.tp_hidden)
+        if self.ev_coef:
+            pi["ev"] = init_ev_heads(jax.random.fold_in(key, 0x7E), hin)
         return out
 
     def init_carry(self, n):
@@ -448,6 +500,17 @@ class TFGRUArm(TFArm):
             sel = jnp.take_along_axis(ch, act[:, None, None], axis=1)[:, 0]   # candidate token of the executed action
             return logits, value, h2, _ap(tp, sel)
         return logits, value, h2, tp_head(tp, hh, act)
+
+    def step_aux(self, params, carry, obs, act):
+        """(logits, value, next carry, transition prediction or (N, 0), head features) for the auxiliary losses."""
+        logits, value, h2, ch, hh = self._core(params, carry, obs)
+        if not self.tp_coef:
+            return logits, value, h2, jnp.zeros((obs.shape[0], 0)), hh
+        tp = params["pi"]["tp"]
+        if self.tp_src == "cand":
+            sel = jnp.take_along_axis(ch, act[:, None, None], axis=1)[:, 0]   # candidate token of the executed action
+            return logits, value, h2, _ap(tp, sel), hh
+        return logits, value, h2, tp_head(tp, hh, act), hh
 
     def _core(self, params, carry, obs):
         pi, w = params["pi"], self.width
@@ -478,7 +541,7 @@ class TFGRUArm(TFArm):
 
     def param_counts(self, params):
         pi = params["pi"]
-        return n_params(params), n_params({k: v for k, v in pi.items() if k not in ("h_value", "tp")}) + n_params(params.get("wm", {}))
+        return n_params(params), n_params({k: v for k, v in pi.items() if k not in ("h_value", "tp", "ev")}) + n_params(params.get("wm", {}))
 
 
 class CNNGRUArm(GRUArm):

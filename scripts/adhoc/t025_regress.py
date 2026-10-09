@@ -22,3 +22,6 @@ if __name__ == "__main__":
         run("tf_gru", dict(mem_token=True, prev_act=True, head_skip=True, width=128, tp_coef=0.1, tp_src="head"))
         run("ppo_gru", dict(ln=True, skip=True, tp_coef=0.1))
         run("tf_gru", dict(mem_token=True, prev_act=True, head_skip=True, width=128), ent_final=0.0)
+        run("tf_gru", dict(mem_token=True, prev_act=True, head_skip=True, width=128, ev_coef=0.3))
+        run("tf_gru", dict(mem_token=True, prev_act=True, head_skip=True, width=128, ev_coef=0.3, tp_coef=0.1))
+        run("ppo_gru", dict(ln=True, skip=True, ev_coef=0.3))

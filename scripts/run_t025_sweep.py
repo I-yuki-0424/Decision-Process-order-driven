@@ -50,10 +50,16 @@ CONFIGS = {
     "TP03": truck(arm=dict(tp_coef=0.3)),
     # --- EA: entropy coefficient annealed 0.01 -> 0 over training ----------------------------------------------------------------------
     "EA": truck(ent_final=0.0),
+    # --- EV: next-reward-event contrastive auxiliary (intra-trajectory, Moon et al. 2023 style, no achievement memory) ----------------
+    "EV03": truck(arm=dict(ev_coef=0.3)),
+    "EV1": truck(arm=dict(ev_coef=1.0)),
+    "TP1h": truck(arm=dict(tp_coef=1.0, tp_src="head")),   # control: TP through an MLP head instead of the candidate tokens
     # --- baseline with the same method changes (P9) ------------------------------------------------------------------------------------
     "G4TP1": base(arm=dict(tp_coef=1.0)),
     "G4TP03": base(arm=dict(tp_coef=0.3)),
     "G4EA": base(ent_final=0.0),
+    "G4EV03": base(arm=dict(ev_coef=0.3)),
+    "G4EV1": base(arm=dict(ev_coef=1.0)),
     "G4K1": base(t=32),
     "G4K2": base(n=32),
 }
