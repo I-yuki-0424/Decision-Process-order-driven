@@ -19,7 +19,8 @@ BLOCKS = [("T024-1", "output/phase1/truck_scale_t024/final", range(62, 72)), ("T
           ("E", "output/phase1/push_t025/finalE", range(122, 132)),
           ("F", "output/phase1/push_t025/finalF", range(132, 142)),
           ("G", "output/phase1/push_t025/finalG", range(142, 152)),
-          ("H", "output/phase1/push_t025/finalH", range(152, 162))]
+          ("H", "output/phase1/push_t025/finalH", range(152, 162)),
+          ("I", "output/phase1/push_t025/finalI", range(162, 172))]
 ARMS = ["E1", "G4", "TP1", "G4TP1", "TP1h"]
 
 

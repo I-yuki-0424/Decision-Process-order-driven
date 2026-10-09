@@ -94,3 +94,9 @@ system UTC clock agrees with HTTP Date headers (google / github), so the machine
 ## Amendment 8 (2026-10-10 02:15 JST)
 * Block H (train 152-161 / test 534-543, never used) on Kaggle for E1, G4, G4TP1, TP1h: more power for every comparison; reported with all
   other blocks. Last block of this task (runs must end by ~09:00 JST for the 11:30 report).
+
+## Amendment 9 (2026-10-10 06:50 JST, after RESULTS.md v1; before any block-I run)
+* Block I (train 162-171 / test 544-553, never used; Kaggle T4, one platform for both arms) is a pre-registered G1.1 gate block for GRU-TP (G4TP1)
+  and Truck + TP head (TP1h); both configs fixed since amendment 2. Rule: block-I mean - 2 SE > 47.40 reward AND > 10.71 score (params_total <= 4.0M)
+  -> "G1.1 passed on a pre-registered block" for that arm; otherwise not passed. Disclosure: for GRU-TP this is the SECOND gate attempt (block A
+  failed by 0.02); for TP1h the first pre-registered one. All earlier blocks stay reported unchanged.
