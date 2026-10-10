@@ -236,3 +236,69 @@ models:
     description: "original Truck structure at d64 / GRU width 128 (X5; the stable recipe)"
     status: provisional
     proper_name: null
+  # --- TASK-20261008-025: transition-prediction (TP) and next-reward-event (EV) auxiliaries; recipe knobs (K1/K2/EA/gamma) are run parameters ---
+  Idea4_O01_D05_S00:
+    arms: ["tfgru64x2w128+mem+pa+hs+tp1"]
+    description: "E1 + transition-prediction auxiliary (executed action's candidate token predicts obs delta + reward), weight 1 (TASK-025 TP1)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S01:
+    arms: ["tfgru64x2w128+mem+pa+hs+tp0.3"]
+    description: "E1 + TP auxiliary, weight 0.3"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S02:
+    arms: ["tfgru64x2w128+mem+pa+hs+tp3"]
+    description: "E1 + TP auxiliary, weight 3"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S03:
+    arms: ["tfgru64x2w128+mem+pa+hs+tp10"]
+    description: "E1 + TP auxiliary, weight 10"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S04:
+    arms: ["tfgru64x2w128+mem+pa+hs+tp1h"]
+    description: "control: E1 + TP through an MLP head instead of the candidate tokens"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S05:
+    arms: ["tfgru64x2w256+mem+pa+hs+tp1"]
+    description: "TP1 with GRU width 256"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D05_S06:
+    arms: ["tfgru64x3w128+mem+pa+hs+tp1"]
+    description: "TP1 with 3 Transformer layers"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D06_S00:
+    arms: ["tfgru64x2w128+mem+pa+hs+ev0.3"]
+    description: "E1 + next-reward-event contrastive auxiliary, weight 0.3 (TASK-025 EV03; harmful, stopped)"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D06_S01:
+    arms: ["tfgru64x2w128+mem+pa+hs+ev1"]
+    description: "E1 + next-reward-event contrastive auxiliary, weight 1 (EV1; harmful, stopped)"
+    status: provisional
+    proper_name: null
+  Base_O02_D04_S00:
+    arms: ["gru256+ln+skip+tp1"]
+    description: "GRU-TP: gru256+ln+skip + transition-prediction auxiliary (MLP head on [h, emb, one-hot a]), weight 1 (TASK-025 G4TP1)"
+    status: provisional
+    proper_name: null
+  Base_O02_D04_S01:
+    arms: ["gru256+ln+skip+tp0.3"]
+    description: "gru256+ln+skip + TP auxiliary, weight 0.3"
+    status: provisional
+    proper_name: null
+  Base_O02_D04_S02:
+    arms: ["gru256+ln+skip+tp3"]
+    description: "gru256+ln+skip + TP auxiliary, weight 3"
+    status: provisional
+    proper_name: null
+  Base_O02_D04_S03:
+    arms: ["gru256+ln+skip+tp10"]
+    description: "gru256+ln+skip + TP auxiliary, weight 10"
+    status: provisional
+    proper_name: null

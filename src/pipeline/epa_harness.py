@@ -30,7 +30,7 @@ import optax
 from craftax.craftax_classic.envs.craftax_symbolic_env import CraftaxClassicSymbolicEnv
 
 from src.environment.craftax_env_adapter import NUM_ACHIEVEMENTS, calculate_crafter_score, masked_achievements
-from src.model.epa_policies import Arm, make_optimizer
+from src.model.epa_policies import Arm, ev_loss, make_optimizer, tp_loss
 
 _ENV = CraftaxClassicSymbolicEnv()
 _PARAMS = _ENV.default_params
@@ -65,6 +65,7 @@ class PPOConfig(NamedTuple):
     adv_norm: str = "minibatch"    # GAE standardization: "minibatch" (per minibatch) | "batch" (once per update)
     warmup: float = 0.0            # fraction of optimiser steps with a linear lr ramp-up from 0 (0 = off)
     remat: bool = False            # recompute the per-step policy forward in the backward pass (recurrent arms): same maths, less VRAM
+    ent_final: float = -1.0        # >= 0: entropy coefficient annealed linearly from `ent` (first update) to `ent_final` (last); < 0 = constant
 
 
 def _vn_stats(vn):
@@ -159,7 +160,7 @@ class Trainer:
         obs, env_st = env_reset(jax.random.split(k2, self.cfg.num_envs))
         return dict(params=params, opt=self.opt.init(params), env=env_st, obs=obs,
                     carry=self.arm.init_carry(self.cfg.num_envs), ep_ret=jnp.zeros((self.cfg.num_envs,)), key=k3,
-                    vn=jnp.zeros((3,)))
+                    vn=jnp.zeros((3,)), u=jnp.zeros((), jnp.int32))
 
     # -- rollout -------------------------------------------------------------------------------------------------------
     def _rollout(self, params, st, key):
@@ -197,8 +198,9 @@ class Trainer:
         return adv, adv + traj["val"]
 
     # -- loss ----------------------------------------------------------------------------------------------------------
-    def _ppo_terms(self, logits, value, mb):
+    def _ppo_terms(self, logits, value, mb, ent_coef=None):
         cfg = self.cfg
+        ent_coef = cfg.ent if ent_coef is None else ent_coef
         logp_all = jax.nn.log_softmax(logits)
         logp = jnp.take_along_axis(logp_all, mb["act"][..., None], -1)[..., 0]
         ratio = jnp.exp(logp - mb["logp"])
@@ -209,24 +211,34 @@ class Trainer:
         ent = -(jnp.exp(logp_all) * logp_all).sum(-1).mean()
         kl = ((ratio - 1.0) - (logp - mb["logp"])).mean()   # k3 estimate of KL(old || new)
         clipfrac = (jnp.abs(ratio - 1.0) > cfg.clip).mean()
-        return pg + cfg.vf * vl - cfg.ent * ent, jnp.stack([pg, vl, ent]), jnp.stack([kl, clipfrac])
+        return pg + cfg.vf * vl - ent_coef * ent, jnp.stack([pg, vl, ent]), jnp.stack([kl, clipfrac])
 
-    def _loss_flat(self, params, mb):
+    def _loss_flat(self, params, mb, ent_coef=None):
         logits, value, wl = self.arm.train_forward(params, mb)
-        loss, aux, ex = self._ppo_terms(logits, value, mb)
+        loss, aux, ex = self._ppo_terms(logits, value, mb, ent_coef)
         return loss + wl, jnp.concatenate([aux, wl[None], ex])
 
-    def _loss_rec(self, params, mb):
+    def _loss_rec(self, params, mb, ent_coef=None):
+        tp, evc = self.arm.tp_coef, self.arm.ev_coef
+
         def body(h, x):
             obs, act, done = x
+            if tp or evc:   # auxiliaries: transition prediction [S_{t+1} - S_t, r_t] of the executed action / head features
+                logits, value, h2, pred, feat = self.arm.step_aux(params, h, obs, act)
+                return self.arm.advance(h2, obs, act, done), (logits, value, pred, feat)
             logits, value, h2 = self.arm.step(params, h, obs)
             return self.arm.advance(h2, obs, act, done), (logits, value)
 
-        _, (logits, value) = jax.lax.scan(jax.checkpoint(body) if self.cfg.remat else body, mb["carry"][0],
-                                          (mb["obs"], mb["act"], mb["done"]))
-        loss, aux, ex = self._ppo_terms(logits, value, mb)
+        _, outs = jax.lax.scan(jax.checkpoint(body) if self.cfg.remat else body, mb["carry"][0],
+                               (mb["obs"], mb["act"], mb["done"]))
+        logits, value = outs[0], outs[1]
+        loss, aux, ex = self._ppo_terms(logits, value, mb, ent_coef)
         flat = {k: mb[k].reshape((-1,) + mb[k].shape[2:]) for k in ("obs", "act", "rew", "nobs", "done")}
         wl = self.arm.aux_loss(params, flat)   # world-model loss of arms that have one (zeros otherwise)
+        if tp:
+            wl = wl + tp * tp_loss(outs[2], mb["obs"], mb["nobs"], mb["rew"], mb["done"])
+        if evc:
+            wl = wl + evc * ev_loss(params["pi"]["ev"], outs[3], mb["act"], mb["rew"], mb["done"])
         return loss + wl, jnp.concatenate([aux, wl[None], ex])
 
     # -- one PPO update ------------------------------------------------------------------------------------------------
@@ -247,9 +259,12 @@ class Trainer:
             adv = (adv - adv.mean()) / (adv.std() + 1e-8)
         batch = dict(traj, adv=adv, ret=ret)
         nmb = cfg.minibatches
+        ent_coef = None   # constant cfg.ent (unchanged maths) unless an annealing target is set
+        if cfg.ent_final >= 0:
+            ent_coef = cfg.ent + (cfg.ent_final - cfg.ent) * st["u"].astype(jnp.float32) / max(self.n_updates - 1, 1)
         if arm.recurrent:
             batch["carry"] = traj["carry"][0:1]   # rollout-start GRU state (recurrent arms only use carry[0])
-            loss_fn = self._loss_rec
+            loss_fn = lambda p, mb: self._loss_rec(p, mb, ent_coef)
 
             def split(x, perm):
                 n = perm.shape[0]
@@ -260,7 +275,7 @@ class Trainer:
             size = cfg.num_envs
         else:
             batch = jax.tree_util.tree_map(lambda x: x.reshape((x.shape[0] * x.shape[1],) + x.shape[2:]), batch)
-            loss_fn = self._loss_flat
+            loss_fn = lambda p, mb: self._loss_flat(p, mb, ent_coef)
             split = lambda x, perm: x[perm].reshape((nmb, perm.shape[0] // nmb) + x.shape[1:])
             size = self.steps_per_update
 
@@ -280,7 +295,7 @@ class Trainer:
         done = traj["done"]
         m = aux.mean((0, 1))   # [pg, vl, ent, wm, kl, clipfrac, grad_norm]; stats keeps the old layout [pg, vl, ent, wm, fin_ret, n_done] + extras
         stats = jnp.concatenate([m[:4], jnp.stack([traj["fin_ret"].sum(), done.sum().astype(jnp.float32)]), m[4:]])
-        return dict(params=params, opt=opt, env=env_st, obs=obs, carry=carry, ep_ret=ep_ret, key=key, vn=vn), stats
+        return dict(params=params, opt=opt, env=env_st, obs=obs, carry=carry, ep_ret=ep_ret, key=key, vn=vn, u=st["u"] + 1), stats
 
     def train(self, seed: int, log_every: int = 0, log_fn=print):
         st = self.init(jax.random.PRNGKey(seed))

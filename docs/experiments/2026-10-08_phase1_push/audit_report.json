@@ -1,0 +1,90 @@
+{
+ "kind": "phase1_result_audit",
+ "task": "TASK-20261004-022",
+ "roots": [
+  "output/phase1/push_t025"
+ ],
+ "files_audited": 340,
+ "files_skipped": 4,
+ "finding_counts": {
+  "PROVENANCE:code_absent": 8
+ },
+ "findings": [
+  {
+   "file": "output/phase1/push_t025/K/TP03__s3000.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP03__s3001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP03__s3002.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP03__s3003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP1__s3000.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP1__s3001.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP1__s3002.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  },
+  {
+   "file": "output/phase1/push_t025/K/TP1__s3003.json",
+   "level": "PROVENANCE",
+   "code": "code_absent",
+   "seed": null,
+   "msg": "arm option 'tp_coef' absent at the recorded commit"
+  }
+ ],
+ "copies": [],
+ "reproducibility_pairs": [],
+ "skipped": [
+  {
+   "file": "output/phase1/push_t025/diag/E1_deaths.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/push_t025/diag/G4TP1_deaths.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/push_t025/diag/G4_deaths.json",
+   "why": "not a result file (no per_seed rows)"
+  },
+  {
+   "file": "output/phase1/push_t025/diag/TP1_deaths.json",
+   "why": "not a result file (no per_seed rows)"
+  }
+ ]
+}

@@ -32,3 +32,4 @@ mlruns/
 
 # Stray default-URI MLflow store (created when mlflow is used without the local store URI)
 /mlflow.db
+kaggle_kernel_t025/
