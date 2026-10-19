@@ -3,6 +3,7 @@
   python scripts/run_t026_cpu_sweep.py list
   python scripts/run_t026_cpu_sweep.py run --stage R1 --configs R0,R1,R2 --seeds 4000-4001 --workers 2 --deadline 2026-10-19T23:00
   python scripts/run_t026_cpu_sweep.py report --stage R1
+  python scripts/run_t026_cpu_sweep.py run --stage D4M --configs R0 --seeds 4000-4001 --steps 4000000 --protocol diag-4M --workers 2 --deadline ...   # diagnostic, never EP-A
 
 Configs are one-factor changes around G4TP1 (Base_O02_D04_S00) built with the TASK-025 helpers; commands are the TASK-025 commands.
 Pre-registration (seeds, selection rule, stop rule): docs/experiments/2026-10-19_phase1_g12_tuning/README.md, written before the runs it covers.
@@ -36,9 +37,9 @@ CONFIGS = {
 t25.CONFIGS.update(CONFIGS)
 
 
-def job(name, seed, stage, role, offset, protocol, budget):
+def job(name, seed, stage, role, offset, protocol, budget, steps=1_000_000):
     out = f"{ROOT}/{stage}/{name}__s{seed}.json"
-    cmd = t25.command(name, seed, out, role, offset=offset, protocol=protocol, budget=budget)
+    cmd = t25.command(name, seed, out, role, steps=steps, offset=offset, protocol=protocol, budget=budget)
     cmd[0] = sys.executable
     return dict(name=f"{name}__s{seed}", out=out, cmd=cmd)
 
@@ -90,6 +91,8 @@ def main():
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--deadline", default="")
     ap.add_argument("--sec-per-job", type=float, default=3600)
+    ap.add_argument("--steps", type=int, default=1_000_000, help="training env steps (tune stages only; != 1M is a diagnostic, label it with --protocol)")
+    ap.add_argument("--protocol", default="EP-A-tuning")
     a = ap.parse_args()
     if a.cmd == "list":
         for k, v in CONFIGS.items():
@@ -112,7 +115,7 @@ def main():
     else:
         if min(seeds) < 4000:
             raise SystemExit("TASK-026 tuning seeds are 4000-4999 (disjoint from every earlier seed)")
-        jobs = [job(n, s, a.stage, "tune", 0, "EP-A-tuning", "TASK-026 CPU screening") for s in seeds for n in a.configs.split(",")]
+        jobs = [job(n, s, a.stage, "tune", 0, a.protocol, "TASK-026 CPU screening", steps=a.steps) for s in seeds for n in a.configs.split(",")]
     run(jobs, a.workers, dt.datetime.fromisoformat(a.deadline), a.sec_per_job, prov)
 
 
