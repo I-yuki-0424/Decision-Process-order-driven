@@ -65,3 +65,11 @@ stated as a limitation, not a conclusion about Truck.
 * `scripts/adhoc/t026_gap_ceiling.py` recomputes the numbers of section 1/2: mean needed for GRU-TP = **56.2** (not ~56.3), gap to the pooled GRU-TP mean **+7.7** (not +7.6), i.e. ~19 block-SE
   (SE 0.36) or ~47 pooled-SE; Truck-TP1h needs **~58.0** at its pooled sd 3.9 (not ~57.9). The stop-rule threshold 54.0 is unchanged.
 * Section 1 said the best 10-seed block of a low-variance arm is 48.72 (block I) -- correct; the best block of any arm is 50.72.
+
+## Amendment 2 (2026-10-19 18:45 UTC, after R1 seed 4000 and 4001 results for all configs except R5 seed 4001; before any further run)
+* R1 (2 seeds; reward / score; R0 on the same seeds 48.62 / 18.12): R1 lr 2e-3 48.70 / 19.32; R2 lr 5e-4 44.82 / 14.65; R3 ent 0.02 46.88 / 18.21; R4 gamma 0.99 + lambda 0.8 45.84 / 17.19;
+  R6 32x128 48.14 / 18.75; R7 8 epochs 41.18 / 13.38. R5 (width 512): seed 4000 49.20 / 19.93, seed 4001 pending.
+* Qualification rule (amendment-free): a config needs mean reward >= R0 + 2.0 = 50.62 on 2 seeds. R1..R4, R6, R7 do not qualify; R5 qualifies only if seed 4001 gives >= 52.0.
+* Precision extension, fixed now and independent of R5's second seed: because R5 is the only variant with a positive trend (score +1.8 at n=1) and the stop rule has no R2 for non-qualifiers,
+  R0 and R5 are run on two further tuning seeds 4002-4003 (4 runs, ~1.4 h on 2 workers) so that the width-512 effect is estimated on 4 seeds against R0 on the same 4 seeds. This changes no
+  rule: stop-rule threshold 54.0 and "no final block unless reached" stay. Outcome is reported whatever it is.
