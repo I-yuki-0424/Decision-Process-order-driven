@@ -90,3 +90,12 @@ stated as a limitation, not a conclusion about Truck.
   The reward gap at the EP-A budget is therefore a **sample-efficiency gap** (and what a 1M-step method must buy), not a ceiling of the model family. Knob tuning around R0 still finds nothing (R1, 8 configs).
 * Follow-up diagnostics (same labels, tuning seeds 4000-4001, config R0, protocol `diag-2M` / `diag-3M`): 2,000,000 and 3,000,000 steps, to locate where the curve crosses G1.2's 55.49 / 16.77 and hence the sample-efficiency
   factor a 1M-step method must achieve. Expected: crossing between 2M and 3M. They are single-config, 2-seed diagnostics; they do not select anything and no gate is read from them (P8, P10: not EP-A).
+
+## Amendment 5 (2026-10-19 23:30 UTC, after D2M / D3M; before any round-R3 run)
+* Data-scaling diagnostic of R0 (GRU-TP; independent runs of 1M / 2M / 3M / 4M steps, lr schedule scaled to the run length; tuning seeds; reward / score): **1M 48.83 +- 0.45 / 17.67 (4 seeds)**; **2M 57.66 +- 0.90 / 25.59 +- 1.84 (2 seeds: 56.76, 58.56)**;
+  **3M 66.34 +- 0.80 / 33.41 +- 0.30 (65.54, 67.13)**; **4M 65.53 +- 0.15 / 31.86 +- 0.24 (65.68, 65.38)**. Eval length 235 / 280 / 278 / 283. The curve crosses G1.2's 55.49 / 16.77 between 1x and 2x the EP-A budget and plateaus near 66 by 3M.
+  Stone tools 17 % -> 63 % -> 77 % -> 81 % (pickaxe), coal 25 -> 65 -> 74 -> 78 %, iron 1 -> 6 -> 16 -> 14 %, zombie 13 -> 9 -> 91 -> 91 %, skeleton 3 -> 6 -> 23 -> 31 %; eat_plant, diamond, iron tools stay 0; wake_up falls to 15 % at 4M.
+  Not EP-A, not a gate (budget 2-4x), 2 seeds each beyond 1M: it locates the problem, it does not close anything.
+* Hypothesis from it: the EP-A gap is how much is learned per environment step. Round R3 tests the one tuning knob that directly buys more optimiser updates per env step without changing the algorithm: smaller PPO batches.
+  Configs (R0 reference exists on seeds 4000-4003): R8 = 32 envs x 64 steps (488 updates), R9 = 16 x 64 (976), R10 = 32 x 32 (976). Seeds 4000-4001, EP-A-tuning, 1M steps. Same qualification rule as R1 (2-seed mean >= R0 + 2.0 on the same seeds = 50.62 vs R0 4000-4001 mean
+  48.62; i.e. >= 50.62) and the same stop rule (a 10-seed final block only if a config reaches 54.0). Prior: K1/K2 (2x updates) on Truck and R7 (more epochs, hurt) argue against a gain; this is the last round of this task.

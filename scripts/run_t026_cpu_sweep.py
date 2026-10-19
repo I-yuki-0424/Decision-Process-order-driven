@@ -33,6 +33,10 @@ CONFIGS = {
     "R5": t25.base(arm=dict(tp_coef=1.0, width=512)),
     "R6": t25.base(arm=TP, n=32, t=128),
     "R7": t25.base(arm=TP, epochs=8),
+    # round R3 (amendment 5): more optimiser updates per env step through smaller batches (the data-scaling diagnostic says the gap is sample efficiency)
+    "R8": t25.base(arm=TP, n=32),                  # 488 updates of 2048 transitions
+    "R9": t25.base(arm=TP, n=16),                  # 976 updates of 1024
+    "R10": t25.base(arm=TP, n=32, t=32),           # 976 updates of 1024, shorter BPTT window
 }
 t25.CONFIGS.update(CONFIGS)
 
