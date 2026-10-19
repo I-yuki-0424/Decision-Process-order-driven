@@ -81,3 +81,12 @@ stated as a limitation, not a conclusion about Truck.
   env steps (4x the EP-A budget) with the same recipe (lr schedule and warm-up scale with the run length) and evaluated by the same evaluator. Question it answers: is the G1.2 reward gap a sample-efficiency
   gap (4x data reaches ~56) or a capability gap (it plateaus near 50)? The result decides which of the report's candidate directions is worth an operator decision; it is not a tuning candidate (it violates the 1M budget on purpose).
   Pre-stated expectation: some gain from 4x data (training curves were still rising at 1M, RESULTS.md section 3 of TASK-024), reaching 56 is not expected. Seeds 4000-4001, 2 workers, starts after the R0/R5 extension ends.
+
+## Amendment 4 (2026-10-19 21:40 UTC, after the 4M diagnostic and before any 2M / 3M run)
+* **D4M result (diagnostic, not EP-A, never a gate):** R0 = GRU-TP trained for 3,997,696 steps, tuning seeds 4000 / 4001: reward 65.68 / 65.38 (mean 65.53 +- 0.15), score 32.10 / 31.62 (31.86 +- 0.24),
+  eval length 282 / 284. The same config at 1M steps (4 seeds) gives 48.83 / 17.67. **My pre-stated expectation (amendment 3: "reaching 56 is not expected") was wrong by ~9.5 points.**
+* **Correction of the pre-registration's section 2 and of the report's section 6/9 reading:** the "G1.2 needs a new capability, not a better mix" and "even a perfect mix reaches only 52.6" statements describe the
+  1M-step policies only. With 4x the data the same architecture unlocks stone tools 79-82 % (17 % at 1M), coal 75-80 % (24 %), skeleton 23-38 % (2 %), iron 12-16 % (1 %), zombie 89-93 %; the training return was still rising at 4M.
+  The reward gap at the EP-A budget is therefore a **sample-efficiency gap** (and what a 1M-step method must buy), not a ceiling of the model family. Knob tuning around R0 still finds nothing (R1, 8 configs).
+* Follow-up diagnostics (same labels, tuning seeds 4000-4001, config R0, protocol `diag-2M` / `diag-3M`): 2,000,000 and 3,000,000 steps, to locate where the curve crosses G1.2's 55.49 / 16.77 and hence the sample-efficiency
+  factor a 1M-step method must achieve. Expected: crossing between 2M and 3M. They are single-config, 2-seed diagnostics; they do not select anything and no gate is read from them (P8, P10: not EP-A).
