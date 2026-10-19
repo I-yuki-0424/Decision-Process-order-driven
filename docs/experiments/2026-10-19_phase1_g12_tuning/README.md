@@ -73,3 +73,11 @@ stated as a limitation, not a conclusion about Truck.
 * Precision extension, fixed now and independent of R5's second seed: because R5 is the only variant with a positive trend (score +1.8 at n=1) and the stop rule has no R2 for non-qualifiers,
   R0 and R5 are run on two further tuning seeds 4002-4003 (4 runs, ~1.4 h on 2 workers) so that the width-512 effect is estimated on 4 seeds against R0 on the same 4 seeds. This changes no
   rule: stop-rule threshold 54.0 and "no final block unless reached" stay. Outcome is reported whatever it is.
+
+## Amendment 3 (2026-10-19 18:55 UTC, R1 complete; R0/R5 extension on seeds 4002-4003 running; before any run of this amendment)
+* R1 final (2 seeds, reward / score): R0 48.62 / 18.12; R1 48.70 / 19.32; R2 44.82 / 14.65; R3 46.88 / 18.21; R4 45.84 / 17.19; R5 (width 512, 3.64M params) 48.43 / 19.10 (seeds 4000: 49.20, 4001: 47.73);
+  R6 48.14 / 18.75; R7 41.18 / 13.38. **No config reaches the qualification threshold (R0 + 2.0 = 50.62); no round R2 and no final block, by the pre-registered rules.** Best tuning-seed mean 48.70 vs the 54.0 stop line.
+* DIAGNOSTIC D4M (labelled, never EP-A, never counts toward a gate, never quoted next to paper numbers; protocol label `diag-4M`, role `tune`, tuning seeds 4000-4001): R0 (G4TP1) trained for **4,000,000**
+  env steps (4x the EP-A budget) with the same recipe (lr schedule and warm-up scale with the run length) and evaluated by the same evaluator. Question it answers: is the G1.2 reward gap a sample-efficiency
+  gap (4x data reaches ~56) or a capability gap (it plateaus near 50)? The result decides which of the report's candidate directions is worth an operator decision; it is not a tuning candidate (it violates the 1M budget on purpose).
+  Pre-stated expectation: some gain from 4x data (training curves were still rising at 1M, RESULTS.md section 3 of TASK-024), reaching 56 is not expected. Seeds 4000-4001, 2 workers, starts after the R0/R5 extension ends.
