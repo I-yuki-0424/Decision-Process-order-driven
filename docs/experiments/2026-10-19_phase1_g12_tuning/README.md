@@ -60,3 +60,8 @@ stated as a limitation, not a conclusion about Truck.
 * No edit of the roadmap numbers or `current_phase`.
 * No reward shaping, no hand-coded achievement knowledge (P5), no new algorithm (strictness): a Dyna-style use of the TP head (RESULTS.md section 7) is an unconfirmed
   component and is only proposed in the report, not implemented.
+
+## Amendment 1 (2026-10-19 ~15:30 UTC, after R1 had started, before any R1 result existed; arithmetic correction only, no design change)
+* `scripts/adhoc/t026_gap_ceiling.py` recomputes the numbers of section 1/2: mean needed for GRU-TP = **56.2** (not ~56.3), gap to the pooled GRU-TP mean **+7.7** (not +7.6), i.e. ~19 block-SE
+  (SE 0.36) or ~47 pooled-SE; Truck-TP1h needs **~58.0** at its pooled sd 3.9 (not ~57.9). The stop-rule threshold 54.0 is unchanged.
+* Section 1 said the best 10-seed block of a low-variance arm is 48.72 (block I) -- correct; the best block of any arm is 50.72.

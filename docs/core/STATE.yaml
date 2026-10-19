@@ -1367,6 +1367,28 @@ tasks:
       Method changes (TP auxiliary, entropy annealing, more updates) are applied to the baseline as well in the finals (P9). Clock: the machine runs
       Tokyo Standard Time (UTC+9, checked against HTTP Date headers), i.e. machine time = JST; the earlier "TST = JST - 1 h" note was wrong.
 
+  - id: "TASK-20261019-026-phase1-status-and-g12-tuning"
+    created_at: "2026-10-19T14:40:00Z"
+    status: "in_progress"
+    description: >
+      Operator request (2026-10-19, unreachable 15 h, no permission needed): document and compare the Phase-1 results, verify whether Phase 1 is closed (Phase 2 only if it is),
+      otherwise try tuning toward G1.2; record in the knowledge-DB; update MASTER_GUIDANCE (phase advance if any, plus a note to use the knowledge-DB actively).
+    spec_ref: "docs/experiments/2026-10-19_phase1_g12_tuning/README.md (verification, critical review, pre-registration); report: PHASE1_RESULTS_REPORT.md in the same directory"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python scripts/adhoc/t026_gap_ceiling.py"
+      - "python scripts/run_t026_cpu_sweep.py report --stage R1"
+    result: >
+      IN PROGRESS. VERIFIED: Phase 1 is NOT closed (G1.2 fails for every arm in all 30 arm-blocks; G1.2 has closes_phase=true; roadmap rule phase_advance). Phase 2 stays locked, current_phase unchanged,
+      no Phase-2 work done. Gap: reward needs ~56.2 (mean - 2 SE > 55.49) vs GRU-TP pooled 48.46 +- 0.15 (+7.7); score already passes. Per-achievement ceiling of the five TASK-025 arms = 52.63 < 55.49
+      (scripts/adhoc/t026_gap_ceiling.py). Tuning attempt: results to be filled in.
+    blockers: []
+    notes: >
+      COMPUTE: cloud session = 4 CPU cores, no GPU, no Kaggle credentials, no Docker; the TASK-025 Docker/GPU scheduler is unusable, scripts/run_t026_cpu_sweep.py (new) reuses its config builders.
+      Measured 600 env steps/s for gru256+ln+skip+tp1 -> ~28 min per 1M-step run (jax 0.12.0 CPU). CRITICAL REVIEW: the operator's premise "Phase 1 is done / we are very close" does not hold for reward
+      (+7.7 = ~1.6 achievements per episode); stated in the README, no softening. MASTER_GUIDANCE: knowledge-DB usage rule added (operator asked for it conditionally on a phase advance; added anyway, it is
+      independent of the phase and reversible). Impact check: no existing symbol modified (new scripts only), scip-neo4j not needed.
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
