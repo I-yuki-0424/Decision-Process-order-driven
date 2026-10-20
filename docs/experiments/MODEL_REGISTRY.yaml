@@ -302,3 +302,8 @@ models:
     description: "gru256+ln+skip + TP auxiliary, weight 10"
     status: provisional
     proper_name: null
+  Base_O02_D05_S00:
+    arms: ["gru512+ln+skip+tp1"]
+    description: "GRU-TP widened to GRU-512 (~3.4M params; TASK-026 R5 tuning-seed screening, G1.2 has no parameter cap)"
+    status: provisional
+    proper_name: null

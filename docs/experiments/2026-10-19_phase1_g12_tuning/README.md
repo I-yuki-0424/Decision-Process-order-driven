@@ -1,0 +1,109 @@
+# TASK-20261019-026: Phase-1 status check and G1.2 last-mile tuning (pre-registration, written 2026-10-19 14:45 UTC, before any run of this task)
+
+Operator request (2026-10-19, unreachable for 15 h, no permission needed): (1) write a document explaining the Phase-1 results and comparing the arms,
+(2) verify that Phase 1 is done; if so design Phase-2 candidates, if not "we should already be very close, so try tuning the parameters",
+(3) record in the knowledge-DB, (4) update MASTER_GUIDANCE if the phase advances and add a note to use the knowledge-DB actively.
+
+## 1. Verification (done before any run; sources: STATE.yaml TASK-025 `result`, RESULTS.md of 2026-10-08_phase1_push, MASTER_GUIDANCE roadmap)
+* Roadmap rule `phase_advance`: a phase closes only when EVERY gate in it passes under EP-A. Phase-1 gates: G1.0, G1.1, G1.2 (G1.2 has `closes_phase="true"`), G1.S.
+* G1.0 PASS (G4 45.42 / 15.48 >= 42.7 / 9.6). G1.1 passed on a pre-registered block at the second attempt (GRU-TP, block I 48.72 +- 0.36 / 18.82 +- 0.58; its
+  first block A failed by 0.02): the operator has not yet ruled on whether that closes G1.1.
+* **G1.2 FAIL for every arm in every block.** It needs reward_pct - 2 SE > 55.49 and score_pct - 2 SE > 16.77. Score is already met by the TP arms
+  (pooled GRU-TP 18.51 - 2 x 0.21 = 18.10). Reward is not: best block mean 50.72 (TP1h, block F), best 10-seed block of a low-variance arm 48.72 (GRU-TP).
+  At GRU-TP's SE (~0.4) the mean must reach ~56.3, i.e. **+7.6 reward over its pooled mean (+16 % relative)**; Truck-TP1h would need ~57.9 (+8.5) at its SE.
+* "Phase 1 is done" is therefore **false**. Phase 2 is locked; the Phase-2 request ("if the conditions are met") is not triggered and nothing in Phase 2 is built.
+* "Very close" does not hold for reward: the gap is 7.6 reward_pct = 1.7 achievements per episode, 19 SE of the best low-variance arm. It holds for score.
+
+## 2. Critical review: can tuning close a +7.6 gap? (reasoning from the already recorded numbers; nothing run yet)
+* Per-achievement ceiling: taking, for every achievement, the BEST unlock rate over all five TASK-025 arms (RESULTS.md section 5; arms differ in seeds, so this is
+  an optimistic mix, not an achievable policy) gives (99.8+98.8+75.0+99.0+73.5+91.5+81.4+98.3+59.3+81.1+74.6+0.0+5.5+17.3+16.3+77.3+77.1+30.4+1.6+0+0+0)/22 = **52.6**.
+  Even a hypothetical agent that matched the best arm on every achievement simultaneously stays below 55.49. G1.2 needs a larger unlock rate on the deep chain
+  (stone tools 9-19 %, coal 14-31 %, iron <= 1.6 %, skeleton <= 5.5 %, eat_plant / diamond / iron tools 0 %), not a better mix of the shallow ones.
+* Survival: zombies cause 70-82 % of deaths and evaluation episodes end after ~200-230 steps, so the deep chain is rarely reached at all.
+* Past tuning: ~160 jobs of recipe screening for Truck (TASK-024), 16-trial x 2-seed x 1M-step random search (TASK-020), K1/K2/EA/gamma 0.99/width 256/3 layers (TASK-025)
+  all moved reward by <= 3 (TP, the only lever that did, gave +3.1 on the GRU). Nothing recorded suggests a knob worth +7.6.
+* Prior expectation, stated before running: no single-knob change of GRU-TP reaches +7.6. The run below is a falsification attempt of "we are very close", bounded by the
+  compute of this session, not an expected win. If it shows no change, the honest conclusion is that G1.2 needs a new capability (survival / long-horizon credit assignment),
+  not tuning.
+
+## 3. Compute (measured)
+Cloud session: 4 CPU cores, no GPU, no Kaggle credentials, no Docker. JAX 0.12.0 CPU, flax 0.12.10, optax 0.2.8, craftax 1.6.1, gymnax 0.0.9, Python 3.13.
+Measured: GRU-TP (gru256+ln+skip+tp1), 65,536 steps = 110 s training (~600 steps/s) -> ~28 min per 1M-step run on all 4 cores (Truck arms are ~2x slower).
+A third platform (CPU) next to the local RTX 3060 Ti and Kaggle T4: results are compared only within this task on the same platform (R0 reference on the same seeds).
+Budget: ~11 h of job starts => ~20-24 GRU-class 1M-step runs. Truck arms and 10-seed final blocks of anything but a GRU-class arm do not fit.
+
+## 4. Design (all existing knobs, no new code path in src/, no game knowledge, no extra env steps; EP-A-tuning, 999,424 steps, symbolic 1345-d, role `tune`)
+Tuning seeds **4000-4999** (disjoint from every earlier seed: 0-9, 42-51, 52-171, 1000-1002, 2000-2005, 3000-3003, 3900; checked against STATE.yaml / README seed lists).
+Evaluation on 256 fresh envs of the tuning seed (the same evaluator; `--eval-seed-offset` 0 for tuning). Final seeds are never touched in this stage.
+
+Round R1 (2 tuning seeds 4000-4001 per config; one factor around R0 = G4TP1, the TASK-025 GRU-TP config; arm string for R5 differs only by width):
+| id | change vs R0 | rationale |
+|---|---|---|
+| R0 | none (G4TP1) | reference on the same seeds and platform |
+| R1 | lr 2e-3 | TASK-020 optimum was at the grid edge for some arms |
+| R2 | lr 5e-4 | opposite side |
+| R3 | entropy 0.02 | more exploration for the deep chain |
+| R4 | gamma 0.99, lambda 0.8 | longer credit horizon (gamma 0.99 on Truck gave no gain; never tried on GRU-TP) |
+| R5 | width 512 (~3.4M params) | capacity; G1.2 has no parameter cap (params_total only reported) |
+| R6 | 32 envs x 128 steps | longer truncated-BPTT window at the same batch |
+| R7 | 8 PPO epochs | more updates per env step |
+
+Selection rule (fixed now): a config qualifies for round R2 if its 2-seed mean reward_pct >= R0 mean + 2.0 on the same seeds AND its score is not lower than R0.
+R2 = the combination of the (up to) two best qualifying single changes, 3 seeds 4000-4002, plus R0 on the same seeds.
+**Stop rule:** a 10-seed EP-A final block (train 172-181 / test 554-563, role `final`, clean tree, fixed config) is run ONLY IF a config reaches a tuning-seed mean
+reward_pct >= 54.0 (G1.2 needs ~56.3 on final seeds; 2.3 cushion for the winner's curse seen in TASK-025). Otherwise no final block is run, no gate is claimed,
+and the result is "G1.2 not reachable by tuning at this effort". No gate number is ever read from a tuning seed (P8). The Truck family is not screened (cost); this is
+stated as a limitation, not a conclusion about Truck.
+
+## 5. Not done, on purpose
+* Phase 2 candidates: locked until G1.2 passes (roadmap `scope`); building them would be work on a locked phase.
+* No edit of the roadmap numbers or `current_phase`.
+* No reward shaping, no hand-coded achievement knowledge (P5), no new algorithm (strictness): a Dyna-style use of the TP head (RESULTS.md section 7) is an unconfirmed
+  component and is only proposed in the report, not implemented.
+
+## Amendment 1 (2026-10-19 ~15:30 UTC, after R1 had started, before any R1 result existed; arithmetic correction only, no design change)
+* `scripts/adhoc/t026_gap_ceiling.py` recomputes the numbers of section 1/2: mean needed for GRU-TP = **56.2** (not ~56.3), gap to the pooled GRU-TP mean **+7.7** (not +7.6), i.e. ~19 block-SE
+  (SE 0.36) or ~47 pooled-SE; Truck-TP1h needs **~58.0** at its pooled sd 3.9 (not ~57.9). The stop-rule threshold 54.0 is unchanged.
+* Section 1 said the best 10-seed block of a low-variance arm is 48.72 (block I) -- correct; the best block of any arm is 50.72.
+
+## Amendment 2 (2026-10-19 18:45 UTC, after R1 seed 4000 and 4001 results for all configs except R5 seed 4001; before any further run)
+* R1 (2 seeds; reward / score; R0 on the same seeds 48.62 / 18.12): R1 lr 2e-3 48.70 / 19.32; R2 lr 5e-4 44.82 / 14.65; R3 ent 0.02 46.88 / 18.21; R4 gamma 0.99 + lambda 0.8 45.84 / 17.19;
+  R6 32x128 48.14 / 18.75; R7 8 epochs 41.18 / 13.38. R5 (width 512): seed 4000 49.20 / 19.93, seed 4001 pending.
+* Qualification rule (amendment-free): a config needs mean reward >= R0 + 2.0 = 50.62 on 2 seeds. R1..R4, R6, R7 do not qualify; R5 qualifies only if seed 4001 gives >= 52.0.
+* Precision extension, fixed now and independent of R5's second seed: because R5 is the only variant with a positive trend (score +1.8 at n=1) and the stop rule has no R2 for non-qualifiers,
+  R0 and R5 are run on two further tuning seeds 4002-4003 (4 runs, ~1.4 h on 2 workers) so that the width-512 effect is estimated on 4 seeds against R0 on the same 4 seeds. This changes no
+  rule: stop-rule threshold 54.0 and "no final block unless reached" stay. Outcome is reported whatever it is.
+
+## Amendment 3 (2026-10-19 18:55 UTC, R1 complete; R0/R5 extension on seeds 4002-4003 running; before any run of this amendment)
+* R1 final (2 seeds, reward / score): R0 48.62 / 18.12; R1 48.70 / 19.32; R2 44.82 / 14.65; R3 46.88 / 18.21; R4 45.84 / 17.19; R5 (width 512, 3.64M params) 48.43 / 19.10 (seeds 4000: 49.20, 4001: 47.73);
+  R6 48.14 / 18.75; R7 41.18 / 13.38. **No config reaches the qualification threshold (R0 + 2.0 = 50.62); no round R2 and no final block, by the pre-registered rules.** Best tuning-seed mean 48.70 vs the 54.0 stop line.
+* DIAGNOSTIC D4M (labelled, never EP-A, never counts toward a gate, never quoted next to paper numbers; protocol label `diag-4M`, role `tune`, tuning seeds 4000-4001): R0 (G4TP1) trained for **4,000,000**
+  env steps (4x the EP-A budget) with the same recipe (lr schedule and warm-up scale with the run length) and evaluated by the same evaluator. Question it answers: is the G1.2 reward gap a sample-efficiency
+  gap (4x data reaches ~56) or a capability gap (it plateaus near 50)? The result decides which of the report's candidate directions is worth an operator decision; it is not a tuning candidate (it violates the 1M budget on purpose).
+  Pre-stated expectation: some gain from 4x data (training curves were still rising at 1M, RESULTS.md section 3 of TASK-024), reaching 56 is not expected. Seeds 4000-4001, 2 workers, starts after the R0/R5 extension ends.
+
+## Amendment 4 (2026-10-19 21:40 UTC, after the 4M diagnostic and before any 2M / 3M run)
+* **D4M result (diagnostic, not EP-A, never a gate):** R0 = GRU-TP trained for 3,997,696 steps, tuning seeds 4000 / 4001: reward 65.68 / 65.38 (mean 65.53 +- 0.15), score 32.10 / 31.62 (31.86 +- 0.24),
+  eval length 282 / 284. The same config at 1M steps (4 seeds) gives 48.83 / 17.67. **My pre-stated expectation (amendment 3: "reaching 56 is not expected") was wrong by ~9.5 points.**
+* **Correction of the pre-registration's section 2 and of the report's section 6/9 reading:** the "G1.2 needs a new capability, not a better mix" and "even a perfect mix reaches only 52.6" statements describe the
+  1M-step policies only. With 4x the data the same architecture unlocks stone tools 79-82 % (17 % at 1M), coal 75-80 % (24 %), skeleton 23-38 % (2 %), iron 12-16 % (1 %), zombie 89-93 %; the training return was still rising at 4M.
+  The reward gap at the EP-A budget is therefore a **sample-efficiency gap** (and what a 1M-step method must buy), not a ceiling of the model family. Knob tuning around R0 still finds nothing (R1, 8 configs).
+* Follow-up diagnostics (same labels, tuning seeds 4000-4001, config R0, protocol `diag-2M` / `diag-3M`): 2,000,000 and 3,000,000 steps, to locate where the curve crosses G1.2's 55.49 / 16.77 and hence the sample-efficiency
+  factor a 1M-step method must achieve. Expected: crossing between 2M and 3M. They are single-config, 2-seed diagnostics; they do not select anything and no gate is read from them (P8, P10: not EP-A).
+
+## Amendment 5 (2026-10-19 23:30 UTC, after D2M / D3M; before any round-R3 run)
+* Data-scaling diagnostic of R0 (GRU-TP; independent runs of 1M / 2M / 3M / 4M steps, lr schedule scaled to the run length; tuning seeds; reward / score): **1M 48.83 +- 0.45 / 17.67 (4 seeds)**; **2M 57.66 +- 0.90 / 25.59 +- 1.84 (2 seeds: 56.76, 58.56)**;
+  **3M 66.34 +- 0.80 / 33.41 +- 0.30 (65.54, 67.13)**; **4M 65.53 +- 0.15 / 31.86 +- 0.24 (65.68, 65.38)**. Eval length 235 / 280 / 278 / 283. The curve crosses G1.2's 55.49 / 16.77 between 1x and 2x the EP-A budget and plateaus near 66 by 3M.
+  Stone tools 17 % -> 63 % -> 77 % -> 81 % (pickaxe), coal 25 -> 65 -> 74 -> 78 %, iron 1 -> 6 -> 16 -> 14 %, zombie 13 -> 9 -> 91 -> 91 %, skeleton 3 -> 6 -> 23 -> 31 %; eat_plant, diamond, iron tools stay 0; wake_up falls to 15 % at 4M.
+  Not EP-A, not a gate (budget 2-4x), 2 seeds each beyond 1M: it locates the problem, it does not close anything.
+* Hypothesis from it: the EP-A gap is how much is learned per environment step. Round R3 tests the one tuning knob that directly buys more optimiser updates per env step without changing the algorithm: smaller PPO batches.
+  Configs (R0 reference exists on seeds 4000-4003): R8 = 32 envs x 64 steps (488 updates), R9 = 16 x 64 (976), R10 = 32 x 32 (976). Seeds 4000-4001, EP-A-tuning, 1M steps. Same qualification rule as R1 (2-seed mean >= R0 + 2.0 on the same seeds = 50.62 vs R0 4000-4001 mean
+  48.62; i.e. >= 50.62) and the same stop rule (a 10-seed final block only if a config reaches 54.0). Prior: K1/K2 (2x updates) on Truck and R7 (more epochs, hurt) argue against a gain; this is the last round of this task.
+
+## Amendment 6 (2026-10-20 01:45 UTC, closing; all pre-registered runs finished)
+* A worker restart at ~23:55 UTC killed round R3 after R8 seed 4000; the driver was restarted unchanged and ran the remaining jobs (finished files are skipped); no job ran twice and no result was discarded.
+* Round R3 (seeds 4000-4001; R0 on the same seeds 48.62 / 18.12): R8 45.60 / 16.86, R9 43.85 / 14.35, R10 45.36 / 15.26. None qualifies (line 50.62). Together with R1 the rule outcome is:
+  **no config qualified, no round R2, no final EP-A block, no gate claim.** Best tuning-seed mean 48.93 (R5, 4 seeds) vs the 54.0 stop line.
+* Result files are in `results/` (plain-text copies; `output/phase1/g12_t026/` is LFS-tracked and the cloud session has no Hugging Face credentials). MLflow (`mlflow_local/`, this checkout): 26 EP-A-tuning runs and
+  6 `diag-2M/3M/4M` runs ingested, 0 UNREGISTERED. `mlflow_report.py summary` merges configs that share arm and learning rate (R0/R3/R4/R6/R7 appear as one row); per-config numbers are in PHASE1_RESULTS_REPORT.md section 8.
+* Conclusion: Phase 1 not closed; ten single-knob variants of GRU-TP do not move reward; the same model with 2x data crosses G1.2's thresholds and with 3x plateaus near 66 reward / 33 score: the gap is sample efficiency.
