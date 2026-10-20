@@ -1369,25 +1369,32 @@ tasks:
 
   - id: "TASK-20261019-026-phase1-status-and-g12-tuning"
     created_at: "2026-10-19T14:40:00Z"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator request (2026-10-19, unreachable 15 h, no permission needed): document and compare the Phase-1 results, verify whether Phase 1 is closed (Phase 2 only if it is),
       otherwise try tuning toward G1.2; record in the knowledge-DB; update MASTER_GUIDANCE (phase advance if any, plus a note to use the knowledge-DB actively).
-    spec_ref: "docs/experiments/2026-10-19_phase1_g12_tuning/README.md (verification, critical review, pre-registration); report: PHASE1_RESULTS_REPORT.md in the same directory"
+    spec_ref: "docs/experiments/2026-10-19_phase1_g12_tuning/README.md (verification, critical review, pre-registration, amendments 1-6); report: PHASE1_RESULTS_REPORT.md in the same directory; per-seed files: results/ there"
     validation_commands:
       - "python scripts/pre_commit_ban_check.py"
       - "python scripts/adhoc/t026_gap_ceiling.py"
-      - "python scripts/run_t026_cpu_sweep.py report --stage R1"
+      - "python scripts/run_t026_cpu_sweep.py report --stage R1   (also R3, D2M, D3M, D4M)"
     result: >
-      IN PROGRESS. VERIFIED: Phase 1 is NOT closed (G1.2 fails for every arm in all 30 arm-blocks; G1.2 has closes_phase=true; roadmap rule phase_advance). Phase 2 stays locked, current_phase unchanged,
-      no Phase-2 work done. Gap: reward needs ~56.2 (mean - 2 SE > 55.49) vs GRU-TP pooled 48.46 +- 0.15 (+7.7); score already passes. Per-achievement ceiling of the five TASK-025 arms = 52.63 < 55.49
-      (scripts/adhoc/t026_gap_ceiling.py). Tuning attempt: results to be filled in.
+      DONE, Phase 1 NOT closed, Phase 2 NOT started. VERIFIED: G1.2 (closes_phase=true) fails for every arm in all 30 arm-blocks of TASK-024/-025 (roadmap rule phase_advance); G1.0 pass, G1.1 passed once on a
+      pre-registered block at the 2nd attempt by GRU-TP (operator ruling pending), current_phase unchanged. Gap: reward needs ~56.2 (mean - 2 SE > 55.49) vs GRU-TP pooled 48.46 +- 0.15 (+7.7); score already passes.
+      TUNING (EP-A-tuning, CPU, tuning seeds 4000-4003, 1M steps, GRU-TP = Base_O02_D04_S00 reference R0 48.83 +- 0.45 / 17.67 +- 0.67 on 4 seeds): ten one-factor variants (lr 2e-3 / 5e-4, entropy 0.02, gamma 0.99 + lambda 0.8,
+      width 512 [3.64M params, 48.93 +- 0.50 / 19.47 on 4 seeds], 32x128 rollout, 8 epochs, 32x64 / 16x64 / 32x32 batches) all within +0.1 or below R0 (worst -7.4); none reached the qualification line (R0 + 2.0) or the
+      54.0 stop line, so by the pre-registered rule NO final EP-A block was run and NO gate is claimed. DIAGNOSTIC (labelled diag-*, not EP-A, never a gate): the same GRU-TP trained for 2M / 3M / 4M steps (2 seeds) gives
+      57.66 +- 0.90 / 25.59, 66.34 +- 0.80 / 33.41, 65.53 +- 0.15 / 31.86 reward / score: the gap is SAMPLE EFFICIENCY (crosses G1.2 between 1x and 2x data), not capacity; this contradicts the pre-registered expectation and the
+      first-draft reading "needs a new capability" (corrected in the README amendment 4 and the report). Ceiling argument (union of best per-achievement rates of the five 1M-step arms = 52.63 < 55.49) holds for 1M-step policies only.
+      Candidate directions (none implemented, strictness): Dyna-style use of the TP head, off-policy/high-UTD learner, more TP-like auxiliary signals, image modality. Validation: pre_commit_ban_check passed; t026_gap_ceiling.py runs;
+      MLflow ingested in this checkout (32 runs, 0 UNREGISTERED). MASTER_GUIDANCE: <knowledge_base> rule added, CLAUDE.md one-line pointer. Impact check: no existing symbol modified (new scripts only; scip-neo4j not needed).
     blockers: []
     notes: >
-      COMPUTE: cloud session = 4 CPU cores, no GPU, no Kaggle credentials, no Docker; the TASK-025 Docker/GPU scheduler is unusable, scripts/run_t026_cpu_sweep.py (new) reuses its config builders.
-      Measured 600 env steps/s for gru256+ln+skip+tp1 -> ~28 min per 1M-step run (jax 0.12.0 CPU). CRITICAL REVIEW: the operator's premise "Phase 1 is done / we are very close" does not hold for reward
-      (+7.7 = ~1.6 achievements per episode); stated in the README, no softening. MASTER_GUIDANCE: knowledge-DB usage rule added (operator asked for it conditionally on a phase advance; added anyway, it is
-      independent of the phase and reversible). Impact check: no existing symbol modified (new scripts only), scip-neo4j not needed.
+      COMPUTE: cloud session = 4 CPU cores, no GPU, no Kaggle credentials, no Docker, no Hugging Face credentials (LFS output/ cannot be pushed: plain-text copies of all result files are in docs/experiments/2026-10-19_phase1_g12_tuning/results/).
+      The TASK-025 Docker/GPU scheduler is unusable; scripts/run_t026_cpu_sweep.py (new) reuses its config builders. Measured ~600 env steps/s per 4 cores; two 2-core jobs in parallel each ran a 1M-step GRU-TP in ~25-28 min
+      (92 min for 4M). A worker restart killed round R3 once; it was resumed without losing or repeating a result. CRITICAL REVIEW: the operator's premise "Phase 1 is done / we are very close" does not hold for reward at the EP-A budget
+      (+7.7 = ~1.6 achievements per episode); stated without softening. MASTER_GUIDANCE knowledge-DB rule: the operator asked for it conditionally on a phase advance; added anyway (independent of the phase, reversible).
+      Open operator decisions: (1) does GRU-TP's second-attempt G1.1 pass close G1.1; (2) which sample-efficiency direction for G1.2 (needs GPU). Limitation: Truck family not screened (cost); diagnostics at 2 seeds on one config.
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example

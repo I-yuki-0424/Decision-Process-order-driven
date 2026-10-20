@@ -99,3 +99,11 @@ stated as a limitation, not a conclusion about Truck.
 * Hypothesis from it: the EP-A gap is how much is learned per environment step. Round R3 tests the one tuning knob that directly buys more optimiser updates per env step without changing the algorithm: smaller PPO batches.
   Configs (R0 reference exists on seeds 4000-4003): R8 = 32 envs x 64 steps (488 updates), R9 = 16 x 64 (976), R10 = 32 x 32 (976). Seeds 4000-4001, EP-A-tuning, 1M steps. Same qualification rule as R1 (2-seed mean >= R0 + 2.0 on the same seeds = 50.62 vs R0 4000-4001 mean
   48.62; i.e. >= 50.62) and the same stop rule (a 10-seed final block only if a config reaches 54.0). Prior: K1/K2 (2x updates) on Truck and R7 (more epochs, hurt) argue against a gain; this is the last round of this task.
+
+## Amendment 6 (2026-10-20 01:45 UTC, closing; all pre-registered runs finished)
+* A worker restart at ~23:55 UTC killed round R3 after R8 seed 4000; the driver was restarted unchanged and ran the remaining jobs (finished files are skipped); no job ran twice and no result was discarded.
+* Round R3 (seeds 4000-4001; R0 on the same seeds 48.62 / 18.12): R8 45.60 / 16.86, R9 43.85 / 14.35, R10 45.36 / 15.26. None qualifies (line 50.62). Together with R1 the rule outcome is:
+  **no config qualified, no round R2, no final EP-A block, no gate claim.** Best tuning-seed mean 48.93 (R5, 4 seeds) vs the 54.0 stop line.
+* Result files are in `results/` (plain-text copies; `output/phase1/g12_t026/` is LFS-tracked and the cloud session has no Hugging Face credentials). MLflow (`mlflow_local/`, this checkout): 26 EP-A-tuning runs and
+  6 `diag-2M/3M/4M` runs ingested, 0 UNREGISTERED. `mlflow_report.py summary` merges configs that share arm and learning rate (R0/R3/R4/R6/R7 appear as one row); per-config numbers are in PHASE1_RESULTS_REPORT.md section 8.
+* Conclusion: Phase 1 not closed; ten single-knob variants of GRU-TP do not move reward; the same model with 2x data crosses G1.2's thresholds and with 3x plateaus near 66 reward / 33 score: the gap is sample efficiency.

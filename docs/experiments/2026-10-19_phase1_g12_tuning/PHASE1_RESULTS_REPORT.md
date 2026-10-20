@@ -16,7 +16,11 @@ parameters, MFRL_best 55.49 / 16.77 at 55.6M; image observation, which differs f
 3. **What moved the numbers, in order of size:** the shared PPO recipe (+9 to +13 on the baseline, G1.0), the transition-prediction auxiliary on a recurrent policy (+3.1 on the
    GRU), the Truck encoder at a stable recipe (+1.8 over the re-tuned baseline with 3.6x fewer parameters). Everything else tried (world-model features, pure Transformer,
    ChunkPPO at k=1, EV auxiliary, scale, rollout and epoch variants) moved nothing measurable or hurt.
-4. **Even a perfect mix of the arms would not reach G1.2** (section 6): taking the best unlock rate of any arm for every achievement gives 52.6 reward.
+4. **Even a perfect mix of the 1M-step policies would not reach G1.2** (section 6): taking the best unlock rate of any arm for every achievement gives 52.6 reward.
+5. **The gap is sample efficiency, not model capacity (TASK-026 diagnostic, not EP-A).** The same GRU-TP config trained for 2M / 3M / 4M steps (tuning seeds, 2 seeds each) reaches
+   57.7 / 66.3 / 65.5 reward and 25.6 / 33.4 / 31.9 score, against 48.8 / 17.7 at 1M (4 seeds). It crosses G1.2's thresholds between 1x and 2x the EP-A budget and plateaus near 66 by 3M.
+   A 1M-step method therefore has to learn about 1.7-2x more per environment step; model size, width (512: no gain) and ten single-knob variants did not provide that (section 8).
+   This corrects the first draft of this report and the pre-registration, which read the gap as a missing capability.
 
 ## 2. Gate status
 
@@ -117,8 +121,9 @@ Reading:
   iron <= 1.6 %, skeleton <= 5.5 %, stone tools 8-17 %, and eat_plant / diamond / iron tools 0.
 * The evaluation episodes are short (195-231 steps). Zombies cause 70-82 % of deaths for every arm (about 55 % at night; death diagnostic on one tuning seed per arm,
   illustrative). Reaching iron and diamond needs both survival and long-horizon credit assignment (gamma 0.97 is about a 33-step horizon; gamma 0.99 on Truck gave no gain).
-* Hence G1.2 is not a "last few points" problem of the existing family: reward counts achievements, and +7.7 points means unlocking one to two achievements more per episode that
-  no arm unlocks at all today.
+* This profile describes **1M-step policies**. With more data the deep chain does get unlocked (section 8: at 3M-4M steps stone pickaxe/sword 77-84 %, coal 74-78 %, iron 14-16 %,
+  zombie 91 %, skeleton 23-31 %), so the 52.6 ceiling is a statement about the EP-A budget, not about what this model family can represent. eat_plant, diamond and iron tools stay at 0 % even at 4M.
+* Hence the +7.7 reward gap is not a "last few points" problem of the 1M-step recipe, but it is also not a capacity wall: it is the amount learned per environment step.
 
 ## 7. Reliability and caveats (all recorded, none hidden)
 
@@ -135,19 +140,59 @@ Reading:
   evaluator is post auto-reset fix. No simulator access at decision time in any gate arm.
 * **Not tested.** Image observation, Dyna-style use of the learned TP model, anything above 4M parameters for the Truck family, TASK-021 (Kaggle TPU tuning, never executed).
 
-## 8. Tuning attempt (TASK-026, this session)
+## 8. Tuning attempt and diagnostics (TASK-026, this session)
 
-(see the end of this file; filled in after the runs finished)
+Pre-registration with five amendments, each written before the runs it covers: `README.md` in this directory. Per-seed result files: `results/` in this directory (plain-text copies of
+`output/phase1/g12_t026/`, which is LFS-tracked and could not be pushed from the cloud session: no Hugging Face credentials). Platform: 4-core CPU, jax 0.12.0, Python 3.13, commit recorded in each file;
+role `tune`, tuning seeds 4000-4999 (never used before, disjoint from every final seed), 999,424 env steps, symbolic 1345-d, sampled policy, 256 evaluation envs per seed. No config was selected on, and no gate was read from, these seeds.
+
+**8.1 One-factor screen around GRU-TP (R0) at the EP-A budget** (mean over seeds 4000-4001; R0 over 4000-4003 = 48.83 / 17.67 +- 0.45 / 0.67; qualification line = R0 + 2.0 reward on the same seeds = 50.62)
+
+| id | change vs R0 | params_total | reward | score | qualifies |
+|---|---|---|---|---|---|
+| R0 | none (GRU-TP) | 1.25M | 48.62 (2 seeds), 48.83 (4 seeds) | 18.12 / 17.67 | reference |
+| R1 | lr 2e-3 | 1.25M | 48.70 | 19.32 | no (+0.1) |
+| R2 | lr 5e-4 | 1.25M | 44.82 | 14.65 | no (-3.8) |
+| R3 | entropy 0.02 | 1.25M | 46.88 | 18.21 | no (-1.7) |
+| R4 | gamma 0.99, lambda 0.8 | 1.25M | 45.84 | 17.19 | no (-2.8) |
+| R5 | width 512 | 3.64M | 48.43 (2 seeds); 48.93 +- 0.50 / 19.47 +- 0.44 (4 seeds) vs R0 48.83 / 17.67 | 19.10 | no (reward +0.10 +- ~0.5 on 4 seeds; score +1.8) |
+| R6 | 32 envs x 128 steps | 1.25M | 48.14 | 18.75 | no (-0.5) |
+| R7 | 8 PPO epochs | 1.25M | 41.18 | 13.38 | no (-7.4: more reuse of the batch hurts) |
+| R8 | 32 envs x 64 steps (2x updates) | 1.25M | 45.60 | 16.86 | no (-3.0) |
+| R9 | 16 envs x 64 steps (4x updates) | 1.25M | 43.85 | 14.35 | no (-4.8) |
+| R10 | 32 envs x 32 steps (4x updates) | 1.25M | 45.36 | 15.26 | no (-3.3) |
+
+More PPO updates per environment step (R7, R8, R9, R10) is worse in every variant tried: the sample-efficiency gap is not closed by update count.
+Best tuning-seed mean among all configs: **48.93 (R5, width 512, 4 seeds; R1 48.70 on 2 seeds)** against the stop line of 54.0, so by the pre-registered rule **no final (EP-A) block was run and no gate is claimed.** Width 512 improves score by +1.8 on 4 seeds
+but score is not the failing metric. Tuning on 2-4 seeds can only detect effects of about 2 reward or more (R0 sd 0.9); a +7.7 effect would have been obvious and did not occur.
+
+**8.2 Data-scaling diagnostic (labelled `diag-*`, not EP-A, not a gate; independent runs, lr schedule scaled to the run length; R0; seeds 4000-4001 beyond 1M)**
+
+| env steps | seeds | reward | score | eval length | stone pickaxe / sword | coal | iron | zombie | skeleton | wake_up |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1M (EP-A budget) | 4 | 48.83 +- 0.45 | 17.67 +- 0.67 | 235 | 17 / 5 % | 25 % | 1 % | 13 % | 3 % | 72 % |
+| 2M | 2 | 57.66 +- 0.90 | 25.59 +- 1.84 | 280 | 63 / 56 % | 65 % | 6 % | 9 % | 6 % | 63 % |
+| 3M | 2 | 66.34 +- 0.80 | 33.41 +- 0.30 | 278 | 77 / 76 % | 74 % | 16 % | 91 % | 23 % | 69 % |
+| 4M | 2 | 65.53 +- 0.15 | 31.86 +- 0.24 | 283 | 81 / 84 % | 78 % | 14 % | 91 % | 31 % | 15 % |
+| G1.2 (MFRL_best, Dedieu 2025 Table 1, 55.6M params, image obs, 1M steps) | | 55.49 | 16.77 | | | | | | | |
+
+Reading: at 2x the budget the policy already clears G1.2's thresholds with n = 2 (reward - 2 SE 55.87); the training return was still rising at 4M; the plateau near 66 (3M-4M) is close to the
+transformer-world-model + Dyna result of Dedieu et al. (MBRL_fast 67.42 / 27.91 at 58.5M params, 1M steps; MASTER_GUIDANCE). eat_plant, diamond and iron tools stay at 0 %. Caveats: 2 seeds (the 1M row uses 4 seeds, 4000-4003; the others 4000-4001), single config, CPU platform; the shape of the curve (not the exact numbers) is the finding.
 
 ## 9. Recommendation
 
-* Do not treat Phase 1 as closed. Phase 2 stays locked; MASTER_GUIDANCE `current_phase` stays 1.
-* The operator should decide whether GRU-TP's second-attempt pass closes G1.1 (the roadmap does not define a retry rule; nothing was selected or dropped, all 7 blocks are reported).
-* For G1.2 the evidence points at a new capability, not tuning: survival (zombie deaths at ~200 steps) and deep-chain credit assignment (stone tools -> iron). Candidate directions, none
-  implemented (strictness: unconfirmed components): (a) Dyna-style planning/imagination with the TP head (a learned one-step model; env steps unchanged under P10, compute and params
-  counted; Dedieu et al. report 67.4 reward for a Transformer world model + Dyna at 58.5M params, so the ceiling exists but at far higher cost); (b) a larger replay / more updates per
-  step via an off-policy learner; (c) image modality + CNN to match the reference. Each needs an operator decision and a GPU.
-* Compute: the cloud session has no GPU; a 1M-step GRU run takes ~28 min on 4 CPU cores, Truck arms ~2x. A 10-seed gate block of a GRU arm is ~5 h, a Truck block ~10 h on this machine.
+* Do not treat Phase 1 as closed. Phase 2 stays locked; MASTER_GUIDANCE `current_phase` stays 1. No Phase-2 candidate was designed or built (the request was conditional on a closed Phase 1).
+* The operator should decide whether GRU-TP's second-attempt pass closes G1.1 (the roadmap defines no retry rule; nothing was selected or dropped, all 7 blocks are reported).
+* **Knob tuning is exhausted for G1.2.** Ten single-knob variants at 1M steps (TASK-026) and ~200 earlier jobs found nothing that moves reward by more than ~1 beyond TP.
+* **The next lever must raise learning per environment step by about 1.7-2x** (the 2M-step point crosses G1.2). Candidate directions, none implemented (strictness: unconfirmed components; each needs an operator decision,
+  and the first two need a GPU to be practical):
+  (a) Dyna-style use of the learned transition-prediction head: imagined rollouts/updates from a one-step model trained on executed transitions only (P4); env steps unchanged (P10), compute and the model counted in
+      params_total. Supporting evidence: TP alone gave +3.1 reward (the one auxiliary signal that helped), and Dedieu et al. reach 67.4 reward at 1M steps with a transformer world model + Dyna (58.5M params, MASTER_GUIDANCE MBRL_fast).
+  (b) Off-policy / replay-based learner with high update-to-data ratio. Evidence against naive reuse inside PPO: 8 epochs per batch lost 7 reward (R7); K1/K2 (2x updates) gave nothing on Truck.
+  (c) More auxiliary learning signals of the TP kind (what helped), screened on tuning seeds first. EV (contrastive next-reward event) hurt, so the choice matters.
+  (d) Image observation + CNN as in the reference (rejected earlier on compute grounds).
+* Compute: the cloud session has no GPU; a 1M-step GRU run takes ~25-28 min on 2 CPU cores (two run in parallel), a 4M-step run ~92 min. A 10-seed GRU gate block is ~2.5-3 h with 2 workers, a Truck block roughly double.
+  This session's CPU path (`scripts/run_t026_cpu_sweep.py`) is usable for GRU-class screens and diagnostics.
 
 ## 10. Sources
 
