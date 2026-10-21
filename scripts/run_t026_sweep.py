@@ -14,7 +14,7 @@ sw.ROOT = "output/phase1/push_t026"
 sw.rs.VRAM_BUDGET_MIB = 7000
 base, truck = sw.base, sw.truck
 TP = dict(tp_coef=1.0)
-X = ("lr_sched", "lr_knee", "lr_knee_frac", "rew_small")   # point keys that exist only in TASK-026
+X = ("lr_sched", "lr_knee", "lr_knee_frac", "rew_small")   # point keys that exist only in TASK-027
 
 CONFIGS = {
     # --- LR schedule (idea 1): faster decay after the steep phase, higher peak -------------------------------------------------

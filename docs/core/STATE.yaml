@@ -1396,6 +1396,28 @@ tasks:
       (+7.7 = ~1.6 achievements per episode); stated without softening. MASTER_GUIDANCE knowledge-DB rule: the operator asked for it conditionally on a phase advance; added anyway (independent of the phase, reversible).
       Open operator decisions: (1) does GRU-TP's second-attempt G1.1 pass close G1.1; (2) which sample-efficiency direction for G1.2 (needs GPU). Limitation: Truck family not screened (cost); diagnostics at 2 seeds on one config.
 
+  - id: "TASK-20261022-027-sample-efficiency-g12"
+    created_at: "2026-10-22T00:15:00+09:00"
+    status: "in_progress"
+    description: >
+      Operator request (2026-10-22, unreachable until 11:30 JST, no approvals needed): mainly on Kaggle, try ideas that raise sample efficiency
+      towards G1.2: (1) lr schedule that passes the steep-loss phase quickly, (2) a reward coefficient learned from part of the 1M steps,
+      (3) plain parameter adjustment; further candidates from the results may be tried.
+    spec_ref: "docs/experiments/2026-10-22_sample_efficiency/README.md (pre-registration + amendments)"
+    validation_commands: []
+    result: null
+    blockers: []
+    notes: >
+      No validation_commands supplied (missing); the TASK-025 set is used (pre_commit_ban_check, tests.test_epa_harness, audit_phase1_results).
+      Numbered 027 because TASK-20261019-026 (cloud session, merged as PR #18, tuning null result + data-scaling diagnostic 2M/3M/4M = 57.7/66.3/65.5)
+      was found only after the first kernels were launched (local main was stale); scripts/kernels named t026 predate that. TASK-026's knobs
+      (lr 2e-3, lr 5e-4, entropy, gamma/lambda, width 512, epochs, batch shapes) are NOT repeated except where they are the baseline of a new comparison.
+      CRITICAL REVIEW (README): idea 2 is reward shaping (P5 / EP-A 'reward unchanged'); a per-achievement weighting needs achievement identity
+      (external knowledge) and is not tried; only a coefficient on the |r|<0.5 health terms is run, labelled P5-contested diagnostic, never gate
+      evidence unless the operator amends P5. Idea 1: the harness already anneals lr linearly to 0 (5 % warm-up), only the shape is new.
+      Impact check (scip-neo4j, index main 821a910): Trainer.__init__, Trainer._rollout, PPOConfig ALLOWED (no LOCKED_CORE_THEORY); new options default
+      to the old behaviour (existing configs unchanged).
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >

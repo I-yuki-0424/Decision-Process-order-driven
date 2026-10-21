@@ -5,6 +5,15 @@ passes the steep-loss phase quickly, (2) a reward coefficient learned from part 
 sample efficiency towards G1.2 (MFRL_best: reward > 55.49 AND score > 16.77, surpass = mean - 2 SE over 10 seeds). Any candidate that comes out
 of the results may be tried.
 
+## Context found after the first launch (amendment 0)
+Local main was stale when this task started. TASK-20261019-026 (PR #18, `docs/experiments/2026-10-19_phase1_g12_tuning/`) had already shown on tuning
+seeds 4000-4003 that single knobs around GRU-TP do not help (lr 2e-3 48.70, lr 5e-4 44.82, entropy 0.02 46.88, gamma 0.99 45.84, width 512 48.93, 8 epochs
+41.18, other batch shapes worse; R0 48.83 / 17.67) and that the same model reaches 57.7 / 66.3 / 65.5 reward at 2M / 3M / 4M steps (diagnostic, not EP-A):
+the G1.2 gap is sample efficiency (~1.7-2x). Consequences: (a) the round-1 kernels (already running, seeds 4000-4003, so the seeds are NOT fresh: they
+overlap TASK-026's and carry that selection caveat; new tuning seeds from round 2 on are 5000-5999) repeat some TASK-026 knobs (lr2, ent005, lam9, w512);
+(b) the new content of round 1 is the lr SHAPE (knee/cosine), the health-reward diagnostic and TP1h-based variants; (c) later rounds look for the
+~1.7x: richer generic auxiliaries and learned-model (Dyna-style) use of the TP head, plus combinations of whatever round 1 finds.
+
 ## Critical review (before running)
 1. **Starting point.** Best arms (TASK-025): GRU-TP (G4TP1, 1.25M) 48.5 / 18.5 pooled, TP1h 49.4 / 18.6. Score already clears G1.2 (16.77); **reward
    needs about +7 (+9 with -2SE margin at TP1h's spread)**. Screening noise: GRU-TP seed sd ~1; TP1h sd ~3-5.
@@ -24,7 +33,7 @@ of the results may be tried.
    tried; a G1.2 claim needs the full EP-A gate protocol (10 fresh seeds, a clean commit) and is made only if it is reached.
 
 ## Protocol
-* Screening role `tune`, tuning seeds **4000-4003** (disjoint from T025's 3000-3999 and from every final seed), EP-A-tuning settings otherwise
+* Screening role `tune`, tuning seeds **4000-4003** in round 1 (see amendment 0: overlap with TASK-026; disjoint from every final seed), 5000-5999 afterwards, EP-A-tuning settings otherwise
   (1M steps, 256 fresh eval envs, sampled policy, final params). Platform Kaggle T4 for all arms of a comparison; baselines (G4TP1, TP1h) are
   re-run on the same seeds and platform in the same kernel set.
 * Candidate rule: mean(reward + score) >= baseline (same seeds, platform) + 3.0 (same as T025). Candidates may be combined in later rounds.
