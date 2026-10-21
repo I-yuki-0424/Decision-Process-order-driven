@@ -72,6 +72,8 @@ def command(name, seed, out, role, **kw):
             cmd += ["--lr-knee", str(p["lr_knee"]), "--lr-knee-frac", str(p["lr_knee_frac"])]
     if p.get("rew_small", 1.0) != 1.0:
         cmd += ["--rew-small", str(p["rew_small"])]
+        i = cmd.index("--protocol") + 1   # reward re-weighting breaks "reward unchanged" (EP-A / P5): never labelled as plain EP-A
+        cmd[i] = cmd[i] + "-P5-contested-reward-coefficient"
     return cmd
 
 

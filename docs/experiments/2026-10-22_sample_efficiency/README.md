@@ -72,3 +72,12 @@ R4 (reward / score, r+s; baseline G4TP1 47.43 / 17.39 = 64.8): health coefficien
 so any "learned" coefficient would have to end at 0 (= ignore the +-0.1 health terms). rs0 + entropy 0.005: 49.72 / 19.07 (68.8); rs0 + width 512 (3.64M): 51.40 / 21.61 (73.0);
 **rs0 + entropy 0.005 + width 512: 52.93 +- 1.18 / 21.72 +- 1.59 (74.65; seeds 49.6 55.2 53.6 53.3)**; Truck + rs0 (T_rs0): 48.17 +- 2.10 / 18.97 (67.1; no gain, wide spread).
 R6 (kernel g, queued after the LP result of R2): rs0+lp1+w512+ent005, rs0+lp1+w512, rs0+lp1+ent005, and the P5-clean stack lp1+w512+ent005, same seeds.
+
+## Amendment 4 (2026-10-22 ~06:45 JST, after R5 [kernel f]; R6 [kernel g] still running; before any final-block run)
+R5 (seeds 5000-5003 unless noted; baseline G4TP1 47.43 / 17.39 = 64.8): lp1+entropy 0.005 49.65 / 18.68 (68.3); lp1+knee 47.21 / 17.68 (64.9); lp1+width 512 47.91 / 17.54 (65.5);
+**rs0+lp1 52.13 +- 0.51 / 22.63 +- 0.55 (74.75)**. Confirmation on fresh seeds 6000-6003: G4TP1 48.54 / 18.72 (67.3), lp1 49.61 / 19.01 (68.6): the LP gain shrinks to about +1 reward / +0.3 score
+(8 seeds pooled: +1.8 / +1.7). LP is a modest but P5-clean lever; it does not stack with width 512 or the knee.
+Final blocks (config choice fixed now from tuning seeds only, never from final seeds): kernel h = block J (train 172-181 / test 554-563, Kaggle T4, clean commit) for
+ (1) G_rs0_ent005_w512 (rs0 + entropy 0.005 + width 512, 3.64M params, best tuning stack 52.93 / 21.72) and (2) G_rs0_lp1 (rs0 + LP, 1.52M, 52.13 / 22.63), both **P5-contested**
+ (result files carry protocol "EP-A-P5-contested-reward-coefficient"). Kernel i (after R6) = block J for the P5-clean best (G_lp1_ent005 unless R6 says otherwise) and R6's best stack.
+Each final block is evaluated exactly like TASK-025 (10 seeds, mean - 2 SE against MFRL_best 55.49 / 16.77 for G1.2); a P5-contested pass is reported as "would pass G1.2 if P5 were amended", never as G1.2 passed.
