@@ -57,6 +57,10 @@ CONFIGS = {
     "G_rs0_lp1_w512": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3, width=512), rew_small=0.0),
     "G_rs0_lp1_ent005": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3), rew_small=0.0, ent=0.005),
     "G_lp1_w512_ent005": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3, width=512), ent=0.005),
+    "G_rs0_ent005_w768": base(arm=dict(tp_coef=1.0, width=768), rew_small=0.0, ent=0.005),
+    "G_rs0_ent005_w1024": base(arm=dict(tp_coef=1.0, width=1024), rew_small=0.0, ent=0.005),
+    "G_rs0_ent005_w512_tph512": base(arm=dict(tp_coef=1.0, width=512, tp_hidden=512), rew_small=0.0, ent=0.005),
+    "G_rs0_ent005_w1024_tph512": base(arm=dict(tp_coef=1.0, width=1024, tp_hidden=512), rew_small=0.0, ent=0.005),
     "T_rs0": truck(arm=dict(tp_coef=1.0, tp_src="head"), rew_small=0.0),
 }
 sw.CONFIGS.update(CONFIGS)

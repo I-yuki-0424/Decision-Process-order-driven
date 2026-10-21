@@ -88,3 +88,9 @@ P5-clean lp1+w512+entropy 0.005 48.74 / 16.33 (65.1). The reward-0 stacks satura
 Kernel i (block J, same seeds 172-181 / test 554-563, Kaggle T4, clean tree): **G_lp1 (P5-clean; two independent tuning confirmations +2.6 and +1.1 reward) and the paired control G4TP1**
 (equal effort: no re-tuning of the control, as in TASK-025). The control also serves the P5-contested arms of block J. Selection of the P5-clean arm is fixed now (G_lp1: fewest changes);
 G_lp1_ent005 (68.3) is not preferred because entropy 0.005 is not a consistent gain (R1 +3.1 with rs0 absent, R4 negative with rs0).
+
+## Amendment 6 (2026-10-22 ~08:20 JST, after block J of kernel h [P5-contested arms]; kernel i [G_lp1 + control] still running)
+Block J (train 172-181 / test 554-563, Kaggle T4, clean commit 311b30d, protocol label EP-A-P5-contested-reward-coefficient):
+G_rs0_ent005_w512 (3.64M) 52.21 +- 0.61 / 20.32 +- 0.78 (-2SE 50.98 / 18.76): G1.1 criteria met, **G1.2 FAIL** (needs > 55.49); G_rs0_lp1 (1.52M) 50.35 +- 0.84 / 20.28 +- 0.65 (-2SE 48.66 / 18.99): G1.1 met, G1.2 FAIL.
+Tuning-seed estimates shrank (52.93 -> 52.21, 52.13 -> 50.35: selection/winner's-curse). One more screening round (kernel j, seeds 5000-5003, no final block fits the deadline):
+widths 768 / 1024 and a 512-wide TP head on top of rs0+entropy 0.005 (G1.2 has no parameter cap; G1.1 is capped at 4.0M and is not the target of this round). Any result of it is tuning-seed evidence only.
