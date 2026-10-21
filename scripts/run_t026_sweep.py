@@ -47,6 +47,9 @@ CONFIGS = {
     "G_rs0_lr2": base(arm=TP, rew_small=0.0, lr=2e-3), "G_rs0_g99": base(arm=TP, rew_small=0.0, gamma=0.99),
     "G_rs0_lam9": base(arm=TP, rew_small=0.0, lam=0.9), "G_rs0_ent02": base(arm=TP, rew_small=0.0, ent=0.02),
     "G_rs0_lp1": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3), rew_small=0.0),
+    "G_rs05": base(arm=TP, rew_small=0.5), "G_rs025": base(arm=TP, rew_small=0.25),
+    "G_rs0_ent005": base(arm=TP, rew_small=0.0, ent=0.005), "G_rs0_w512": base(arm=dict(tp_coef=1.0, width=512), rew_small=0.0),
+    "G_rs0_ent005_w512": base(arm=dict(tp_coef=1.0, width=512), rew_small=0.0, ent=0.005),
     "T_rs0": truck(arm=dict(tp_coef=1.0, tp_src="head"), rew_small=0.0),
 }
 sw.CONFIGS.update(CONFIGS)
