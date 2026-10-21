@@ -81,3 +81,10 @@ Final blocks (config choice fixed now from tuning seeds only, never from final s
  (1) G_rs0_ent005_w512 (rs0 + entropy 0.005 + width 512, 3.64M params, best tuning stack 52.93 / 21.72) and (2) G_rs0_lp1 (rs0 + LP, 1.52M, 52.13 / 22.63), both **P5-contested**
  (result files carry protocol "EP-A-P5-contested-reward-coefficient"). Kernel i (after R6) = block J for the P5-clean best (G_lp1_ent005 unless R6 says otherwise) and R6's best stack.
 Each final block is evaluated exactly like TASK-025 (10 seeds, mean - 2 SE against MFRL_best 55.49 / 16.77 for G1.2); a P5-contested pass is reported as "would pass G1.2 if P5 were amended", never as G1.2 passed.
+
+## Amendment 5 (2026-10-22 ~07:45 JST, after R6 [kernel g]; block J of kernel h still running; before kernel i)
+R6 (seeds 5000-5003; baseline G4TP1 47.43 / 17.39 = 64.8): rs0+lp1+entropy 0.005 52.32 / 21.18 (73.5); rs0+lp1+w512 51.60 / 21.11 (72.7); rs0+lp1+w512+entropy 0.005 52.34 / 21.22 (73.6);
+P5-clean lp1+w512+entropy 0.005 48.74 / 16.33 (65.1). The reward-0 stacks saturate near 52.3 / 21.2 (rs0+lp1 alone 52.13 / 22.63); width and entropy add nothing once LP is in.
+Kernel i (block J, same seeds 172-181 / test 554-563, Kaggle T4, clean tree): **G_lp1 (P5-clean; two independent tuning confirmations +2.6 and +1.1 reward) and the paired control G4TP1**
+(equal effort: no re-tuning of the control, as in TASK-025). The control also serves the P5-contested arms of block J. Selection of the P5-clean arm is fixed now (G_lp1: fewest changes);
+G_lp1_ent005 (68.3) is not preferred because entropy 0.005 is not a consistent gain (R1 +3.1 with rs0 absent, R4 negative with rs0).
