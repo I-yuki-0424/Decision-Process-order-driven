@@ -66,6 +66,9 @@ _command = sw.command
 def command(name, seed, out, role, **kw):
     cmd = _command(name, seed, out, role, **kw)
     p = sw.CONFIGS[name]["point"]
+    if role == "final":   # the T025 driver text names TASK-025's tuning seeds; this task tuned on 4000-4003, 5000-5003, 6000-6003 (README amendments 0-4)
+        i = cmd.index("--tuning-budget") + 1
+        cmd[i] = f"TASK-027: config {name} fixed from screening on tuning seeds 4000-4003, 5000-5003, 6000-6003 (about 30 configs x 4 seeds, Kaggle T4); same effort not given to a re-tuned baseline (baseline = TASK-025 G4TP1)"
     if p.get("lr_sched", "linear") != "linear":
         cmd += ["--lr-sched", p["lr_sched"]]
         if p["lr_sched"] == "knee":
