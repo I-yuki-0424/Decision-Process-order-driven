@@ -42,3 +42,15 @@ overlap TASK-026's and carry that selection caveat; new tuning seeds from round 
 
 ## Amendments
 (each appended before the runs it covers)
+
+## Amendment 1 (2026-10-22 ~03:00 JST, after round 1 [kernels t026-a/b, seeds 4000-4003, Kaggle T4], before round 2/3/4 results)
+Round 1 (reward / score, r+s; baseline GRU-TP G4TP1 47.11 / 17.39 = 64.50, TP1h 45.94 / 16.52 = 62.46, same seeds and platform):
+lr 2e-3 48.49 / 17.75 (66.2); cosine 2e-3 47.28 / 16.15 (63.4); knee 2e-3 (x0.3 at 25 %) 47.99 / 18.99 (67.0); Truck lr 2e-3 46.99 / 18.57 (65.6);
+Truck knee 45.84 / 16.48 (62.3); width 512 50.12 / 19.55 (69.7; TASK-026 found 48.93 vs 48.83 on the same seeds, so not trusted); entropy 0.005 48.84 / 18.81 (67.7);
+lambda 0.9 39.32 / 12.80 (52.1, harmful); **health-term coefficient 0 (rs0, P5-contested diagnostic) 50.89 +- 0.32 / 21.15 +- 0.91 (72.0, sd 0.63 over seeds)**;
+coefficient 2: 47.98 / 17.03 (65.0).
+Reading: (1) lr SHAPE does not help (all below the +3.0 candidate line; the linear anneal already used is as good). (2) Zeroing the +-0.1 health terms of the
+training reward is the only large effect (+3.8 reward, +3.8 score, tight spread) - it is reward shaping (P5 / EP-A "reward unchanged"), so it is NOT gate evidence;
+any EP-A claim built on it needs the operator to amend P5. (3) Candidates by the rule: rs0, entropy 0.005 (+3.15, weak), width 512 (+3.2, contradicted by TASK-026).
+Next (fixed now): R2 (kernel c, seeds 5000-5003): LP auxiliary (4 variants) vs G4TP1 re-run; R3 (kernel d): rs0 stacked with knee / lr 2e-3 / gamma 0.99 /
+lambda 0.9 / entropy 0.02 and rs0 alone on the new seeds; R4 (kernel e): rs 0.25 and 0.5 (sensitivity), rs0 + entropy 0.005 / width 512 / both, Truck + rs0.
