@@ -42,6 +42,12 @@ CONFIGS = {
     # --- LP: SPR-style multi-step latent prediction on top of TP (candidate from the sample-efficiency finding of TASK-026) ----------------
     "G_lp03": base(arm=dict(tp_coef=1.0, lp_coef=0.3, lp_k=3)), "G_lp1": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3)),
     "G_lp3": base(arm=dict(tp_coef=1.0, lp_coef=3.0, lp_k=3)), "G_lp1k6": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=6)),
+    # --- R3: stack the health-reward diagnostic (rew_small 0) with the other levers --------------------------------------------------
+    "G_rs0_kn2a": base(arm=TP, rew_small=0.0, lr=2e-3, lr_sched="knee", lr_knee=0.25, lr_knee_frac=0.3),
+    "G_rs0_lr2": base(arm=TP, rew_small=0.0, lr=2e-3), "G_rs0_g99": base(arm=TP, rew_small=0.0, gamma=0.99),
+    "G_rs0_lam9": base(arm=TP, rew_small=0.0, lam=0.9), "G_rs0_ent02": base(arm=TP, rew_small=0.0, ent=0.02),
+    "G_rs0_lp1": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3), rew_small=0.0),
+    "T_rs0": truck(arm=dict(tp_coef=1.0, tp_src="head"), rew_small=0.0),
 }
 sw.CONFIGS.update(CONFIGS)
 _command = sw.command
