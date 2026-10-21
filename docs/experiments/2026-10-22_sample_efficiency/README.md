@@ -66,3 +66,9 @@ rs0 + lp1, and lp1 re-run with a baseline re-run on fresh seeds 6000-6003.
 Final blocks (fixed now, seeds unused anywhere in output/): block J train 172-181 / test 554-563, block K train 182-191 / test 564-573 (offset 382, role final, clean tree).
 Gate evaluation, if run, follows TASK-025 exactly (10 seeds, mean - 2 SE vs MFRL_best 55.49 / 16.77 for G1.2; params_total reported). Any arm using rs0 is labelled
 "P5-contested diagnostic" in its result file protocol field and cannot close a gate unless the operator amends P5.
+
+## Amendment 3 (2026-10-22 ~06:20 JST, after R4 [kernel e], seeds 5000-5003; before R5 [f] and R6 [g] results)
+R4 (reward / score, r+s; baseline G4TP1 47.43 / 17.39 = 64.8): health coefficient 0.5: 48.50 / 18.82 (67.3); 0.25: 49.44 / 19.66 (69.1); 0 (R3): 50.83 / 21.03 (71.9) - monotone in the coefficient,
+so any "learned" coefficient would have to end at 0 (= ignore the +-0.1 health terms). rs0 + entropy 0.005: 49.72 / 19.07 (68.8); rs0 + width 512 (3.64M): 51.40 / 21.61 (73.0);
+**rs0 + entropy 0.005 + width 512: 52.93 +- 1.18 / 21.72 +- 1.59 (74.65; seeds 49.6 55.2 53.6 53.3)**; Truck + rs0 (T_rs0): 48.17 +- 2.10 / 18.97 (67.1; no gain, wide spread).
+R6 (kernel g, queued after the LP result of R2): rs0+lp1+w512+ent005, rs0+lp1+w512, rs0+lp1+ent005, and the P5-clean stack lp1+w512+ent005, same seeds.
