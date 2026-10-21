@@ -179,6 +179,32 @@ class TestRecipeAndVariants(unittest.TestCase):
         self.assertAlmostEqual(float(mu), 2.0, places=5)
         self.assertAlmostEqual(float(sd), 1.0, places=4)
 
+    def test_lr_schedules_and_reward_coefficient(self):   # TASK-026
+        base = dict(total_steps=40 * 4 * 8, num_envs=4, num_steps=8, minibatches=2, epochs=1, lr=1.0)
+        n_opt = 40 * 1 * 2
+        for sched in ("linear", "cosine", "knee"):
+            eh.Trainer(GRUArm(16), eh.PPOConfig(**base, lr_sched=sched, lr_knee=0.25, lr_knee_frac=0.3))   # builds
+        # the knee schedule: 1 -> 0.3 over the first quarter, then linear to 0 (checked on the same interp the trainer builds)
+        kn = int(0.25 * n_opt)
+        f = lambda c: float(jnp.interp(jnp.float32(c), jnp.array([0.0, kn, n_opt], jnp.float32), jnp.array([1.0, 0.3, 0.0], jnp.float32)))
+        self.assertAlmostEqual(f(0), 1.0)
+        self.assertAlmostEqual(f(kn), 0.3, places=5)
+        self.assertAlmostEqual(f(n_opt), 0.0, places=5)
+        with self.assertRaises(ValueError):
+            eh.Trainer(GRUArm(16), eh.PPOConfig(**base, lr_sched="exp"))
+        # defaults leave the training reward unchanged; rew_small scales only |r| < 0.5 terms and is a training-only change
+        cfg0 = eh.PPOConfig(total_steps=2 * 4 * 8, num_envs=4, num_steps=8, minibatches=2)
+        cfg1 = cfg0._replace(rew_small=0.0)
+        out = []
+        for cfg in (cfg0, cfg1):
+            tr = eh.Trainer(GRUArm(16), cfg)
+            st = tr.init(jax.random.PRNGKey(0))
+            _, _, _, _, traj, _ = tr._rollout(st["params"], st, jax.random.PRNGKey(5))
+            out.append(np.asarray(traj["rew"]))
+        big = np.abs(out[0]) >= 0.5
+        np.testing.assert_array_equal(out[0][big], out[1][big])
+        self.assertTrue((out[1][~big] == 0.0).all())
+
     def test_recipe_options_train(self):
         for adv in ("minibatch", "batch"):
             cfg = eh.PPOConfig(total_steps=2 * 4 * 8, num_envs=4, num_steps=8, minibatches=2, value_norm=0.95, adv_norm=adv,

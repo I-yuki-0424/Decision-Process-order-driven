@@ -66,6 +66,10 @@ class PPOConfig(NamedTuple):
     warmup: float = 0.0            # fraction of optimiser steps with a linear lr ramp-up from 0 (0 = off)
     remat: bool = False            # recompute the per-step policy forward in the backward pass (recurrent arms): same maths, less VRAM
     ent_final: float = -1.0        # >= 0: entropy coefficient annealed linearly from `ent` (first update) to `ent_final` (last); < 0 = constant
+    lr_sched: str = "linear"       # anneal_lr shape: "linear" (peak -> 0) | "cosine" (peak -> 0) | "knee" (peak -> lr_knee_frac*peak at lr_knee, then linear -> 0)
+    lr_knee: float = 0.25          # lr_sched="knee": fraction of optimiser steps at which the fast first decay ends
+    lr_knee_frac: float = 0.3      # lr_sched="knee": lr at the knee as a fraction of the peak lr
+    rew_small: float = 1.0         # TASK-026 diagnostic (P5-contested, never gate evidence): training-reward coefficient on |r| < 0.5 terms (the +-0.1 health terms); 1 = env reward unchanged
 
 
 def _vn_stats(vn):
@@ -146,6 +150,14 @@ class Trainer:
         self.env_steps_total = self.n_updates * self.steps_per_update
         n_opt = max(self.n_updates * cfg.epochs * cfg.minibatches, 1)
         lr = optax.linear_schedule(cfg.lr, 0.0, n_opt) if cfg.anneal_lr else cfg.lr
+        if cfg.anneal_lr and cfg.lr_sched == "cosine":
+            lr = optax.cosine_decay_schedule(cfg.lr, n_opt)
+        elif cfg.anneal_lr and cfg.lr_sched == "knee":
+            kn = max(int(cfg.lr_knee * n_opt), 1)
+            lr = lambda c, kn=kn, n=n_opt: cfg.lr * jnp.interp(c.astype(jnp.float32), jnp.array([0.0, kn, n], jnp.float32),
+                                                               jnp.array([1.0, cfg.lr_knee_frac, 0.0], jnp.float32))
+        elif cfg.lr_sched not in ("linear", "cosine", "knee"):
+            raise ValueError("lr_sched must be 'linear', 'cosine' or 'knee'")
         if cfg.warmup:
             nw = max(int(cfg.warmup * n_opt), 1)
             decay = lr if callable(lr) else (lambda c, v=lr: v)
@@ -174,7 +186,8 @@ class Trainer:
             logp = jnp.take_along_axis(jax.nn.log_softmax(logits), a[:, None], 1)[:, 0]
             nobs, env_st2, r, d = env_step(jax.random.split(k2, N), env_st, a)
             ep2 = ep_ret + r
-            tr = dict(obs=obs, carry=carry, act=a, logp=logp, val=value, rew=r, done=d, nobs=nobs,
+            rt = r if self.cfg.rew_small == 1.0 else jnp.where(jnp.abs(r) >= 0.5, r, self.cfg.rew_small * r)   # training reward only
+            tr = dict(obs=obs, carry=carry, act=a, logp=logp, val=value, rew=rt, done=d, nobs=nobs,
                       fin_ret=jnp.where(d, ep2, 0.0))
             return (env_st2, nobs, arm.advance(caux, obs, a, d), jnp.where(d, 0.0, ep2)), tr
 

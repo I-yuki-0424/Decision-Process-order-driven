@@ -67,6 +67,10 @@ def main():
     ap.add_argument("--value-norm", type=float, default=0.0, help="EMA decay of the value-target mean/std (0 = off)")
     ap.add_argument("--adv-norm", default="minibatch", choices=["minibatch", "batch"])
     ap.add_argument("--ent-final", type=float, default=-1.0, help=">= 0: anneal the entropy coefficient linearly from --ent to this value (< 0 = constant)")
+    ap.add_argument("--lr-sched", default="linear", choices=["linear", "cosine", "knee"], help="shape of the lr anneal (TASK-026)")
+    ap.add_argument("--lr-knee", type=float, default=0.25)
+    ap.add_argument("--lr-knee-frac", type=float, default=0.3)
+    ap.add_argument("--rew-small", type=float, default=1.0, help="TASK-026 diagnostic, P5-contested: coefficient on the |r|<0.5 reward terms in training (1 = unchanged)")
     ap.add_argument("--warmup", type=float, default=0.0, help="fraction of optimiser steps with linear lr ramp-up (0 = off)")
     ap.add_argument("--remat", action="store_true", help="recompute the per-step forward in the backward pass (recurrent arms): same maths, less VRAM")
     ap.add_argument("--save-params", default="", help="directory: also write the final params of every seed (pickle of numpy arrays)")
@@ -95,7 +99,7 @@ def main():
     cfg = PPOConfig(total_steps=a.steps, num_envs=a.num_envs, num_steps=a.num_steps, epochs=a.epochs,
                     minibatches=a.minibatches, lr=a.lr, ent=a.ent, lam=a.lam, gamma=a.gamma, clip=a.clip, vf=a.vf,
                     max_grad_norm=a.max_grad_norm, value_norm=a.value_norm, adv_norm=a.adv_norm, warmup=a.warmup, remat=a.remat,
-                    ent_final=a.ent_final)
+                    ent_final=a.ent_final, lr_sched=a.lr_sched, lr_knee=a.lr_knee, lr_knee_frac=a.lr_knee_frac, rew_small=a.rew_small)
     tr = Trainer(arm, cfg)
     print(f"arm={arm.name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
     print(f"provenance: commit={prov['git_commit'][:8]} dirty={prov['git_dirty']} code={prov['code_sha256'][:12]} "

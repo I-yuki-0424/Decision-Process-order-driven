@@ -18,10 +18,11 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import run_t025_sweep as sw  # noqa: E402
+import importlib  # noqa: E402
+sw = importlib.import_module(os.environ.get("SWEEP_MODULE", "run_t025_sweep"))  # TASK-026 sets run_t026_sweep
 import run_phase1_recipe_sweep as rs  # noqa: E402
 
-KROOT = "kaggle_kernel_t025"
+KROOT = os.environ.get("KERNEL_ROOT", "kaggle_kernel_t025")
 USER = "bfloat16"
 
 RUNNER = r'''
