@@ -54,3 +54,15 @@ training reward is the only large effect (+3.8 reward, +3.8 score, tight spread)
 any EP-A claim built on it needs the operator to amend P5. (3) Candidates by the rule: rs0, entropy 0.005 (+3.15, weak), width 512 (+3.2, contradicted by TASK-026).
 Next (fixed now): R2 (kernel c, seeds 5000-5003): LP auxiliary (4 variants) vs G4TP1 re-run; R3 (kernel d): rs0 stacked with knee / lr 2e-3 / gamma 0.99 /
 lambda 0.9 / entropy 0.02 and rs0 alone on the new seeds; R4 (kernel e): rs 0.25 and 0.5 (sensitivity), rs0 + entropy 0.005 / width 512 / both, Truck + rs0.
+
+## Amendment 2 (2026-10-22 ~04:55 JST, after R2 [kernel c] and R3 [kernel d], seeds 5000-5003, Kaggle T4; before R4 [e], R5 [f] results)
+Baseline G4TP1 on 5000-5003: 47.43 +- 1.10 / 17.39 +- 1.05 (r+s 64.8). R2 (LP = SPR-style multi-step latent prediction on top of TP, 1.52M params):
+lp 0.3 (k=3) 48.39 / 17.93 (66.3); **lp 1.0 (k=3) 50.03 +- 1.48 / 20.56 +- 1.59 (70.6; seeds 47.9 47.7 50.3 54.1)**; lp 3.0 47.83 / 19.44 (67.3); lp 1.0 k=6 48.63 / 19.65 (68.3).
+R3 (health-coefficient 0 = rs0, P5-contested): rs0 alone **replicates on fresh seeds: 50.83 +- 0.94 / 21.03 +- 1.03 (71.9)** (round 1: 50.89 / 21.15); rs0+knee 50.33 / 20.13;
+rs0+lr 2e-3 50.42 / 20.42; rs0+gamma 0.99 48.21 / 18.27; rs0+entropy 0.02 45.97 / 17.78; rs0+lambda 0.9 40.30 / 13.68.
+Reading: rs0 is a stable +3.4 reward / +3.6 score and nothing tried so far stacks on it (lr shape neutral, gamma/entropy/lambda harmful); LP is a legitimate (P5-clean)
+gain of about +2.6 reward / +3.2 score at lp 1.0, noisy at 4 seeds (qualifies by the +3.0 r+s rule). Combinations in R5 (kernel f): lp1 + entropy 0.005 / knee / width 512,
+rs0 + lp1, and lp1 re-run with a baseline re-run on fresh seeds 6000-6003.
+Final blocks (fixed now, seeds unused anywhere in output/): block J train 172-181 / test 554-563, block K train 182-191 / test 564-573 (offset 382, role final, clean tree).
+Gate evaluation, if run, follows TASK-025 exactly (10 seeds, mean - 2 SE vs MFRL_best 55.49 / 16.77 for G1.2; params_total reported). Any arm using rs0 is labelled
+"P5-contested diagnostic" in its result file protocol field and cannot close a gate unless the operator amends P5.
