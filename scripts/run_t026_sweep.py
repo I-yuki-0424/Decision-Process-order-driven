@@ -39,6 +39,9 @@ CONFIGS = {
     "G_mb16": base(arm=TP, minibatches=16), "G_mb4": base(arm=TP, minibatches=4),
     "G_n128": base(arm=TP, n=128, t=32), "G_n32": base(arm=TP, n=32, t=64),
     "G_ep6": base(arm=TP, epochs=6), "G_clip3": base(arm=TP, clip=0.3), "G_gn1": base(arm=TP, max_grad_norm=1.0),
+    # --- LP: SPR-style multi-step latent prediction on top of TP (candidate from the sample-efficiency finding of TASK-026) ----------------
+    "G_lp03": base(arm=dict(tp_coef=1.0, lp_coef=0.3, lp_k=3)), "G_lp1": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=3)),
+    "G_lp3": base(arm=dict(tp_coef=1.0, lp_coef=3.0, lp_k=3)), "G_lp1k6": base(arm=dict(tp_coef=1.0, lp_coef=1.0, lp_k=6)),
 }
 sw.CONFIGS.update(CONFIGS)
 _command = sw.command

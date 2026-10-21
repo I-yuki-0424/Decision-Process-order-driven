@@ -83,6 +83,8 @@ class Arm:
     hist_len = 0
     tp_coef = 0.0   # weight of the transition-prediction auxiliary loss (recurrent learner; 0 = off)
     ev_coef = 0.0   # weight of the next-reward-event contrastive auxiliary loss (recurrent learner; 0 = off)
+    lp_coef = 0.0   # weight of the multi-step latent-prediction auxiliary loss (TASK-027; recurrent learner; 0 = off)
+    lp_k = 3        # horizon of the latent-prediction auxiliary
 
     def init_carry(self, n):
         return ()
@@ -128,6 +130,36 @@ def tp_loss(pred, obs, nobs, rew, done):
     l_obs = (((pred[..., :OBS_DIM] - (nobs - obs)) ** 2).mean(-1) * w).sum() / den
     l_rew = (((pred[..., OBS_DIM] - rew) ** 2) * w).sum() / den
     return 100.0 * l_obs + l_rew
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Multi-step latent prediction (TASK-027, "LP"; SPR-style, Schwarzer et al. 2021): a transition model g(z_t, a_t) rolled forward k steps
+# along the EXECUTED actions predicts the (stop-gradient) head features of the next k steps of the same trajectory. Only executed
+# transitions already in the PPO batch are used (P4), no extra environment steps (P10), no game knowledge (P5); the predictor is trained
+# and counted in params_total, never used to act.
+# ----------------------------------------------------------------------------------------------------------------------
+def init_lp_head(key, din, hidden):
+    k1, k2 = jax.random.split(key)
+    return {"h": _ortho(k1, din + N_ACT, hidden, jnp.sqrt(2.0)), "o": _dense(k2, hidden, din, 0.1)}
+
+
+def lp_loss(p, feat, act, done, k):
+    """feat (T, N, F), act / done (T, N). Mean over horizons j = 1..k of the cosine distance between the rolled-forward prediction of
+    feat_{t+j} and sg(feat_{t+j}); pairs whose path crosses an episode end are dropped."""
+    T = feat.shape[0]
+    n = T - k
+    z = feat[:n]
+    valid = jnp.ones((n, feat.shape[1]), jnp.float32)
+    total = 0.0
+    nz = lambda x: x / (jnp.linalg.norm(x, axis=-1, keepdims=True) + 1e-6)
+    for j in range(k):
+        a = jax.nn.one_hot(act[j:n + j], N_ACT)
+        z = z + _ap(p["o"], jnp.tanh(_ap(p["h"], jnp.concatenate([z, a], -1))))
+        valid = valid * (1.0 - done[j:n + j].astype(jnp.float32))
+        tgt = jax.lax.stop_gradient(feat[j + 1:n + j + 1])
+        d = 1.0 - (nz(z) * nz(tgt)).sum(-1)
+        total = total + (d * valid).sum() / jnp.maximum(valid.sum(), 1.0)
+    return total / k
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -199,10 +231,11 @@ class GRUArm(Arm):
     Both default off = the original gru baseline."""
     recurrent = True
 
-    def __init__(self, width=256, ln=False, skip=False, tp_coef=0.0, tp_hidden=128, ev_coef=0.0):
+    def __init__(self, width=256, ln=False, skip=False, tp_coef=0.0, tp_hidden=128, ev_coef=0.0, lp_coef=0.0, lp_k=3, lp_hidden=256):
         self.width, self.ln, self.skip, self.tp_coef, self.tp_hidden, self.ev_coef = width, ln, skip, tp_coef, tp_hidden, ev_coef
+        self.lp_coef, self.lp_k, self.lp_hidden = lp_coef, lp_k, lp_hidden
         self.name = (f"gru{width}" + ("+ln" if ln else "") + ("+skip" if skip else "") + (f"+tp{tp_coef:g}" if tp_coef else "")
-                     + (f"+ev{ev_coef:g}" if ev_coef else ""))
+                     + (f"+ev{ev_coef:g}" if ev_coef else "") + (f"+lp{lp_coef:g}k{lp_k}" if lp_coef else ""))
 
     def init(self, key):
         k = iter(jax.random.split(key, 8))
@@ -218,6 +251,8 @@ class GRUArm(Arm):
             pi["tp"] = init_tp_head(jax.random.fold_in(key, 0x7D), hin, self.tp_hidden)
         if self.ev_coef:
             pi["ev"] = init_ev_heads(jax.random.fold_in(key, 0x7E), hin)
+        if self.lp_coef:
+            pi["lp"] = init_lp_head(jax.random.fold_in(key, 0x7F), hin, self.lp_hidden)
         return {"pi": pi}
 
     def init_carry(self, n):

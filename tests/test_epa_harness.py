@@ -205,6 +205,31 @@ class TestRecipeAndVariants(unittest.TestCase):
         np.testing.assert_array_equal(out[0][big], out[1][big])
         self.assertTrue((out[1][~big] == 0.0).all())
 
+    def test_latent_prediction_auxiliary(self):   # TASK-027
+        from src.model.epa_policies import init_lp_head, lp_loss
+        T, N, F = 8, 3, 16
+        feat = jax.random.normal(jax.random.PRNGKey(0), (T, N, F))
+        act = jax.random.randint(jax.random.PRNGKey(1), (T, N), 0, N_ACT)
+        done = jnp.zeros((T, N), bool)
+        head = init_lp_head(jax.random.PRNGKey(2), F, 8)
+        l0 = lp_loss(head, feat, act, done, 3)
+        self.assertTrue(0.0 <= float(l0) <= 2.0)
+        g = jax.grad(lambda h, f: lp_loss(h, f, act, done, 3), argnums=(0, 1))(head, feat)
+        self.assertGreater(max(float(jnp.abs(x).max()) for x in jax.tree_util.tree_leaves(g[0])), 0.0)   # the predictor receives gradient
+        done_all = jnp.ones((T, N), bool)
+        self.assertEqual(float(lp_loss(head, feat, act, done_all, 3)), 0.0)   # every path crosses an episode end: no pairs
+        cfg = eh.PPOConfig(total_steps=2 * 4 * 8, num_envs=4, num_steps=8, minibatches=2)
+        tr = eh.Trainer(GRUArm(32, ln=True, skip=True, tp_coef=1.0, lp_coef=0.5, lp_k=3), cfg)
+        st0 = tr.init(jax.random.PRNGKey(3))
+        st1, stats = tr.update(st0)
+        self.assertTrue(np.isfinite(np.asarray(stats)).all())
+        self.assertIn("lp", st1["params"]["pi"])
+        base = GRUArm(32, ln=True, skip=True, tp_coef=1.0)   # lp off: identical parameters to the TASK-025 arm
+        a, b = base.init(jax.random.PRNGKey(4)), GRUArm(32, ln=True, skip=True, tp_coef=1.0, lp_coef=0.5).init(jax.random.PRNGKey(4))
+        b_without_lp = {"pi": {k: v for k, v in b["pi"].items() if k != "lp"}}
+        for x, y in zip(jax.tree_util.tree_leaves(a), jax.tree_util.tree_leaves(b_without_lp)):
+            np.testing.assert_array_equal(np.asarray(x), np.asarray(y))
+
     def test_recipe_options_train(self):
         for adv in ("minibatch", "batch"):
             cfg = eh.PPOConfig(total_steps=2 * 4 * 8, num_envs=4, num_steps=8, minibatches=2, value_norm=0.95, adv_norm=adv,

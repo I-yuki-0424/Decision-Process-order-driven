@@ -30,7 +30,7 @@ import optax
 from craftax.craftax_classic.envs.craftax_symbolic_env import CraftaxClassicSymbolicEnv
 
 from src.environment.craftax_env_adapter import NUM_ACHIEVEMENTS, calculate_crafter_score, masked_achievements
-from src.model.epa_policies import Arm, ev_loss, make_optimizer, tp_loss
+from src.model.epa_policies import Arm, ev_loss, lp_loss, make_optimizer, tp_loss
 
 _ENV = CraftaxClassicSymbolicEnv()
 _PARAMS = _ENV.default_params
@@ -232,11 +232,11 @@ class Trainer:
         return loss + wl, jnp.concatenate([aux, wl[None], ex])
 
     def _loss_rec(self, params, mb, ent_coef=None):
-        tp, evc = self.arm.tp_coef, self.arm.ev_coef
+        tp, evc, lpc = self.arm.tp_coef, self.arm.ev_coef, self.arm.lp_coef
 
         def body(h, x):
             obs, act, done = x
-            if tp or evc:   # auxiliaries: transition prediction [S_{t+1} - S_t, r_t] of the executed action / head features
+            if tp or evc or lpc:   # auxiliaries: transition prediction [S_{t+1} - S_t, r_t] of the executed action / head features
                 logits, value, h2, pred, feat = self.arm.step_aux(params, h, obs, act)
                 return self.arm.advance(h2, obs, act, done), (logits, value, pred, feat)
             logits, value, h2 = self.arm.step(params, h, obs)
@@ -252,6 +252,8 @@ class Trainer:
             wl = wl + tp * tp_loss(outs[2], mb["obs"], mb["nobs"], mb["rew"], mb["done"])
         if evc:
             wl = wl + evc * ev_loss(params["pi"]["ev"], outs[3], mb["act"], mb["rew"], mb["done"])
+        if lpc:   # TASK-027: multi-step latent prediction of the executed action sequence
+            wl = wl + lpc * lp_loss(params["pi"]["lp"], outs[3], mb["act"], mb["done"], self.arm.lp_k)
         return loss + wl, jnp.concatenate([aux, wl[None], ex])
 
     # -- one PPO update ------------------------------------------------------------------------------------------------
