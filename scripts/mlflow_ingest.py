@@ -197,6 +197,9 @@ def base_tags(sch, mid, key, family, t_src):
 
 
 def build_phase1(sch, d, key, mtime_ms):
+    rs = (d.get("config") or {}).get("rew_small", 1.0)
+    if rs != 1.0:   # TASK-027: reward-coefficient runs (P5-contested) get their own arm label so they never share a model_id with the env-reward arm
+        d = dict(d, arm=f"{d['arm']}+rs{rs:g}")
     mid = sch.model_id(d["arm"])
     start, t_src = when(d, mtime_ms)
     params = sch.params({**d.get("config", {}), **d.get("arm_kwargs", {}), "observation": d.get("observation"),
