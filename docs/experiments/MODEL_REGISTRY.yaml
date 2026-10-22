@@ -347,3 +347,8 @@ models:
     description: "wider GRU-TP variants with the health reward terms zeroed (P5-contested; TASK-027 screening)"
     status: provisional
     proper_name: null
+  Idea4_O01_D07_S00:
+    arms: ["tfgru64x2w128+mem+pa+hs+tp1h+rs0"]
+    description: "Truck + TP head with the health reward terms zeroed (P5-contested diagnostic, TASK-027 R4; no gain, wide spread)"
+    status: provisional
+    proper_name: null
