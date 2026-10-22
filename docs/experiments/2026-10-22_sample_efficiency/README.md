@@ -101,3 +101,8 @@ difference +0.28 +- 0.60 reward (z 0.5), +0.86 +- 0.38 score (z 2.3): LP is NOT 
 P5-contested arms vs the same control: rs0+lp1 +1.02 +- 1.09 reward, +1.27 +- 0.96 score; rs0+entropy 0.005+width 512 +2.88 +- 0.81 reward (z 3.5), +1.31 +- 1.07 score.
 Block K (train 182-191 / test 564-573, Kaggle T4, clean tree, fixed now): replicate G_rs0_ent005_w512 only (the strongest P5-contested arm). No control run in block K (time); it is read against block J's
 control and the pooled TASK-025 G4TP1 Kaggle blocks (B, C, G, H, I, J), which is a weaker comparison and is stated as such.
+
+## Amendment 8 (2026-10-22 ~10:25 JST, after kernel j [R7] and block K; end of task)
+Block K (train 182-191 / test 564-573, clean commit 7102ccf3): G_rs0_ent005_w512 53.10 +- 0.47 / 21.86 +- 0.52 (-2SE 52.16 / 20.82); G1.2 FAIL; pooled J+K (20 seeds, descriptive) 52.66 +- 0.39 / 21.09 +- 0.49.
+R7 (seeds 5000-5003, rs0 + entropy 0.005): width 768 54.35 +- 0.45 / 23.75 +- 0.11; width 1024 51.12 / 20.28; width 512 + TP head 512 52.68 / 22.06; width 1024 + TP head 512 51.90 / 20.76. No final block was run for width 768 (no time left):
+tuning-seed lead only. Task closed; see RESULTS.md.

@@ -1412,7 +1412,7 @@ tasks:
       (TASK-026 had the same null result for the plain knobs). P5-CONTESTED (idea 2, reward coefficient): zeroing the +-0.1 health terms of the training reward gives +3.4 reward / +3.6 score on two tuning-seed sets
       (monotone in the coefficient 1 / 0.5 / 0.25 / 0 -> 47.4 / 48.5 / 49.4 / 50.8); best stack (rs0 + entropy 0.005 + width 512, 3.64M) block J 52.21 +- 0.61 / 20.32 +- 0.78 (-2SE 50.98), block K (182-191 / 564-573)
       53.10 +- 0.47 / 21.86 +- 0.52 (-2SE 52.16), needs > 55.49: FAIL. Result files carry protocol EP-A-P5-contested-reward-coefficient, MLflow gate_eligible=false and separate +rs0 arm labels; it counts toward no gate
-      unless the operator amends P5. Distance to G1.2 stays about 1.7x data efficiency (TASK-026 2M-step diagnostic 57.7). Width round R7 (768 / 1024 / wide TP head): see RESULTS.md section 4 (kernel still running at 10:15 JST).
+      unless the operator amends P5. Distance to G1.2 stays about 1.7x data efficiency (TASK-026 2M-step diagnostic 57.7). Width round R7 (tuning seeds, rs0 + entropy 0.005): w768 54.35 +- 0.45 / 23.75 (best tuning-seed number, non-monotone in width, NO final block run = lead only), w1024 51.12, w512 + TP head 512 52.68; RESULTS.md section 4.
       Impact check (scip-neo4j, index main 821a910): Trainer.__init__, Trainer._rollout, PPOConfig ALLOWED; new options default off (existing arms unchanged; LP arm without lp_coef has identical parameters, tested).
       Validation: pre_commit_ban_check passed; tests.test_epa_harness TestRecipeAndVariants + TestMetrics 10/10 OK (CPU); MLflow ingested in this checkout (206 runs, 0 UNREGISTERED).
     blockers: []
