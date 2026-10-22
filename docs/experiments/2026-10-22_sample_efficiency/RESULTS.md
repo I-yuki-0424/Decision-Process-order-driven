@@ -109,7 +109,7 @@ Raw result files: `output/phase1/push_t026/` (LFS; this machine has no git-lfs, 
 
 Reading: width 768 reached 54.35 +- 0.45 / 23.75 +- 0.11 (r+s 78.1), the highest tuning-seed number of the task, but the width response is non-monotone (512: 52.93, 768: 54.35, 1024: 51.12; a 512-wide TP head 52.68), it is the best of four configs
 screened on the same four seeds, and TASK-026 / R1 saw width 512 shrink on fresh seeds. It is a P5-contested arm (rs0). **A lead, not a result**: no 10-seed final block fitted before the 11:30 deadline (about 70 min on one kernel slot after 10:25),
-so nothing about width 768 is gate evidence. The next step for an operator who admits the reward coefficient would be a pre-registered 10-seed block of G_rs0_ent005_w768 (7.3M params) against a same-seed control; G1.2 would still need about +1.5 reward on the tuning-seed estimate even if it held (55.49 needed at mean - 2 SE, i.e. mean about 56.4).
+so nothing about width 768 is gate evidence. The next step for an operator who admits the reward coefficient would be a pre-registered 10-seed block of G_rs0_ent005_w768 (7.3M params) against a same-seed control; G1.2 would still need about +2 reward on the tuning-seed estimate even if it held (55.49 needed at mean - 2 SE, i.e. mean about 56.4).
 
 ## 5. Final blocks (EP-A, clean commit, Kaggle T4; `python scripts/summarize_t026.py`)
 | arm | n | protocol | params_total / deployed | reward | score | G1.1 | G1.2 | commit (dirty) |
