@@ -94,3 +94,10 @@ Block J (train 172-181 / test 554-563, Kaggle T4, clean commit 311b30d, protocol
 G_rs0_ent005_w512 (3.64M) 52.21 +- 0.61 / 20.32 +- 0.78 (-2SE 50.98 / 18.76): G1.1 criteria met, **G1.2 FAIL** (needs > 55.49); G_rs0_lp1 (1.52M) 50.35 +- 0.84 / 20.28 +- 0.65 (-2SE 48.66 / 18.99): G1.1 met, G1.2 FAIL.
 Tuning-seed estimates shrank (52.93 -> 52.21, 52.13 -> 50.35: selection/winner's-curse). One more screening round (kernel j, seeds 5000-5003, no final block fits the deadline):
 widths 768 / 1024 and a 512-wide TP head on top of rs0+entropy 0.005 (G1.2 has no parameter cap; G1.1 is capped at 4.0M and is not the target of this round). Any result of it is tuning-seed evidence only.
+
+## Amendment 7 (2026-10-22 ~09:15 JST, after kernel i [block J: G_lp1 + control]; kernel j [R7 width round] still running)
+Block J, Kaggle T4, same seeds for every arm (train 172-181 / test 554-563): control G4TP1 49.33 +- 0.35 / 19.01 +- 0.46 (clean commit 0a08559); **G_lp1 (P5-clean) 49.61 +- 0.55 / 19.88 +- 0.41**:
+difference +0.28 +- 0.60 reward (z 0.5), +0.86 +- 0.38 score (z 2.3): LP is NOT a reward gain on a fresh block (its tuning-seed gains of +2.6 / +1.1 were selection noise); G1.2 FAIL (-2SE 48.52).
+P5-contested arms vs the same control: rs0+lp1 +1.02 +- 1.09 reward, +1.27 +- 0.96 score; rs0+entropy 0.005+width 512 +2.88 +- 0.81 reward (z 3.5), +1.31 +- 1.07 score.
+Block K (train 182-191 / test 564-573, Kaggle T4, clean tree, fixed now): replicate G_rs0_ent005_w512 only (the strongest P5-contested arm). No control run in block K (time); it is read against block J's
+control and the pooled TASK-025 G4TP1 Kaggle blocks (B, C, G, H, I, J), which is a weaker comparison and is stated as such.
