@@ -38,6 +38,8 @@ params:
   train.lr_knee:         {aliases: [lr_knee]}                      # lr_sched=knee: fraction of optimiser steps at the knee (TASK-027)
   train.lr_knee_frac:    {aliases: [lr_knee_frac]}                 # lr_sched=knee: lr at the knee as a fraction of the peak (TASK-027)
   train.rew_small:       {aliases: [rew_small]}                    # P5-contested diagnostic: coefficient on |r| < 0.5 training-reward terms (health); 1 = env reward unchanged (TASK-027)
+  train.replay_k:        {aliases: [replay_k]}                     # rollouts per update in the replay learner (src/pipeline/epa_replay.py); absent = plain PPO (TASK-028)
+  train.rho_bar:         {aliases: [rho_bar]}                      # truncation of the importance weight in the replay advantages (TASK-028)
   train.dist_coef:       {aliases: [dist_coef]}
   train.dist_max_gap:    {aliases: [dist_max_gap]}
   train.aux_coef:        {aliases: [aux_coef]}

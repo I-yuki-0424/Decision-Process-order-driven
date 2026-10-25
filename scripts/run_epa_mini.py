@@ -24,6 +24,7 @@ import numpy as np  # noqa: E402
 
 from src.model.epa_policies import ARM_BUILDERS  # noqa: E402
 from src.pipeline.epa_harness import PPOConfig, Trainer, curve_summary, diag_summary, make_record, run_provenance, write_json  # noqa: E402
+from src.pipeline.epa_replay import ReplayTrainer  # noqa: E402
 
 
 def git_commit():
@@ -44,6 +45,28 @@ def save_params(directory, a, arm_name, cfg, seed, params, prov):
                          test_seed=seed + a.eval_seed_offset, role=a.role, provenance=prov,
                          params=jax.tree_util.tree_map(np.asarray, params)), f)
     print(f"saved params -> {path}", flush=True)
+
+
+def train_with_evals(tr, seed, eval_at, test_seed, n_envs):
+    """Trainer.train with the same update sequence, plus evaluations of the current params after the first update that
+    reaches each step count in `eval_at`. Evaluation time is excluded from train_seconds."""
+    st = tr.init(jax.random.PRNGKey(seed))
+    curve, mid, todo, t_eval, t0 = [], [], list(eval_at), 0.0, time.time()
+    for u in range(tr.n_updates):
+        st, s = tr.update(st)
+        curve.append(s)
+        steps = (u + 1) * tr.steps_per_update
+        if todo and steps >= todo[0] and u + 1 < tr.n_updates:
+            while todo and steps >= todo[0]:
+                todo.pop(0)
+            te = time.time()
+            ev = tr.evaluate(st["params"], test_seed, n_envs)
+            t_eval += time.time() - te
+            mid.append(dict(env_steps=steps, reward_pct=ev["reward_pct"], score_pct=ev["score_pct"], eval_mean_length=ev["eval_mean_length"],
+                            eval_censored=ev["eval_censored"], achievement_rates_pct=ev["achievement_rates_pct"]))
+            print(f"  eval at {steps} steps: reward_pct={ev['reward_pct']:.2f} score_pct={ev['score_pct']:.2f}", flush=True)
+    jax.block_until_ready(st["params"])
+    return st["params"], np.asarray(jax.numpy.stack(curve)), time.time() - t0 - t_eval, mid
 
 
 def main():
@@ -71,6 +94,10 @@ def main():
     ap.add_argument("--lr-knee", type=float, default=0.25)
     ap.add_argument("--lr-knee-frac", type=float, default=0.3)
     ap.add_argument("--rew-small", type=float, default=1.0, help="TASK-026 diagnostic, P5-contested: coefficient on the |r|<0.5 reward terms in training (1 = unchanged)")
+    ap.add_argument("--replay-k", type=int, default=0, help="TASK-028: >= 1 trains on the last K rollouts (src/pipeline/epa_replay.py); 0 = plain PPO")
+    ap.add_argument("--rho-bar", type=float, default=1.0, help="TASK-028: truncation of the importance weight in the replay advantages")
+    ap.add_argument("--eval-at", default="", help="TASK-028: comma-separated env-step counts at which the current params are also evaluated "
+                                                  "(same evaluator; never fed back into training; the final evaluation is unchanged)")
     ap.add_argument("--warmup", type=float, default=0.0, help="fraction of optimiser steps with linear lr ramp-up (0 = off)")
     ap.add_argument("--remat", action="store_true", help="recompute the per-step forward in the backward pass (recurrent arms): same maths, less VRAM")
     ap.add_argument("--save-params", default="", help="directory: also write the final params of every seed (pickle of numpy arrays)")
@@ -100,14 +127,19 @@ def main():
                     minibatches=a.minibatches, lr=a.lr, ent=a.ent, lam=a.lam, gamma=a.gamma, clip=a.clip, vf=a.vf,
                     max_grad_norm=a.max_grad_norm, value_norm=a.value_norm, adv_norm=a.adv_norm, warmup=a.warmup, remat=a.remat,
                     ent_final=a.ent_final, lr_sched=a.lr_sched, lr_knee=a.lr_knee, lr_knee_frac=a.lr_knee_frac, rew_small=a.rew_small)
-    tr = Trainer(arm, cfg)
-    print(f"arm={arm.name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
+    tr = ReplayTrainer(arm, cfg, a.replay_k, a.rho_bar) if a.replay_k else Trainer(arm, cfg)
+    arm_name = arm.name + (f"+rp{a.replay_k}" + (f"rho{a.rho_bar:g}" if a.rho_bar != 1.0 else "") if a.replay_k else "")
+    eval_at = sorted({int(x) for x in a.eval_at.split(",") if x})
+    print(f"arm={arm_name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
     print(f"provenance: commit={prov['git_commit'][:8]} dirty={prov['git_dirty']} code={prov['code_sha256'][:12]} "
           f"packages={prov['packages']} xla_flags='{prov['xla_flags']}'", flush=True)
     per_seed = []
     for s in seeds:
         t0 = time.time()
-        params, curve, train_s = tr.train(s, log_every=a.log_every)
+        if eval_at:
+            params, curve, train_s, mid = train_with_evals(tr, s, eval_at, s + a.eval_seed_offset, a.eval_envs)
+        else:
+            params, curve, train_s = tr.train(s, log_every=a.log_every)
         ev = tr.evaluate(params, s + a.eval_seed_offset, a.eval_envs)
         if not per_seed:
             p_total, p_dep = arm.param_counts(params)
@@ -115,13 +147,16 @@ def main():
                    eval_censored=ev["eval_censored"], eval_mean_length=ev["eval_mean_length"],
                    achievement_rates_pct=ev["achievement_rates_pct"], train_curve_return=curve_summary(curve), train_diag=diag_summary(curve),
                    train_seconds=train_s, wall_seconds=time.time() - t0)
+        if eval_at:
+            row["intermediate_evals"] = mid
         per_seed.append(row)
         print(f"seed {s}: reward_pct={row['reward_pct']:.2f} score_pct={row['score_pct']:.2f} "
               f"len={row['eval_mean_length']:.0f} censored={row['eval_censored']} train={train_s:.0f}s wall={row['wall_seconds']:.0f}s",
               flush=True)
         if a.save_params:
             save_params(a.save_params, a, arm.name, cfg, s, params, prov)
-        record = make_record(arm.name, a.arm, json.loads(a.arm_kwargs), cfg._asdict(), per_seed, a.role, a.protocol,
+        cfg_rec = dict(tr.cfg._asdict(), replay_k=a.replay_k, rho_bar=a.rho_bar) if a.replay_k else cfg._asdict()
+        record = make_record(arm_name, a.arm, json.loads(a.arm_kwargs), cfg_rec, per_seed, a.role, a.protocol,
                              tr.env_steps_total, p_total, p_dep, a.tuning_budget, git_commit(), provenance=prov)
         record["seed_convention"] = a.seed_convention
         if a.role == "final" and a.allow_dirty:

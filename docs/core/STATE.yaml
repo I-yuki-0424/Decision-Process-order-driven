@@ -1434,6 +1434,26 @@ tasks:
       budget-counted steps is still P5 shaping: against env return the optimum is 1, against the achievement count the meta-objective is the
       evaluation metric (circular).
 
+  - id: "TASK-20261025-028-data-scaling-and-reuse"
+    created_at: "2026-10-25T00:00:00+09:00"
+    status: "in_progress"
+    description: >
+      Operator request (2026-10-25): measure GRU-TP at about 5M env steps (maximum) vs 1M and find what mainly drives the gain; add a 0.5M run to tell
+      whether the problem is only the step count; in parallel run a data-reuse experiment. Run on Kaggle if it finishes within 4 h, otherwise prepare
+      everything and schedule it.
+    spec_ref: "docs/experiments/2026-10-25_data_scaling_reuse/README.md (pre-registration); results: RESULTS.md in the same directory"
+    validation_commands: []
+    result: "pending"
+    blockers: []
+    notes: >
+      No validation_commands supplied (missing); used: pre_commit_ban_check, tests.test_epa_replay (new), tests.test_epa_harness, run_t028_sweep.py report.
+      Estimated Kaggle wall ~2-2.3 h (two kernels in parallel), below the 4 h limit, so the runs were started. ASSUMPTION (operator named no method):
+      data reuse = replay of the last K rollouts with proximal-policy PPO and truncated-IS GAE (src/pipeline/epa_replay.py); plain extra epochs and more,
+      smaller updates were already null (TASK-025/026). 2M/5M are diag-data-scaling (beyond EP-A), never gate evidence. Impact check: scip-neo4j MCP
+      unreachable (needs re-authentication) = blocker for the graph check; scope confirmed by reading the code instead: no existing src/ symbol modified
+      (ReplayTrainer is a new subclass); scripts/run_epa_mini.py main gets new flags that default off (only job command lines call it; existing
+      configs produce the same command and code path).
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
