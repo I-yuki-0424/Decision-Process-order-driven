@@ -1450,6 +1450,10 @@ tasks:
       Q3: log-linear 0.5M-2M and gains come from achievements already present at 1M -> step count (sample efficiency) is the binding limit at 1M; the slope halves after 2M
       and the iron tier stays unreached. Q4: no reuse candidate; paired diff vs S1M RP2 -4.31 +- 0.61, RP4 -32.81 +- 8.83 (2/4 seeds NaN), RP4e2 -5.38 +- 1.19;
       approx_kl spikes up to 1e32 -> this replay learner is unstable, not evidence against reuse in general. Details: RESULTS.md.
+      CORRECTION after operator review (same day): the Q3 reading "only the step count" was too strong. The replay arms were confounded: fixed minibatch size means K x more
+      optimizer steps per update, so 8/8/16 passes per sample vs 4. Plain PPO with 8 epochs in TASK-026 already gave 41.18 vs 48.83, so reuse at an unchanged step count is UNTESTED.
+      Re-estimated cause: the PPO+GRU learner cannot take more than about 4 passes per sample stably; fresh data helps because each rollout buys another stable update. The deep tier
+      (iron tools, diamond) is a separate limit, still 0 % at 5M. See the RESULTS.md section "Re-reading after operator review".
       Validation: pre_commit_ban_check passed; tests.test_epa_replay 3/3 OK; tests.test_epa_harness 24/24 OK; MLflow ingest 28 runs, UNREGISTERED 0.
       Impact: no existing src/ symbol modified; scip-neo4j graph check not run (blocker, see notes).
     blockers:

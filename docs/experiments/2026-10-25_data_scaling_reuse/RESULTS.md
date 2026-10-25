@@ -78,7 +78,34 @@ unchanged lr and clip) does not improve 1M-step efficiency and is unstable for K
 number of optimizer steps, the approx_kl estimator on near-zero probabilities), so it does not rule out reuse as such. It does rule out this simple form.
 MLflow note: `Base_O02_D08_S01` groups RP4 and RP4e2 (epochs 4 / 2) into one summary row (n = 8). Use the table above.
 
+## Re-reading after operator review (2026-10-25): the first reading of Q3 was too strong
+
+The operator objected that the replay failure does not fit "the problem is only the step count". The objection is correct. Corrected reading:
+
+1. **The Q4 design was confounded, and the confound was foreseeable.** The minibatch size was held fixed, so the number of optimizer steps per update grew K times.
+   Per sample this means 4K passes: RP2 8, RP4e2 8, RP4 16, against 4 for S1M. TASK-026 had already measured plain PPO at 8 epochs (8 passes, no stale data): 41.18 vs R0 48.83
+   (-7.6, CPU, seeds 4000-4003). Q4 therefore mostly retested "more SGD per sample", which was already known to hurt. Seen that way, the two arms with 8 passes
+   (RP2 -4.3, RP4e2 -5.4) are no worse than the 8-pass plain-PPO control (-7.6); the platforms differ, so this is a weak comparison. The arm with 16 passes collapses.
+   Whether reusing old data helps at an unchanged number of optimizer steps was **not tested**.
+2. **The re-estimated cause: this PPO+GRU learner cannot take more than about 4 passes over a sample without becoming unstable.** More env steps help because each fresh rollout buys
+   another stable update, not because the information in the samples already seen is used up.
+   Supporting signs:
+   (a) Already in S1M, clip_frac starts at about 0.32. Typical PPO runs show 0.1-0.2, so the recipe (lr 1e-3, 4 epochs) is close to the edge.
+   (b) Every arm with more passes has a higher initial clip_frac (0.42-0.56) and approx_kl spikes far beyond any clip range (up to 1e32). That is a jump of more than 70 nats in log-probability
+   for some samples, while gradients are clipped to norm 0.5. Such jumps are possible with a 64-step GRU unroll: a small weight change compounds through the hidden state, and the per-sample
+   ratio clip cannot constrain that drift. This mechanism is a hypothesis; the logged diagnostics do not give per-timestep values.
+   (c) Budget-matched runs gain 5-7 points over the 5M run's mid-run points at equal steps, purely by annealing lr to zero. Smaller late updates help, which is another sign
+   that update size and stability are the limit.
+3. **The objective is a secondary deviation from the cited method.** Hilton et al.'s decoupled objective weights the clipped surrogate by pi_prox/mu. Here that weight appears only through the truncated rho
+   on the leading TD term of the advantage, so on old slots the policy gradient is only partly corrected. This biases old-data updates but does not explain the KL explosion.
+4. **What the 5M run still says.** The gains at 1M -> 5M come from achievements already present at 1M (stone tier, coal, combat), and the iron-tool/diamond tier stays at 0 %.
+   So "more fresh data" works for the middle of the tech tree. The deep tier is a separate limit that more steps did not overcome within 5M.
+
+Experiments that would separate the causes (not run): replay with the number of optimizer steps per update held constant (minibatch size x K); the same with burn-in for
+the stale GRU state; plain PPO with 8 epochs on T4 with seeds 7000-7003 as the matched control; and per-timestep logging of the log-ratio to test explanation 2(b).
+
 ## Bottom line
 
-At 1M, GRU-TP is limited by sample efficiency on behaviours it has already discovered (the stone tier, coal and combat), and reward grows steadily with more data up to 2M.
-Beyond 2M the gain slows, and the iron/diamond tier stays unreached even at 5M. Reusing data with this replay learner made things worse and, for K = 4, unstable.
+At 1M, GRU-TP is limited by how much it can learn per sample before PPO updates become unstable, not by the amount of data as such. More fresh data helps up to 2M, mostly on
+the stone tier, coal and combat. Beyond 2M the gain slows, and the iron/diamond tier stays unreached even at 5M. The replay arms failed mainly because they took K times more optimizer
+steps per sample, so whether data reuse itself helps is still open.
