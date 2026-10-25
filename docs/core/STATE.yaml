@@ -1436,16 +1436,26 @@ tasks:
 
   - id: "TASK-20261025-028-data-scaling-and-reuse"
     created_at: "2026-10-25T00:00:00+09:00"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator request (2026-10-25): measure GRU-TP at about 5M env steps (maximum) vs 1M and find what mainly drives the gain; add a 0.5M run to tell
       whether the problem is only the step count; in parallel run a data-reuse experiment. Run on Kaggle if it finishes within 4 h, otherwise prepare
       everything and schedule it.
     spec_ref: "docs/experiments/2026-10-25_data_scaling_reuse/README.md (pre-registration); results: RESULTS.md in the same directory"
     validation_commands: []
-    result: "pending"
-    blockers: []
+    result: >
+      Done 2026-10-25 (diag/tuning only; no gate id, nothing closes G1.1/G1.2). Kaggle t028-a/b COMPLETE, 28/28 files, commit c330e88, seeds 7000-7003, 4 seeds each.
+      Q1 reward_pct: 0.5M 35.42 +- 1.14, 1M 48.46 +- 0.75, 2M 60.41 +- 1.53, 5M 67.46 +- 0.77 (score 10.36 / 18.22 / 28.11 / 34.34); +13.0 / +12.0 / +5.3 per doubling.
+      Q2: 1M->5M +19.0, 70 % from make_stone_pickaxe, make_stone_sword, collect_coal, defeat_zombie, defeat_skeleton; iron tools / diamond / eat_plant 0 % even at 5M.
+      Q3: log-linear 0.5M-2M and gains come from achievements already present at 1M -> step count (sample efficiency) is the binding limit at 1M; the slope halves after 2M
+      and the iron tier stays unreached. Q4: no reuse candidate; paired diff vs S1M RP2 -4.31 +- 0.61, RP4 -32.81 +- 8.83 (2/4 seeds NaN), RP4e2 -5.38 +- 1.19;
+      approx_kl spikes up to 1e32 -> this replay learner is unstable, not evidence against reuse in general. Details: RESULTS.md.
+      Validation: pre_commit_ban_check passed; tests.test_epa_replay 3/3 OK; tests.test_epa_harness 24/24 OK; MLflow ingest 28 runs, UNREGISTERED 0.
+      Impact: no existing src/ symbol modified; scip-neo4j graph check not run (blocker, see notes).
+    blockers:
+      - "scip-neo4j MCP needs re-authentication (/mcp); impact scope confirmed by reading the code"
     notes: >
+      output/phase1/scaling_t028/ not committed (LFS-tracked path, git-lfs not installed on this VPS); plain copies in the experiment results/ dir.
       No validation_commands supplied (missing); used: pre_commit_ban_check, tests.test_epa_replay (new), tests.test_epa_harness, run_t028_sweep.py report.
       Estimated Kaggle wall ~2-2.3 h (two kernels in parallel), below the 4 h limit, so the runs were started. ASSUMPTION (operator named no method):
       data reuse = replay of the last K rollouts with proximal-policy PPO and truncated-IS GAE (src/pipeline/epa_replay.py); plain extra epochs and more,
