@@ -1426,6 +1426,13 @@ tasks:
       evidence unless the operator amends P5. Idea 1: the harness already anneals lr linearly to 0 (5 % warm-up), only the shape is new.
       Impact check (scip-neo4j, index main 821a910): Trainer.__init__, Trainer._rollout, PPOConfig ALLOWED (no LOCKED_CORE_THEORY); new options default
       to the old behaviour (existing configs unchanged).
+      POST-HOC ANALYSIS (2026-10-25, block J per-seed achievement_rates_pct, 10 seeds per arm, descriptive): the rs0 gain is almost all defeat_zombie
+      (G4TP1 21.9 / G_lp1 25.4 -> G_rs0_lp1 72.5 / G_rs0_ent005_w512 84.0, about +2.3 to +2.8 reward_pct), partly offset by wake_up (63.2 -> 46.2 / 41.3)
+      and collect_drink (67.4 -> 52.2 / 57.4); eval length 234 -> 209 / 225. Reading: the -0.1/HP term makes zombie fights unprofitable under the env
+      return, so rs0 changes the optimum (objective aligned to the achievement metric), it does not save steps; it is not the 1.7x data gap. Zero in
+      every arm: eat_plant, collect_iron, collect_diamond, make_iron_*; collect_coal <= 2.1, defeat_skeleton <= 3.0. A coefficient "learned" from
+      budget-counted steps is still P5 shaping: against env return the optimum is 1, against the achievement count the meta-objective is the
+      evaluation metric (circular).
 
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
