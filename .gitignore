@@ -34,3 +34,11 @@ mlruns/
 /mlflow.db
 kaggle_kernel_t025/
 kaggle_kernel_t028/
+
+# LaTeX build artefacts
+docs/Latex/*.aux
+docs/Latex/*.fdb_latexmk
+docs/Latex/*.fls
+docs/Latex/*.log
+docs/Latex/*.out
+docs/Latex/*.synctex.gz
