@@ -225,3 +225,12 @@ def proposal_min(ticks_per_step: int = 4) -> ActionSpec:
     return ActionSpec("botsystem_min", 0, ticks_per_step,
                       keys + (Axis("yaw_delta_deg", (-30.0, 0.0, 30.0)),),
                       (Rule("requires", "sprint", "forward"),))
+
+
+def proposal_min_pitch(ticks_per_step: int = 4) -> ActionSpec:
+    """`proposal_min` plus `pitch_delta_deg` (270 valid combinations). Added 2026-10-31 for the first BOTSYSTEM training run:
+    with a single log at feet level a level crosshair passes ~0.6 m above it, so the collect scenario is unreachable
+    without a pitch control. Components are `proposal_min` in the same order, pitch last (BOTSYSTEM builds the same spec)."""
+    m = proposal_min(ticks_per_step)
+    return ActionSpec("botsystem_min_pitch", 0, ticks_per_step,
+                      m.components + (Axis("pitch_delta_deg", (-15.0, 0.0, 15.0)),), m.rules)

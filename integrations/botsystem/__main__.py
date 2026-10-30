@@ -5,10 +5,10 @@ import argparse
 import logging
 from pathlib import Path
 
-from .action_spec import proposal_full, proposal_min
+from .action_spec import proposal_full, proposal_min, proposal_min_pitch
 from .serve import NoopPolicy, PolicyServer, UniformRandomPolicy
 
-SPECS = {"full": proposal_full, "min": proposal_min}
+SPECS = {"full": proposal_full, "min": proposal_min, "min_pitch": proposal_min_pitch}
 
 
 def main() -> None:

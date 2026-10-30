@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 from integrations.botsystem.action_spec import (ActionError, ActionSpec, Axis, Key, Rule, proposal_full,
-                                                proposal_min)
+                                                proposal_min, proposal_min_pitch)
 from integrations.botsystem.file_channel import ChannelError, LineReader
 from integrations.botsystem.protocol import ENV_TYPES
 from integrations.botsystem.serve import NoopPolicy, PolicyError, PolicyServer, UniformRandomPolicy
@@ -20,6 +20,14 @@ OBS_SPEC = {"fields": [{"name": "pos", "shape": [3], "dtype": "float"}, {"name":
 
 
 class TestActionSpec(unittest.TestCase):
+    def test_min_pitch_is_min_plus_pitch(self):
+        a, m = proposal_min_pitch(), proposal_min()
+        self.assertEqual(a.components[:-1], m.components)
+        self.assertEqual(a.rules, m.rules)
+        self.assertEqual(len(list(a.iter_valid())), 90 * 3)
+        # cross-language vector: BOTSYSTEM's JS implementation (src/rl/action_spec.js) must produce the same hash
+        self.assertEqual(a.spec_hash(), "cd36d198ee6accff8732129686184d68d873d5b3d6625cb7ed2359c6ae341a2c")
+
     def test_sizes_and_valid_count(self):
         full, small = proposal_full(), proposal_min()
         self.assertEqual(full.size, 3 ** 9 * 5 * 3 * 10)
