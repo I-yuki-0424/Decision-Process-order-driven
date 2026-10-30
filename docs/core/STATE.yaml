@@ -1468,6 +1468,37 @@ tasks:
       (ReplayTrainer is a new subclass); scripts/run_epa_mini.py main gets new flags that default off (only job command lines call it; existing
       configs produce the same command and code path).
 
+  - id: "TASK-20261030-029-botsystem-interface"
+    created_at: "2026-10-30T14:00:00Z"
+    status: "done"
+    description: >
+      Side track while G1.1/G1.2 are stuck (operator request 2026-10-30): prepare DPOD to act as policy/learner for the
+      Minecraft bot system forge1201-MODED-AIPlayer (BOTSYSTEM, environment side). (1) Separate the code from the research,
+      (2) make the action space data-defined and fine-grained (key off/tap/hold, look axes, hotbar), (3) a file-based API
+      (JSONL, traceable), (4) DPOD = inference + RL, BOTSYSTEM = environment. Preparation only: no learner is wired in.
+    spec_ref: "integrations/botsystem/PROTOCOL.md"
+    validation_commands: []
+    result: >
+      PASS (preparation scope). New package integrations/botsystem/ (action_spec, protocol, file_channel, serve, CLI) with
+      README.md and PROTOCOL.md; tests/test_botsystem_interface.py 16/16 OK (action spec, channel, server contract against a
+      fake environment, boundary); scripts/pre_commit_ban_check.py passed; CLI smoke run against a hand-written env file
+      produced hello_ack + valid acts. No gate id: nothing here counts toward G1.x (Craftax-Classic, EP-A only) and no
+      result from it may be quoted next to Craftax numbers. Impact: no existing src/ symbol modified (only new files plus a
+      CLAUDE.md layout line and a .gitignore entry); scip-neo4j graph check therefore not needed.
+    blockers: []
+    notes: >
+      No validation_commands supplied (missing); used the unit test above and pre_commit_ban_check.
+      ASSUMPTIONS (not agreed with BOTSYSTEM): protocol v1 and the two action-spec proposals (proposal_full 2,952,450 raw
+      combinations, proposal_min 90 valid ones), ticks_per_step=4 placeholder, file transport on one machine only.
+      OBJECTIONS RECORDED (critical review): (a) DPOD evidence is Craftax-Classic only; it does not show the Transformer+MDP
+      model works as a Minecraft policy, and G1.x are still open. (b) A ~3M-combination product space cannot use the flat
+      17-way / candidate-token layout; needs factored heads or the small spec. (c) Real-time Minecraft is 20 ticks/s: at
+      ticks_per_step=4 that is 5 steps/s per environment, so 1M steps is about 55 h of wall time per environment before any
+      speed-up (arithmetic, server speed unmeasured; BOTSYSTEM task 007). (d) Observation fields must be declared in
+      `hello`; undeclared fields are rejected to block answer leakage. (e) Held-jump and tap timing in Forge 1.20.1 /
+      Mineflayer are unverified. OPEN OWNER DECISIONS: is the DPOD model the policy here (BOTSYSTEM task 013); final action
+      set and ticks_per_step; whether a second machine (HTTP transport) is needed.
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >
