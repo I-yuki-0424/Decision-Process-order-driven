@@ -42,3 +42,6 @@ docs/Latex/*.fls
 docs/Latex/*.log
 docs/Latex/*.out
 docs/Latex/*.synctex.gz
+
+# DPOD <-> BOTSYSTEM file-API run data (integrations/botsystem)
+exchange/

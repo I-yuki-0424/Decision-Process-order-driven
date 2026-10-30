@@ -112,6 +112,7 @@ JAX constraints: keep shapes static inside JIT (fixed beam width, KV cache pre-a
 ## Repo layout
 
 - Root: entry points only (`run_standalone.py`, `build_kaggle_kernel*.py`), `CLAUDE.md`, config.
+- `integrations/botsystem/` the file-API interface to the Minecraft bot system (forge1201-MODED-AIPlayer; see its README.md and PROTOCOL.md). It may import `src/`, `src/` must never import it (test-enforced), and nothing run through it counts toward a roadmap gate. Run data goes to `exchange/` (gitignored).
 - `src/` code; `tests/` unit tests; `scripts/` runnable tools, indexed in `scripts/README.md` (flat: they import each other as siblings); `scripts/adhoc/` throwaway checks.
 - `docs/` specs (`core/`, `DECISIONS/`, `JP-ideas/`, `LOGS/`, `experiments/`, `archive/`); `logs/` old run logs; `docker/` incl. `jupyter-python314/`.
 - `kaggle_kernel*/` generated notebooks; `output/` results, all in LFS, indexed in `output/README.md`; `output_remote/` is the untracked raw Kaggle-fetch cache (snapshots, do not edit). Kaggle dirs stay at root because kernel paths are hardcoded.
