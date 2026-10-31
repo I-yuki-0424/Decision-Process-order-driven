@@ -1518,3 +1518,33 @@ hazards:
     without checking whether it's coming from somewhere else (e.g. the
     encoder shifting via the other heads' gradients) rather than a learned
     discretization.
+
+  - id: "TASK-20261101-030-botsystem-skill-level-learner"
+    created_at: "2026-11-01T03:40:00+09:00"
+    status: "in_progress"
+    description: >
+      Operator request 2026-11-01 (relayed through forge1201-MODED-AIPlayer TASK-20261101-024): full-scale RL on the BOTSYSTEM
+      skill-level environment. Model = a derivative of Truck (TFGRUArm); inference on demand (each bot is answered when its
+      command ends, no batch generation of actions); Target T = the state in which the Ender Dragon has been defeated;
+      operator's two-stage proposal (survival first, then the main objective). Code only; the training run itself is not started.
+    spec_ref: "../forge1201-MODED-AIPlayer/docs/proposed/RL-TRAINING-v2.md"
+    validation_commands:
+      - "python scripts/pre_commit_ban_check.py"
+      - "python -m unittest tests.test_botsystem_skill tests.test_botsystem_interface   # in the rl-jaxvenv container"
+    result: >
+      Code in place on branch botsystem/skills-v2: scripts/botsystem_skill_truck.py (SkillTruck: Truck's per-step Transformer +
+      GRU over CLS, 81 grid-column tokens, own-state/last-outcome/progress/target tokens, inventory and entity tokens, up to 48
+      candidate-command tokens with masking, bilinear memory readout, one value head per stage) and
+      scripts/botsystem_skill_ppo.py (on-demand server following the environment's live run, asynchronous PPO with stored
+      behaviour log-probs, semi-MDP GAE gamma_s^(dt/20), return scaling per stage, curriculum survive -> dragon on stability of
+      nights survived or a stage-1 step budget, atomic checkpoint every update, resume). 22 tests OK (2026-11-01, JAX 0.12 CPU):
+      learner positive control over the real file API, chance 0.125 -> 0.573 in 48 updates; in-process bandit 0.06 -> 0.95 in
+      20 updates. Impact: new files only; no existing symbol modified (scip-neo4j not needed). Nothing counts toward a roadmap gate.
+      Critical review recorded: (1) T = 'dragon defeated' sets only the kill_dragon advancement and the dragon-kill flag in the
+      progress space; prerequisites are NOT set, because putting the advancement chain into T would hand the tech tree to the
+      policy input (P5-type knowledge). (2) The reward weights by advancement depth and the notable-mob table are the operator's
+      task definition (environment reward, Crafter-style), not shaping chosen by the learner; they would be P5 in a gate run,
+      which this is not. (3) Stage 1 keeps the non-survival terms at weight 0.1, not 0: TASK-20260927-009 found 'do nothing' to be
+      the best survival-only arm, the degenerate optimum a pure survival stage would converge to. (4) The previous failure of a
+      two-stage scheme here was a world-model/heuristic setup (TASK-009/010), not an RL curriculum; it is not evidence either way.
+    blockers: ["Operator go-ahead for the one-week training run (the run is prepared, not started)."]
