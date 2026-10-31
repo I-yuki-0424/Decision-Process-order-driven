@@ -409,6 +409,7 @@ def mode_train(a):
         print(f"resumed at update {L.updates_done}", flush=True)
     print(f"actor_params={L.n_actor} candidates={L.n} state_dim={STATE_DIM} backend={jax.default_backend()} d_model={a.d_model} rollout={a.rollout}", flush=True)
     rng = np.random.default_rng(a.seed + 7)
+    Path(a.out).mkdir(parents=True, exist_ok=True)
     log = open(Path(a.out) / "train_log.jsonl", "a")
     deadline = time.time() + a.max_minutes * 60
     state = dict(last_eps=0)
