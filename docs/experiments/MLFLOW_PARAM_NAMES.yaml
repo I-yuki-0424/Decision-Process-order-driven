@@ -77,6 +77,15 @@ params:
   train.aux_batch:       {aliases: [aux_batch]}                    # BOTSYSTEM GoalWM: replay transitions per auxiliary step
   train.aux_learning_rate: {aliases: [aux_lr]}                     # BOTSYSTEM GoalWM: learning rate of the world-model/reach optimiser
   train.aux_max_grad_norm: {aliases: [aux_max_grad_norm]}          # BOTSYSTEM GoalWM: global-norm clip of the auxiliary gradient
+  goal.plan:             {aliases: [plan]}                         # BOTSYSTEM GoalWM: 1 = goals come from a generated plan (batch generation, 2026-11-02)
+  goal.p_explore:        {aliases: [p_explore]}                    # BOTSYSTEM GoalWM: probability of an archive-proposed goal instead of a plan
+  goal.p_task_plan:      {aliases: [p_task_plan]}                  # BOTSYSTEM GoalWM: probability that a plan is generated for an owner task goal
+  goal.plan_beam:        {aliases: [plan_beam]}                    # BOTSYSTEM GoalWM: beam width of plan generation
+  goal.plan_tau:         {aliases: [plan_tau]}                     # BOTSYSTEM GoalWM: reach probability below which a plan step is replanned
+  goal.plan_anchor:      {aliases: [plan_anchor]}                  # BOTSYSTEM GoalWM: commands between plan-sample anchor states
+  train.plan_coef:       {aliases: [plan_coef]}                    # BOTSYSTEM GoalWM: weight of the plan-decoder loss
+  train.plan_replay:     {aliases: [plan_replay]}                  # BOTSYSTEM GoalWM: plan samples kept in the plan replay ring
+  train.plan_batch:      {aliases: [plan_batch]}                   # BOTSYSTEM GoalWM: plan samples per auxiliary step
   train.init_params:     {aliases: [init]}                         # BOTSYSTEM GoalWM: offline-pretrained parameter file ('' = none)
   train.poll_seconds:    {aliases: [poll_s]}                       # BOTSYSTEM: server poll interval
   train.serve_batch:     {aliases: [n_max]}                        # BOTSYSTEM: observations per forward pass at most

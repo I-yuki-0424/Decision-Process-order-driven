@@ -741,12 +741,12 @@ class GoalServer(Server):
 
 
 def load_pretrained(params, path):
-    """Copy the encoder, world model, reach head and goal embeddings of an offline-pretrained parameter file (scripts/
+    """Copy the encoder, world model, reach head, goal embeddings and plan decoder of an offline-pretrained parameter file (scripts/
     botsystem_wm_pretrain.py) into fresh parameters; shapes must match, the policy part stays fresh."""
     with open(path, "rb") as f:
         pre = pickle.load(f)["params"]
     out = dict(params)
-    for part in ("enc", "wm", "reach", "goal"):
+    for part in ("enc", "wm", "reach", "goal", "plan"):
         if part in pre:
             ok = jax.tree_util.tree_all(jax.tree_util.tree_map(lambda x, y: np.shape(x) == np.shape(y), params[part], pre[part]))
             if not ok:

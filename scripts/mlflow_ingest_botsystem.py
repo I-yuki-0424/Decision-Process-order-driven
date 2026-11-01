@@ -29,7 +29,8 @@ LEARNER_PARAMS = ("lr", "gamma_s", "lam", "clip", "ent", "vf", "max_grad_norm", 
                   "stage_min_nights", "stage1_max_steps", "seed",
                   # GoalWM learner (botsystem_goal_ppo.py, TASK-20261101-031)
                   "goals", "goal_bonus", "goal_horizon", "p_task", "p_pair", "ext_stage", "her_horizon", "replay", "aux_batch", "aux_coef",
-                  "aux_lr", "aux_max_grad_norm", "init")
+                  "aux_lr", "aux_max_grad_norm", "init", "plan", "p_explore", "p_task_plan", "plan_beam", "plan_tau", "plan_coef",
+                  "plan_replay", "plan_batch", "plan_anchor")
 
 
 def lines(p: Path):
