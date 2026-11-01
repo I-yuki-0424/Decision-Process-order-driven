@@ -55,6 +55,17 @@ params:
   wm.steps_per_update:   {aliases: [wm_steps_per_update]}
   wm.batch_size:         {aliases: [wm_batch]}
   wm.freeze_f:           {aliases: [wm_freeze_f]}
+  train.gamma_per_second: {aliases: [gamma_s]}                   # BOTSYSTEM semi-MDP: discount per second of game time, gamma_s^(dt/20) per step
+  train.segment_length:  {aliases: [seg]}                          # BOTSYSTEM: transitions per segment (the unit PPO batches)
+  train.segments_per_update: {aliases: [batch_segs]}               # BOTSYSTEM: segments per PPO update
+  train.population:      {aliases: [population]}                   # BOTSYSTEM: members of population-based training (1 = single learner)
+  train.pbt_interval:    {aliases: [pbt_interval]}                 # BOTSYSTEM: updates per member between exploit/explore steps
+  train.pbt_window:      {aliases: [pbt_window]}                   # BOTSYSTEM: finished episodes per member in the fitness mean
+  train.stage_window:    {aliases: [stage_window]}                 # BOTSYSTEM curriculum: episodes per block
+  train.stage_windows:   {aliases: [stage_windows]}                # BOTSYSTEM curriculum: blocks that must agree
+  train.stage_tol:       {aliases: [stage_tol]}                    # BOTSYSTEM curriculum: relative tolerance of the block means
+  train.stage_min_nights: {aliases: [stage_min_nights]}            # BOTSYSTEM curriculum: minimum nights survived per episode
+  train.stage1_max_steps: {aliases: [stage1_max_steps]}            # BOTSYSTEM curriculum: stage-1 step budget
   eval.every:            {aliases: [eval_every]}
   eval.cycles:           {aliases: [eval_cycles]}
   eval.windows:          {aliases: [eval_windows]}
@@ -75,8 +86,14 @@ params:
   arch.memory_token:     {aliases: [mem_token]}                    # Truck: h_{t-1} as an extra Transformer token
   arch.prev_action_input: {aliases: [prev_act]}                    # Truck: previous-action embedding into the GRU input
   arch.candidate_tokens: {aliases: [cand]}                         # Truck: candidate-action tokens on/off (attribution control)
+  arch.kind_prior:       {aliases: [kind_prior]}                   # SkillTruck: logits - log(candidates of the same command)
   arch.tp_source:        {aliases: [tp_src]}                       # Truck TP readout: cand (executed action token) | head (MLP head) (TASK-025)
   env.id:                {aliases: [env]}
+  env.version:           {aliases: [env_version]}                  # BOTSYSTEM environment version string
+  env.bots:              {aliases: [bots]}                         # BOTSYSTEM: bots acting in parallel
+  env.game_speed:        {aliases: [game_speed, speed]}            # BOTSYSTEM: game clock multiplier (tools/tickrate)
+  env.k_candidates:      {aliases: [k_candidates]}                 # BOTSYSTEM: candidate commands per step (K)
+  env.region:            {aliases: [region]}                       # BOTSYSTEM: half-width of the reset region in blocks
   env.episode_limit:     {aliases: [episode_limit, max_episode_steps]}
   env.latency_delta:     {aliases: [latency_delta]}
   env.observation:       {aliases: [observation]}

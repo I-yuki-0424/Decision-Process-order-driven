@@ -402,7 +402,8 @@ class Server:
         self._serve = jax.jit(self.model.step)
         tot, dep = self.model.param_counts(self.members[0].params)
         self.tlog(event="model", name=self.model.name, sizes=sizes, params_total=tot, params_deployed=dep, stage=STAGES[self.curr.stage],
-                  updates=[m.learner.updates for m in self.members], learn=bool(self.a.learn), population=[m.hp() for m in self.members])
+                  updates=[m.learner.updates for m in self.members], learn=bool(self.a.learn), population=[m.hp() for m in self.members],
+                  args={k: v for k, v in vars(self.a).items() if k not in ("root", "base")})
         if self.a.learn:
             self.learn_thread = threading.Thread(target=self.learn_loop, daemon=True)
             self.learn_thread.start()

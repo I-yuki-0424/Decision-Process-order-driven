@@ -165,6 +165,17 @@ models:
     description: "attribution control: Truck+hs without candidate-action tokens (logits from the head only)"
     status: provisional
     proper_name: null
+  # --- TASK-20261101-030: BOTSYSTEM (Minecraft skill level, side track, never a gate) ---
+  Idea4_O01_D01_S08:
+    arms: ["skilltruck64x2w256"]
+    description: "SkillTruck: Truck on the BOTSYSTEM skill-level env (81 grid-column tokens, state/outcome/progress/target/inventory/entity tokens, up to K candidate-command tokens, bilinear memory readout, value head per curriculum stage); runs train, train2"
+    status: provisional
+    proper_name: null
+  Idea4_O01_D01_S09:
+    arms: ["skilltruck64x2w256kp"]
+    description: "SkillTruck + kind prior (logits - log n_same_command: untrained policy uniform over command kinds); run train3 on (population-based training)"
+    status: provisional
+    proper_name: null
   # --- TASK-20261005-024: Truck-improved (Idea4_O01_D01_S06) hidden-dimension scale study; the training recipe is in the run parameters ---
   Idea4_O01_D04_S00:
     arms: ["tfgru64x2w128+mem+pa+hs"]
