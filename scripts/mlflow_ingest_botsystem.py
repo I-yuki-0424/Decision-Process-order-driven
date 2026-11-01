@@ -26,7 +26,10 @@ from mlflow_ingest import REPO, Schema, default_store, store_uri, stride  # noqa
 EXPERIMENT = "side-botsystem"
 LEARNER_PARAMS = ("lr", "gamma_s", "lam", "clip", "ent", "vf", "max_grad_norm", "seg", "batch_segs", "epochs", "minibatches",
                   "population", "pbt_interval", "pbt_window", "kind_prior", "stage_window", "stage_windows", "stage_tol",
-                  "stage_min_nights", "stage1_max_steps", "seed")
+                  "stage_min_nights", "stage1_max_steps", "seed",
+                  # GoalWM learner (botsystem_goal_ppo.py, TASK-20261101-031)
+                  "goals", "goal_bonus", "goal_horizon", "p_task", "p_pair", "ext_stage", "her_horizon", "replay", "aux_batch", "aux_coef",
+                  "aux_lr", "aux_max_grad_norm", "init")
 
 
 def lines(p: Path):
@@ -76,6 +79,8 @@ def build(sch: Schema, root: Path, base: str, aip: Path):
     params = sch.params({k: args[k] for k in LEARNER_PARAMS if k in args}, "botsystem")
     params.update({"arch.d_model": "64", "arch.n_layers": "2", "arch.n_heads": "4", "arch.hidden_width": "256",
                    "arch.kind_prior": str("kp" in m["name"]), "env.k_candidates": str(m["sizes"]["K"]), "env.id": "botsystem-skills"})
+    goal = m["name"].startswith("goalwm")
+    rkey = "return_task" if goal else "return_stage"     # GoalWM: episode return under the --ext-stage weights alone
     if start:
         params.update({"env.version": start.get("env_version", ""), "env.bots": str(start.get("bots", "")), "env.shards": str(start["shards"]), "env.game_speed": str(start.get("speed", 1)),
                        "env.episode_limit": str(start.get("max_steps", "")), "env.region": str(start.get("region", ""))})
@@ -104,12 +109,24 @@ def build(sch: Schema, root: Path, base: str, aip: Path):
         for x in stride(mu):
             series[pre(i) + "entropy"].append((x["update"], x["ent"]))
             series[pre(i) + "reward_mean"].append((x["update"], x["reward_mean"]))
+            if goal:
+                for k in ("aux_ok", "aux_inv", "aux_reach", "u_gain"):
+                    series[k].append((x["update"], x[k]))
+                g = x.get("goals", {})
+                series["goals_reached_rate"].append((x["update"], g.get("reached", 0) / max(g.get("assigned", 0), 1)))
         if mu:
             metrics[pre(i) + "entropy"] = mu[-1]["ent"]
+            if goal:
+                metrics.update({k: float(mu[-1][k]) for k in ("aux_ok", "aux_dt", "aux_inv", "aux_reach", "u_ok", "u_dt", "u_gain")})
+                g = mu[-1].get("goals", {})
+                metrics.update({"goals_assigned": float(g.get("assigned", 0)), "goals_reached": float(g.get("reached", 0)),
+                                "task_goals_reached": float(g.get("task_reached", 0)), "goal_archive_dims": float(mu[-1].get("archive", 0))})
         if me:
-            ret = np.array([e["return_stage"] for e in me])
+            ret = np.array([e[rkey] for e in me])
             last = me[-100:]
-            metrics.update({pre(i) + "return_stage_last100": float(np.mean([e["return_stage"] for e in last])),
+            if goal:
+                metrics[pre(i) + "goals_reached_per_episode_last100"] = float(np.mean([e.get("goals_reached", 0) for e in last]))
+            metrics.update({pre(i) + "return_stage_last100": float(np.mean([e[rkey] for e in last])),
                             pre(i) + "nights_last100": float(np.mean([e["nights"] for e in last])),
                             pre(i) + "achievements_last100": float(np.mean([e["achievements"] for e in last])),
                             pre(i) + "invalid_last100": float(np.mean([e["terms"].get("invalid", 0.0) for e in last]))})

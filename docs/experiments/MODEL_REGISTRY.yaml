@@ -176,6 +176,11 @@ models:
     description: "SkillTruck + kind prior (logits - log n_same_command: untrained policy uniform over command kinds); run train3 on (population-based training)"
     status: provisional
     proper_name: null
+  Idea4_O01_D01_S10:
+    arms: ["goalwm64x2w256g2kp"]
+    description: "GoalWM (TASK-20261101-031): goal-independent Truck encoder over physical tokens incl. a first-hit view image, kills and clock (BOTSYSTEM env v2.0); relative goal tokens with free dimensions read by cross-attention; explicit-state world model per candidate (success, duration, own-state, inventory with a non-negativity floor, kills) whose predictions enter the policy logit; hindsight reach head R(s,g) for goal proposal; optional offline pretraining on logged runs"
+    status: provisional
+    proper_name: null
   # --- TASK-20261005-024: Truck-improved (Idea4_O01_D01_S06) hidden-dimension scale study; the training recipe is in the run parameters ---
   Idea4_O01_D04_S00:
     arms: ["tfgru64x2w128+mem+pa+hs"]

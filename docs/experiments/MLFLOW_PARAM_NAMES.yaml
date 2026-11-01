@@ -66,6 +66,20 @@ params:
   train.stage_tol:       {aliases: [stage_tol]}                    # BOTSYSTEM curriculum: relative tolerance of the block means
   train.stage_min_nights: {aliases: [stage_min_nights]}            # BOTSYSTEM curriculum: minimum nights survived per episode
   train.stage1_max_steps: {aliases: [stage1_max_steps]}            # BOTSYSTEM curriculum: stage-1 step budget
+  goal.slots:            {aliases: [goals]}                        # BOTSYSTEM GoalWM: goal tokens per observation (TASK-20261101-031)
+  goal.bonus:            {aliases: [goal_bonus]}                   # BOTSYSTEM GoalWM: reward when the current goal is reached
+  goal.horizon:          {aliases: [goal_horizon]}                 # BOTSYSTEM GoalWM: commands before an unreached goal is dropped
+  goal.p_task:           {aliases: [p_task]}                       # BOTSYSTEM GoalWM: probability that a proposed goal is an owner task goal
+  goal.p_pair:           {aliases: [p_pair]}                       # BOTSYSTEM GoalWM: probability of a two-token goal
+  goal.ext_stage:        {aliases: [ext_stage]}                    # BOTSYSTEM GoalWM: reward-v2 stage whose weights make the task reward
+  goal.her_horizon:      {aliases: [her_horizon]}                  # BOTSYSTEM GoalWM: steps of future a hindsight reach label looks at
+  train.replay_size:     {aliases: [replay]}                       # BOTSYSTEM GoalWM: transitions in the world-model replay ring
+  train.aux_batch:       {aliases: [aux_batch]}                    # BOTSYSTEM GoalWM: replay transitions per auxiliary step
+  train.aux_learning_rate: {aliases: [aux_lr]}                     # BOTSYSTEM GoalWM: learning rate of the world-model/reach optimiser
+  train.aux_max_grad_norm: {aliases: [aux_max_grad_norm]}          # BOTSYSTEM GoalWM: global-norm clip of the auxiliary gradient
+  train.init_params:     {aliases: [init]}                         # BOTSYSTEM GoalWM: offline-pretrained parameter file ('' = none)
+  train.poll_seconds:    {aliases: [poll_s]}                       # BOTSYSTEM: server poll interval
+  train.serve_batch:     {aliases: [n_max]}                        # BOTSYSTEM: observations per forward pass at most
   eval.every:            {aliases: [eval_every]}
   eval.cycles:           {aliases: [eval_cycles]}
   eval.windows:          {aliases: [eval_windows]}
