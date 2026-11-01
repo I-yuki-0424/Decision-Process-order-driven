@@ -35,7 +35,7 @@ import jax  # noqa: E402
 import jax.numpy as jnp  # noqa: E402
 import optax  # noqa: E402
 
-from botsystem_goal_ppo import GoalSpace, hindsight, to_arrays, wm_labels  # noqa: E402
+from botsystem_goal_ppo import GoalSpace, dim_index, hindsight, index_dim, plan_samples, to_arrays, wm_labels  # noqa: E402
 from botsystem_goal_wm import GK, GoalWM, sizes_from_hello  # noqa: E402
 
 V2 = {"cmd": 13, "K": 64, "view_shape": (8, 16), "view_patches": 32, "clock": 2}   # the online model's sizes (env v2.0)
@@ -65,8 +65,10 @@ def pad_k(o: dict, K: int) -> dict:
     return o
 
 
-def load_run(d: Path, sizes: dict, keep: float, rng, gs: GoalSpace, H: int):
-    """Transitions of one run: (obs arrays, labels incl. hindsight, meta (cmd, item, ok, log dt, gained item))."""
+def load_run(d: Path, sizes: dict, keep: float, rng, gs: GoalSpace, H: int, plans: list | None = None, anchor: int = 64, L: int = 8):
+    """Transitions of one run: (obs arrays, labels incl. hindsight, meta (cmd, item, ok, log dt, gained item)). With `plans`
+    (a list), hindsight plan samples of every episode are appended to it (anchors: the episode start and every `anchor` steps)."""
+    ep_first, ep_anchor, ep_base = defaultdict(list), defaultdict(list), {}
     acts = {}
     with open(d / "policy_to_env.jsonl") as f:
         for line in f:
@@ -76,6 +78,10 @@ def load_run(d: Path, sizes: dict, keep: float, rng, gs: GoalSpace, H: int):
     rows, eps = [], defaultdict(list)      # eps[(env, episode)] = [(vals, row index or None)]
     last = {}
     def close(key):
+        if plans is not None and key in ep_base:
+            small = lambda dct: {k: np.asarray(v).astype(COMPACT.get(k, np.asarray(v).dtype)) for k, v in dct.items()}
+            plans.extend((small(x), lab) for x, lab in plan_samples(ep_first.pop(key, []), ep_anchor.pop(key, []), sizes, L, rng))
+            ep_base.pop(key, None)
         seq = eps.pop(key, [])
         arch = list(gs.archive)
         for t, (vals, ri) in enumerate(seq):
@@ -102,14 +108,24 @@ def load_run(d: Path, sizes: dict, keep: float, rng, gs: GoalSpace, H: int):
                     held = Counter({i: round(c * 64) for i, c in zip(prev["o"]["inv_item"], prev["o"]["inv_count"]) if i})
                     held2 = Counter({i: round(c * 64) for i, c in zip(o["inv_item"], o["inv_count"]) if i})
                     gain = {i: held2[i] - held[i] for i in held2 if held2[i] > held[i]}
-                    meta = (int(x["cand_cmd"][a]), int(x["cand_item"][a]), float(lab["ok"]), float(np.log1p(lab["dt"])),
-                            max(gain, key=gain.get) if gain and not m["terminated"] else -1)
+                    top = max(gain.values()) if gain and not m["terminated"] else None
+                    gset = frozenset(i for i, v in gain.items() if v == top) if top else frozenset()   # tie-aware label
+                    meta = (int(x["cand_cmd"][a]), int(x["cand_item"][a]), float(lab["ok"]), float(np.log1p(lab["dt"])), gset)
                     small = lambda dct: {k: np.asarray(v).astype(COMPACT.get(k, np.asarray(v).dtype)) for k, v in dct.items()}
                     rows.append((small(x), small(lab), meta))
                     ri = len(rows) - 1
                 if ri is not None and eps[key]:
                     eps[key][-1] = (eps[key][-1][0], ri)      # the transition starts at the previous observation
             eps[key].append((vals, None))
+            if plans is not None:
+                if key not in ep_base:
+                    ep_base[key] = dict(vals)
+                    ep_anchor[key].append((st, to_arrays(o, sizes)))
+                else:
+                    seen = {dd for _, dd in ep_first[key]}
+                    ep_first[key] += [(st, dd) for dd, v in vals.items() if v >= ep_base[key].get(dd, 0.0) + 1 and dd not in seen]
+                    if st % anchor == 0 and len(ep_anchor[key]) < 6:
+                        ep_anchor[key].append((st, to_arrays(o, sizes)))
             last[m["env_id"]] = {"key": key, "step": st, "o": o, "vals": vals}
             if m["terminated"] or m["truncated"]:
                 close(key)
@@ -128,8 +144,8 @@ def stack(rows):
         out_o[k] = np.stack([r[0][k] for r in rows]).astype(COMPACT.get(k, rows[0][0][k].dtype))
     for k in rows[0][1]:
         out_l[k] = np.stack([r[1][k] for r in rows]).astype(COMPACT.get(k, np.asarray(rows[0][1][k]).dtype))
-    meta = np.array([r[2] for r in rows], np.float64)
-    return out_o, out_l, meta
+    meta = np.array([r[2][:4] for r in rows], np.float64)
+    return out_o, out_l, meta, [r[2][4] for r in rows]
 
 
 def widen(d: dict) -> dict:
@@ -164,21 +180,31 @@ def main(argv=None):
     gs = GoalSpace(sizes, hello["milestones"])
     counts = {r: sum(1 for _ in open(ex / r / "policy_to_env.jsonl")) for r in a.train + a.test}
     n_tr, n_te = sum(counts[r] for r in a.train), sum(counts[r] for r in a.test)
-    train = [row for r in a.train for row in load_run(ex / r, sizes, min(1.0, a.max_train / n_tr), rng, gs, a.her_horizon)]
-    test = [row for r in a.test for row in load_run(ex / r, sizes, min(1.0, a.max_test / n_te), rng, gs, a.her_horizon)]
+    model = GoalWM(sizes)
+    tr_plans, te_plans = [], []
+    train = [row for r in a.train for row in load_run(ex / r, sizes, min(1.0, a.max_train / n_tr), rng, gs, a.her_horizon, tr_plans, L=model.L)]
+    test = [row for r in a.test for row in load_run(ex / r, sizes, min(1.0, a.max_test / n_te), rng, gs, a.her_horizon, te_plans, L=model.L)]
+    print(f"plan samples {len(tr_plans)} train / {len(te_plans)} test", flush=True)
+    st_p = lambda P_: ({k: np.stack([x[k] for x, _ in P_]) for k in P_[0][0]}, {k: np.stack([l[k] for _, l in P_]) for k in P_[0][1]})
+    trp_o, trp_l = st_p(tr_plans)
+    tep_o, tep_l = st_p(te_plans)
     print(f"loaded {len(train)} train / {len(test)} test transitions in {time.time() - t0:.0f}s; archive {len(gs.archive)} dims", flush=True)
-    tr_o, tr_l, tr_m = stack(train)
-    te_o, te_l, te_m = stack(test)
+    tr_o, tr_l, tr_m, tr_g = stack(train)
+    te_o, te_l, te_m, te_g = stack(test)
     del train, test
 
-    model = GoalWM(sizes)
     params = model.init(jax.random.PRNGKey(a.seed))
     opt = optax.chain(optax.clip_by_global_norm(5.0), optax.adam(optax.cosine_decay_schedule(a.lr, a.steps, 0.1)))
     ost = opt.init(params)
 
+    def total(q, o, l, po, pl):
+        aux, terms, _ = model.aux_loss(q, o, l)
+        pn, pacc = model.plan_loss(q, po, pl["task"], pl["seq"], pl["mask"])
+        return aux + pn, {**terms, "plan": pn, "plan_acc": pacc}
+
     @jax.jit
-    def step(p, s, o, l):
-        (loss, terms), g = jax.value_and_grad(lambda q: model.aux_loss(q, o, l)[:2], has_aux=True)(p)
+    def step(p, s, o, l, po, pl):
+        (loss, terms), g = jax.value_and_grad(total, has_aux=True)(p, o, l, po, pl)
         u, s = opt.update(g, s, p)
         return optax.apply_updates(p, u), s, loss, terms
 
@@ -186,7 +212,9 @@ def main(argv=None):
     curve = []
     for i in range(a.steps):
         idx = rng.integers(0, len(tr_m), a.batch)
-        params, ost, loss, terms = step(params, ost, widen({k: v[idx] for k, v in tr_o.items()}), widen({k: v[idx] for k, v in tr_l.items()}))
+        pidx = rng.integers(0, len(trp_l["task"]), 32)
+        params, ost, loss, terms = step(params, ost, widen({k: v[idx] for k, v in tr_o.items()}), widen({k: v[idx] for k, v in tr_l.items()}),
+                                        widen({k: v[pidx] for k, v in trp_o.items()}), {k: v[pidx] for k, v in trp_l.items()})
         if i % max(1, a.steps // 50) == 0 or i == a.steps - 1:
             curve.append({"step": i, "loss": float(loss), **{k: float(v) for k, v in terms.items()}})
             print(json.dumps(curve[-1]), flush=True)
@@ -200,8 +228,8 @@ def main(argv=None):
             outs[k].append(np.asarray(out[k]))
     o_ok = np.concatenate(outs["_ok_p"])
     valid = te_l["wm_valid"] > 0.5
-    cmd, item, ok, ldt, gained = te_m[:, 0].astype(int), te_m[:, 1].astype(int), te_m[:, 2], te_m[:, 3], te_m[:, 4].astype(int)
-    tcmd, titem, tok, tldt, tgained = tr_m[:, 0].astype(int), tr_m[:, 1].astype(int), tr_m[:, 2], tr_m[:, 3], tr_m[:, 4].astype(int)
+    cmd, item, ok, ldt = te_m[:, 0].astype(int), te_m[:, 1].astype(int), te_m[:, 2], te_m[:, 3]
+    tcmd, titem, tok, tldt = tr_m[:, 0].astype(int), tr_m[:, 1].astype(int), tr_m[:, 2], tr_m[:, 3]
     rate_ci, rate_c = defaultdict(list), defaultdict(list)
     for c, it, y in zip(tcmd, titem, tok):
         rate_ci[(c, it)].append(y), rate_c[c].append(y)
@@ -217,14 +245,17 @@ def main(argv=None):
     dt_hat = np.concatenate(dt_hat)
     med_c = {c: float(np.median(tldt[tcmd == c])) for c in set(tcmd)}
     b_dt = np.array([med_c.get(c, float(np.median(tldt))) for c in cmd])
-    # gained item: model top-1 vs per-(command, item) most frequent gained item
+    # gained item (tie-aware: a hit is any of the items with the largest gain): model top-1 vs the per-(command, item) most
+    # frequent gained item of the training runs
     g_ci = defaultdict(Counter)
-    for c, it, g in zip(tcmd, titem, tgained):
-        if g >= 0:
+    for c, it, gs_ in zip(tcmd, titem, tr_g):
+        for g in gs_:
             g_ci[(c, it)][g] += 1
-    has = (gained >= 0) & valid
-    b_gain = np.array([(g_ci[(c, it)].most_common(1)[0][0] if g_ci[(c, it)] else -2) for c, it in zip(cmd, item)])
+    has = np.array([bool(g) for g in te_g]) & valid
+    b_hit = np.array([bool(g_ci[(c, it)]) and g_ci[(c, it)].most_common(1)[0][0] in gs_ for c, it, gs_ in zip(cmd, item, te_g)])
     m_gain_hit = np.concatenate(outs["_gain_hit"])
+    per_cmd = {int(c): {"n": int((has & (cmd == c)).sum()), "model": float(m_gain_hit[has & (cmd == c)].mean()),
+                        "baseline": float(b_hit[has & (cmd == c)].mean())} for c in sorted(set(cmd[has]))}
     # reach: per-dimension base rate from train hindsight labels
     base = defaultdict(list)
     for k, g, y, mk in zip(tr_l["her_kind"].ravel(), tr_l["her_id"].ravel(), tr_l["her_label"].ravel(), tr_l["her_mask"].ravel()):
@@ -236,6 +267,50 @@ def main(argv=None):
     gb = float(np.mean([y for v in base.values() for y in v])) if base else 0.5
     b_reach = np.array([np.mean(base[(int(k), int(g))]) if (int(k), int(g)) in base else gb for k, g in zip(rk, rg)])
 
+    # ---- plan (E2): held-out teacher-forced next-step accuracy vs a bigram baseline (most frequent next first-raised
+    # dimension given the previous one, or given T for the first step, fitted on the training plans)
+    pacc_n = pacc_d = 0.0
+    pl_eval = jax.jit(lambda p, o, t, q, mk: model.plan_loss(p, o, t, q, mk))
+    for i in range(0, len(tep_l["task"]), 128):
+        sl = slice(i, i + 128)
+        _, acc_b = pl_eval(params, widen({k: v[sl] for k, v in tep_o.items()}), tep_l["task"][sl], tep_l["seq"][sl], tep_l["mask"][sl])
+        nb = float(tep_l["mask"][sl].sum())
+        pacc_n += float(acc_b) * nb
+        pacc_d += nb
+    big = defaultdict(Counter)
+    for t, q, mk in zip(trp_l["task"], trp_l["seq"], trp_l["mask"]):
+        prev = ("T", int(t))
+        for j, ok_ in zip(q, mk):
+            if ok_:
+                big[prev][int(j)] += 1
+                prev = ("p", int(j))
+    bh = bn = 0
+    for t, q, mk in zip(tep_l["task"], tep_l["seq"], tep_l["mask"]):
+        prev = ("T", int(t))
+        for j, ok_ in zip(q, mk):
+            if ok_:
+                guess = big[prev].most_common(1)[0][0] if big[prev] else 0
+                bh += guess == int(j)
+                bn += 1
+                prev = ("p", int(j))
+    from botsystem_goal_wm import plan_beam
+    enc = jax.jit(lambda P_, o: model.encode(P_["enc"], o)[:2])
+    dec = jax.jit(jax.vmap(model.plan_logits, in_axes=(None, None, None, None, 0)))
+    vh = next((h for h in (json.loads(open(ex / r / "env_to_policy.jsonl").readline()) for r in a.train + a.test) if h.get("vocab")), hello)
+    names = {"item": vh.get("vocab", {}).get("items") or [], "adv": hello["milestones"]}
+    def nm(j):
+        d = index_dim(j, sizes)
+        if d is None:
+            return "END"
+        lst = names.get(d[0], [])
+        return f"{d[0]}:{lst[d[1]] if d[1] < len(lst) else d[1]}"
+    o0 = widen({k: v[0] for k, v in tep_o.items()})
+    examples = {}
+    for tname in ("minecraft:story/mine_stone", "minecraft:story/upgrade_tools", "minecraft:story/smelt_iron", "minecraft:story/mine_diamond"):
+        if tname in hello["milestones"]:
+            ti = dim_index(("adv", hello["milestones"].index(tname)), sizes)
+            examples[tname] = [nm(j) for j in plan_beam(model, params, enc, dec, o0, ti, 4)[0][0]]
+
     res = {
         "task_id": "TASK-20261101-031", "kind": "offline pretraining + E1 (side track, no gate)", "protocol": "none (BOTSYSTEM side track)",
         "commit": a.commit or None,
@@ -246,9 +321,11 @@ def main(argv=None):
                     "baseline_cmd_auroc": auroc(b_c[valid], ok[valid]), "test_success_rate": float(ok[valid].mean())},
         "duration": {"model_mae_log1p": float(np.mean(np.abs(dt_hat - ldt)[valid])), "baseline_cmd_median_mae_log1p": float(np.mean(np.abs(b_dt - ldt)[valid]))},
         "gain": {"n_with_gain": int(has.sum()), "model_top1": float(m_gain_hit[has].mean()) if has.any() else None,
-                 "baseline_cmd_item_top1": float((b_gain[has] == gained[has]).mean()) if has.any() else None},
+                 "baseline_cmd_item_top1": float(b_hit[has].mean()) if has.any() else None, "per_command": per_cmd},
         "reach": {"n_labels": int(rm.sum()), "positive_rate": float(ry.mean()) if len(ry) else None,
                   "model_auroc": auroc(r_hat, ry), "baseline_dim_rate_auroc": auroc(b_reach, ry)},
+        "plan": {"n_train": len(trp_l["task"]), "n_test": len(tep_l["task"]), "model_next_step_acc": pacc_n / max(pacc_d, 1),
+                 "baseline_bigram_acc": bh / max(bn, 1), "example_plans_from_a_test_start_state": examples},
         "curve": curve, "wall_s": round(time.time() - t0, 1),
     }
     Path(a.out_json).parent.mkdir(parents=True, exist_ok=True)

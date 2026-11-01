@@ -10,7 +10,10 @@ Built from the architecture review of 2026-11-01 (STATE.yaml TASK-20261101-031),
              dimension that is not named is free (owner's "free values"). Goals are relative: "+1 of X since assignment".
              One cross-attention readout per goal over the encoded tokens; the mean enters the GRU and re-ranks candidates.
   world      per candidate, from its encoded token only: success probability, log duration, change of the 20 own-state numbers,
-  model      change of every inventory count (an output table per item . z) and of every kill count. Inventory balance is
+  model      change of every inventory count (an output table per item . z, plus a learned copy gate alpha(z) on the item the
+             command names, as in pointer networks: crafting X raises X, placing X lowers it; E1 on run 1-3 logs showed the plain
+             output table far behind a per-(command, item) lookup without it) and of every kill count (gate beta(z) on the
+             entity the command names). Inventory balance is
              structural: a predicted loss can never exceed what is held (delta >= -held), plain counting, no game knowledge.
              These replace both the Hamiltonian-NN idea (inventory dynamics are discrete, non-conservative stoichiometry) and
              environment-supplied "inventory/state on success" fields (the consequence of an action handed to the model).
@@ -18,12 +21,19 @@ Built from the architecture review of 2026-11-01 (STATE.yaml TASK-20261101-031),
              gain): the predicted conditions and effects of each command are an input to the choice, learned, never hard-coded.
   reach      R(s, g) = P(goal g reached within H steps | encoded state), trained with hindsight relabelling on what actually
              happened; the learner uses it to propose goals of intermediate difficulty and to skip goals that are too early.
+  plan       batch generation (DPOD 4th/5th idea, owner 2026-11-02): an autoregressive decoder generates, at the start, the
+             whole sequence of subgoals (goal-space dimensions) toward a target T, by beam search: causal self-attention over
+             the plan so far, cross-attention into the encoded state, output tied to the goal-dimension embeddings. Concrete
+             commands cannot be generated in advance (a candidate such as "mine the iron ore at x y z" exists only once seen),
+             so the batch is generated at the upper level of the 5th idea and the goal-conditioned policy executes it. Trained
+             on hindsight: the order in which bots actually first raised dimensions before reaching a later one (no tech tree).
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
+import numpy as np
 import jax
 import jax.numpy as jnp
 
@@ -35,7 +45,10 @@ GOAL_KINDS = ("pad", "item", "kill", "adv", "night")
 GK = {k: i for i, k in enumerate(GOAL_KINDS)}
 GOAL_F = 3            # target delta (log1p), progress so far / delta (0..1), age / horizon
 N_TYPES = 11          # columns, self, inventory, entity, progress, killed, last, view, candidate, cls, goal
+PLAN_L = 8            # plan tokens generated at most (the last one may be END)
 WM_F = 3              # policy features from the world model: p_ok, log dt / 5, predicted goal gain
+WM_FEAT_SCALE = 4.0   # features x4: u ~ 1 can then dominate the choice (Adam moves u by ~lr per step; at x1 the goal control
+                      # reached u_gain 0.31 after ~2,300 steps, a logit bonus too small to move an 8-way choice)
 INV_SCALE = 1.0       # world-model count unit (loss in counts, Huber k=1)
 
 
@@ -59,7 +72,8 @@ class GoalWM:
     def __init__(self, sizes: dict, *, d=64, layers=2, heads=4, width=256, kind_prior=True):
         self.s, self.d, self.layers, self.heads, self.width, self.kind_prior = sizes, d, layers, heads, width, kind_prior
         self.G = sizes["G"]
-        self.name = f"goalwm{d}x{layers}w{width}g{self.G}" + ("kp" if kind_prior else "")
+        self.L = sizes.get("plan_l", PLAN_L)
+        self.name = f"goalwm{d}x{layers}w{width}g{self.G}" + ("kp" if kind_prior else "") + f"pl{self.L}"
 
     # ------------------------------------------------------------------ parameters
     def init(self, key):
@@ -85,12 +99,18 @@ class GoalWM:
         wm = {"z1": _dense(next(k), d, d), "z2": _dense(next(k), d, d), "ok": _dense(next(k), d, 1, 0.1),
               "dt": _dense(next(k), d, 1, 0.1), "dself": _dense(next(k), d, s["self"], 0.1),
               "inv_out": jax.random.normal(next(k), (s["item"], d)) / jnp.sqrt(d), "kill_out": jax.random.normal(next(k), (s["entity"], d)) / jnp.sqrt(d),
-              "inv_b": jnp.zeros((s["item"],)), "kill_b": jnp.zeros((s["entity"],))}
+              "inv_b": jnp.zeros((s["item"],)), "kill_b": jnp.zeros((s["entity"],)), "copy": _dense(next(k), d, 2, 0.1)}
         reach = {"delta": _dense(next(k), 1, d), "r1": _dense(next(k), 2 * d, 2 * d), "r2": _dense(next(k), 2 * d, 1, 0.1)}
         pi = {"logit": _dense(next(k), d, 1, 0.01), "gru_wi": _ortho(next(k), d, 3 * w, 1.0), "gru_wh": _ortho(next(k), w, 3 * w, 1.0),
               "g_in": _dense(next(k), d, d, 0.5), "h_q": _ortho(next(k), w, d, 0.01), "g_q": _dense(next(k), d, d, 0.01),
               "u": jnp.zeros((WM_F,)), "value": _ortho(next(k), w, 1, 1.0)}
-        return {"enc": enc, "goal": goal, "wm": wm, "reach": reach, "pi": pi}
+        pblocks = [{"ln1_g": jnp.ones((d,)), "ln1_b": jnp.zeros((d,)), "qkv": _dense(next(k), d, 3 * d), "o": _dense(next(k), d, d, 0.5),
+                    "lnc_g": jnp.ones((d,)), "lnc_b": jnp.zeros((d,)), "cq": _dense(next(k), d, d), "ckv": _dense(next(k), d, 2 * d),
+                    "co": _dense(next(k), d, d, 0.5), "ln2_g": jnp.ones((d,)), "ln2_b": jnp.zeros((d,)),
+                    "fc1": _dense(next(k), d, 4 * d), "fc2": _dense(next(k), 4 * d, d, 0.5)} for _ in range(2)]
+        plan = {"end": emb(1), "pos": emb(self.L + 1), "task": jax.random.normal(next(k), (d,)) * 0.02, "blocks": pblocks,
+                "lnf_g": jnp.ones((d,)), "lnf_b": jnp.zeros((d,)), "out": _dense(next(k), d, d)}
+        return {"enc": enc, "goal": goal, "wm": wm, "reach": reach, "pi": pi, "plan": plan}
 
     def init_carry(self, n):
         return jnp.zeros((n, self.width))
@@ -166,12 +186,21 @@ class GoalWM:
         w = P["wm"]
         return _ap(w["ok"], z)[..., 0], _ap(w["dt"], z)[..., 0], _ap(w["dself"], z)
 
-    def d_inv(self, P, z, held):
-        """Predicted change of every inventory count (V,) for one candidate z (d,): never below -held (inventory balance)."""
-        return floor_st(INV_SCALE * (P["wm"]["inv_out"] @ z + P["wm"]["inv_b"]), -held)
+    def copy_gates(self, P, z):
+        """(alpha, beta): learned change of the count of the item / entity the candidate names."""
+        g = _ap(P["wm"]["copy"], z)
+        return g[..., 0], g[..., 1]
 
-    def d_kill(self, P, z):
-        return floor_st(INV_SCALE * (P["wm"]["kill_out"] @ z + P["wm"]["kill_b"]), 0.0)
+    def d_inv(self, P, z, held, item):
+        """Predicted change of every inventory count (V,) for one candidate z (d,) naming `item`: never below -held
+        (inventory balance)."""
+        alpha = self.copy_gates(P, z)[0] * (item > 0)
+        raw = P["wm"]["inv_out"] @ z + P["wm"]["inv_b"] + alpha * jax.nn.one_hot(item, self.s["item"])
+        return floor_st(INV_SCALE * raw, -held)
+
+    def d_kill(self, P, z, ent):
+        beta = self.copy_gates(P, z)[1] * (ent > 0)
+        return floor_st(INV_SCALE * (P["wm"]["kill_out"] @ z + P["wm"]["kill_b"] + beta * jax.nn.one_hot(ent, self.s["entity"])), 0.0)
 
     def goal_gain(self, P, o, z):
         """Predicted progress (0..1) of each candidate (K, d) towards the goal tokens, from the world model only."""
@@ -179,8 +208,12 @@ class GoalWM:
         gid, kind, m = o["goal_id"], o["goal_kind"], o["goal_mask"]
         E_i = P["wm"]["inv_out"][jnp.clip(gid, 0, self.s["item"] - 1)]      # (G, d)
         E_e = P["wm"]["kill_out"][jnp.clip(gid, 0, self.s["entity"] - 1)]
-        di = jnp.maximum(INV_SCALE * (z @ E_i.T + P["wm"]["inv_b"][jnp.clip(gid, 0, self.s["item"] - 1)]), -held[jnp.clip(gid, 0, self.s["item"] - 1)])
-        dk = jax.nn.relu(INV_SCALE * (z @ E_e.T + P["wm"]["kill_b"][jnp.clip(gid, 0, self.s["entity"] - 1)]))
+        alpha, beta = self.copy_gates(P, z)                                    # (K,)
+        ci, ce = o["cand_item"][:, None], o["cand_ent"][:, None]               # (K, 1)
+        di = jnp.maximum(INV_SCALE * (z @ E_i.T + P["wm"]["inv_b"][jnp.clip(gid, 0, self.s["item"] - 1)]
+                                      + alpha[:, None] * ((ci == gid[None]) & (ci > 0))), -held[jnp.clip(gid, 0, self.s["item"] - 1)])
+        dk = jax.nn.relu(INV_SCALE * (z @ E_e.T + P["wm"]["kill_b"][jnp.clip(gid, 0, self.s["entity"] - 1)]
+                                      + beta[:, None] * ((ce == gid[None]) & (ce > 0))))
         delta = jnp.maximum(jnp.expm1(o["goal_feat"][:, 0]), 1.0)
         gain = jnp.where(kind == GK["item"], di, jnp.where(kind == GK["kill"], dk, 0.0)) / delta
         return (jnp.clip(gain, 0.0, 1.0) * m).sum(-1)
@@ -193,13 +226,61 @@ class GoalWM:
         hcat = jnp.concatenate([jnp.broadcast_to(cls, eg.shape), eg], -1)
         return _ap(r["r2"], jax.nn.gelu(_ap(r["r1"], hcat)))[..., 0]
 
+    # ------------------------------------------------------------------ plan (batch generation of subgoals)
+    def n_dims(self):
+        s = self.s
+        return 1 + s["item"] + s["entity"] + s["progress"] + 1          # END, items, kills, advancements/progress, night
+
+    def dim_table(self, P):
+        """Embedding of every goal-space dimension (index 0 = END), the same as a goal token's kind + id embedding."""
+        e, g = P["enc"], P["goal"]
+        k = g["kind"]
+        return jnp.concatenate([P["plan"]["end"], e["item"] + k[GK["item"]], e["ent"] + k[GK["kill"]], g["adv"] + k[GK["adv"]],
+                                k[GK["night"]][None]], 0)
+
+    def plan_logits(self, P, x, kv, task, prefix):
+        """Teacher-forced decoder: x/kv encoded state, task (int) dimension index of T, prefix (L,) dimension indices.
+        Output (L, n_dims): row j predicts plan token j from T and prefix[:j]."""
+        d, nh, L = self.d, self.heads, self.L
+        pl, tab = P["plan"], self.dim_table(P)
+        inp = jnp.concatenate([(tab[task] + pl["task"])[None], tab[prefix[:L - 1]]], 0) + pl["pos"][:L]
+        causal = jnp.tril(jnp.ones((L, L), jnp.bool_))
+        h = inp
+        sp = lambda z, n: z.reshape(n, nh, d // nh).transpose(1, 0, 2)
+        for b in pl["blocks"]:
+            y = _ln(h, b["ln1_g"], b["ln1_b"])
+            q, kk, v = jnp.split(_ap(b["qkv"], y), 3, -1)
+            att = jax.nn.softmax(jnp.where(causal[None], jnp.einsum("hqd,hkd->hqk", sp(q, L), sp(kk, L)) / jnp.sqrt(d // nh), -1e9), -1)
+            h = h + _ap(b["o"], jnp.einsum("hqk,hkd->hqd", att, sp(v, L)).transpose(1, 0, 2).reshape(L, d))
+            y = _ln(h, b["lnc_g"], b["lnc_b"])
+            ck, cv = jnp.split(_ap(b["ckv"], x), 2, -1)
+            Lx = x.shape[0]
+            att = jax.nn.softmax(jnp.where(kv[None, None, :], jnp.einsum("hqd,hkd->hqk", sp(_ap(b["cq"], y), L), sp(ck, Lx)) / jnp.sqrt(d // nh), -1e9), -1)
+            h = h + _ap(b["co"], jnp.einsum("hqk,hkd->hqd", att, sp(cv, Lx)).transpose(1, 0, 2).reshape(L, d))
+            y = _ln(h, b["ln2_g"], b["ln2_b"])
+            h = h + _ap(b["fc2"], jax.nn.gelu(_ap(b["fc1"], y)))
+        h = _ln(h, pl["lnf_g"], pl["lnf_b"])
+        return _ap(pl["out"], h) @ tab.T / jnp.sqrt(d)
+
+    def plan_loss_one(self, P, o, task, seq, mask):
+        x, kv, _, _ = self.encode(P["enc"], o)
+        lp = jax.nn.log_softmax(self.plan_logits(P, x, kv, task, seq), -1)
+        nll = -jnp.take_along_axis(lp, seq[:, None], -1)[:, 0]
+        hit = (jnp.argmax(lp, -1) == seq).astype(jnp.float32)
+        m = mask.astype(jnp.float32)
+        return (nll * m).sum() / jnp.maximum(m.sum(), 1.0), (hit * m).sum(), m.sum()
+
+    def plan_loss(self, P, obs, task, seq, mask):
+        nll, hit, n = jax.vmap(lambda o, t, q, m: self.plan_loss_one(P, o, t, q, m))(obs, task, seq, mask)
+        return nll.mean(), hit.sum() / jnp.maximum(n.sum(), 1.0)
+
     # ------------------------------------------------------------------ policy step
     def _one(self, P, o):
         x, kv, c, cls = self.encode(P["enc"], o)
         gvec = self.goal_vec(P, o, x, kv)
         z = self.wm_z(P["wm"], c)
         okl, ldt, _ = self.wm_heads(P, z)
-        feats = jax.lax.stop_gradient(jnp.stack([jax.nn.sigmoid(okl), ldt / 5.0, self.goal_gain(P, o, z)], -1))
+        feats = WM_FEAT_SCALE * jax.lax.stop_gradient(jnp.stack([jax.nn.sigmoid(okl), ldt / 5.0, self.goal_gain(P, o, z)], -1))
         return c, cls, gvec, feats
 
     def step(self, P, h, obs):
@@ -232,18 +313,19 @@ class GoalWM:
         V = self.s["item"]
         held, held2 = held_vector(o["inv_item"], o["inv_count"], V), held_vector(a["n_inv_item"], a["n_inv_count"], V)
         dinv = jnp.clip(held2 - held, -64.0, 64.0)
-        dinv_hat = self.d_inv(P, z, held)
+        dinv_hat = self.d_inv(P, z, held, o["cand_item"][a["act"]])
         dkill = (a["n_killed"] - o["killed"]) * 8.0
         wv, kvd = a["wm_valid"], a["kill_valid"]
         l_ok = wv * (jax.nn.softplus(okl) - a["ok"] * okl)
         l_dt = wv * (ldt - jnp.log1p(a["dt"])) ** 2
         l_self = wv * jnp.mean((ds - (a["n_self"] - o["self"])) ** 2)
         l_inv = wv * jnp.sum(huber((dinv_hat - dinv) / INV_SCALE))
-        l_kill = wv * kvd * jnp.sum(huber((self.d_kill(P, z) - dkill) / INV_SCALE))
+        l_kill = wv * kvd * jnp.sum(huber((self.d_kill(P, z, o["cand_ent"][a["act"]]) - dkill) / INV_SCALE))
         rl = self.reach_logit(P, cls, a["her_kind"], a["her_id"], a["her_delta"])
         l_reach = jnp.sum(a["her_mask"] * (jax.nn.softplus(rl) - a["her_label"] * rl)) / jnp.maximum(a["her_mask"].sum(), 1.0)
         pos = dinv > 0.5
-        gained_ok = jnp.where(pos.any(), (jnp.argmax(dinv_hat) == jnp.argmax(dinv)).astype(jnp.float32), 0.0)
+        # tie-aware: a hit when the predicted top item is one of the items with the largest gain
+        gained_ok = jnp.where(pos.any(), (dinv[jnp.argmax(dinv_hat)] >= dinv.max()).astype(jnp.float32), 0.0)
         return {"ok": l_ok, "dt": l_dt, "self": l_self, "inv": l_inv, "kill": l_kill, "reach": l_reach,
                 "_ok_p": jax.nn.sigmoid(okl), "_gain_has": wv * pos.any(), "_gain_hit": wv * gained_ok, "_reach_p": jax.nn.sigmoid(rl)}
 
@@ -257,6 +339,40 @@ class GoalWM:
 
     def param_counts(self, P):
         return n_params(P), n_params({k: v for k, v in P.items() if k != "reach"})
+
+
+def plan_beam(model, params, enc_fn, dec_fn, o, task: int, beam: int = 4, forbid=()) -> list[tuple[list[int], float]]:
+    """Batch generation of one plan by beam search: up to model.L tokens (dimension indices, END = 0 stops a beam), no
+    dimension twice, END not first, `forbid` (e.g. dimensions already at their goal) never. enc_fn(params, o) -> (x, kv);
+    dec_fn(params, x, kv, task, prefixes (B, L)) -> logits (B, L, n_dims). Returns [(plan without END, log-prob)] best first."""
+    x, kv = enc_fn(params, o)
+    L, V = model.L, model.n_dims()
+    beams, done = [([], 0.0)], []
+    for t in range(L):
+        pre = np.zeros((len(beams), L), np.int32)
+        for i, (sq, _) in enumerate(beams):
+            pre[i, :len(sq)] = sq
+        lp = np.asarray(jax.nn.log_softmax(dec_fn(params, x, kv, task, pre)[:, t], -1))
+        cand = []
+        for i, (sq, sc) in enumerate(beams):
+            row = lp[i].copy()
+            row[list(sq) + list(forbid)] = -np.inf
+            if t == 0:
+                row[0] = -np.inf
+            for j in np.argsort(-row)[:beam]:
+                if np.isfinite(row[j]):
+                    cand.append((sq + [int(j)], sc + float(row[j])))
+        cand.sort(key=lambda c: -c[1])
+        beams = []
+        for sq, sc in cand:
+            (done if sq[-1] == 0 else beams).append((sq, sc))
+            if len(beams) >= beam:
+                break
+        if not beams:
+            break
+    done += beams
+    done.sort(key=lambda c: -c[1])
+    return [([d for d in sq if d != 0], sc) for sq, sc in done[:beam]]
 
 
 OBS_KEYS = ("grid", "self", "clock", "inv_item", "inv_count", "ent_type", "ent_feat", "progress", "killed", "view_cat", "view_item",
