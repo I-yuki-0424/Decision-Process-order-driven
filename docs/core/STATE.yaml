@@ -1595,4 +1595,19 @@ hazards:
       on the run 1-3 logs vs a frequency prior; E2 plan-feasibility classification with injected premature plans: HNN-energy
       vs stoichiometric non-negativity vs MLP; E3 goal-conditioned + HER vs SkillTruck at equal env steps on milestone rates.
       No gate id: side track. Impact: no symbol touched. Knowledge-DB unreachable this session (re-authentication required).
-    blockers: ["Operator choice of which of E1-E3 to run; knowledge-DB re-authentication (portal_toggle_servers) to record the note."]
+      IMPLEMENTATION (operator "I agree, modify the code", 2026-11-01; owner review 2026-11-02): commits a74caba, d4f8912,
+      c53d790 and the archive fix after them. GoalWM (scripts/botsystem_goal_wm.py, botsystem_goal_ppo.py,
+      botsystem_wm_pretrain.py; Idea4_O01_D01_S10, then S11 = goalwm64x2w256g2kppl8 with batch plan generation). Batch
+      generation (operator: "all tasks needed to reach the goal are generated at once") had NOT been implemented before
+      d4f8912; it is now generated at the goal level (plan decoder, beam 4, <= 8 goal-space dimensions, hindsight first-raise
+      orders, replan when reach R < 0.02); command sequences cannot be pre-generated because candidates exist only per state
+      (stated, not hidden). E1 v2 (result_v2_plan.json, held-out train3-s1): success AUROC 0.836 vs 0.641, duration MAE 0.290
+      vs 1.909, gained-item 0.948 vs lookup 0.946, reach AUROC 0.951 vs 0.866, plan next-step 0.407 vs bigram 0.327; example
+      plans are not yet task-specific (caveat). Positive controls: WM 1.000/1.000, plan decoder 1.000 + beam reproduces chains,
+      goal control statistical bar 0.18 (two runs at the old 0.25 bar gave 0.22 and 0.12; the bar was changed and the
+      reason recorded in the test). Defect found live: archive wins > tries (dimension archived while assigned) gave a
+      negative proposal weight and crashed run 5 at its first proposals; fixed with count_tries + regression test. Run 5
+      (forge1201 base train5, 2 shards x 10 bots, init pretrain/goalwm_plan_pretrain.pkl) started 2026-11-02 02:26 JST.
+      HNN not implemented (refuted above). Impact: new files only except botsystem_skill_ppo.Server (subclassed, unchanged)
+      and mlflow_ingest_botsystem.py (parameter list); scip-neo4j checks returned ALLOWED, no locked symbols.
+    blockers: ["E2/E3 not run (E3 = run 5 vs run 3 at equal env steps, pending steps); PC (5800X) lacks WSL/Docker: needs owner admin + reboot."]
