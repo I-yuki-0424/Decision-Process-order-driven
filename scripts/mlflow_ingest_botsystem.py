@@ -50,14 +50,18 @@ def collect(root: Path, base: str):
     """Everything one execution wrote: learner log, episodes, and the environment's runs <base>-<UTC time>."""
     tl = list(lines(root / base / "train" / "train_log.jsonl"))
     eps = list(lines(root / base / "train" / "episodes.jsonl"))
-    runs = sorted(d for d in root.iterdir() if d.is_dir() and d.name.startswith(base + "-") and d.name[len(base) + 1:][:8].isdigit())
-    steps, start = [], None
+    import re
+    pat = re.compile(re.escape(base) + r"-(s\d+-)?\d{8}T\d{6}$")   # <base>-<time> or a shard's <base>-s<i>-<time>
+    runs = sorted(d for d in root.iterdir() if d.is_dir() and pat.match(d.name))
+    steps, start, shards = [], None, {}
     for d in runs:
         for e in lines(d / "events.jsonl"):
             if e.get("event") == "run_start":
-                start = e
+                start = shards[e.get("shard", -1)] = e
             elif e.get("event") == "step":
                 steps.append(e)
+    if start:
+        start = {**start, "bots": sum(x.get("bots", 0) for x in shards.values()), "shards": len(shards)}
     return tl, eps, runs, steps, start
 
 
@@ -73,7 +77,7 @@ def build(sch: Schema, root: Path, base: str, aip: Path):
     params.update({"arch.d_model": "64", "arch.n_layers": "2", "arch.n_heads": "4", "arch.hidden_width": "256",
                    "arch.kind_prior": str("kp" in m["name"]), "env.k_candidates": str(m["sizes"]["K"]), "env.id": "botsystem-skills"})
     if start:
-        params.update({"env.version": start.get("env_version", ""), "env.bots": str(start.get("bots", "")), "env.game_speed": str(start.get("speed", 1)),
+        params.update({"env.version": start.get("env_version", ""), "env.bots": str(start.get("bots", "")), "env.shards": str(start["shards"]), "env.game_speed": str(start.get("speed", 1)),
                        "env.episode_limit": str(start.get("max_steps", "")), "env.region": str(start.get("region", ""))})
     ups = [x for x in tl if x.get("event") == "update"]
     pbt = [x for x in tl if x.get("event") == "pbt"]

@@ -90,7 +90,8 @@ params:
   arch.tp_source:        {aliases: [tp_src]}                       # Truck TP readout: cand (executed action token) | head (MLP head) (TASK-025)
   env.id:                {aliases: [env]}
   env.version:           {aliases: [env_version]}                  # BOTSYSTEM environment version string
-  env.bots:              {aliases: [bots]}                         # BOTSYSTEM: bots acting in parallel
+  env.bots:              {aliases: [bots]}                         # BOTSYSTEM: bots acting in parallel (all shards)
+  env.shards:            {aliases: [shards]}                       # BOTSYSTEM: environment processes, each with its own server
   env.game_speed:        {aliases: [game_speed, speed]}            # BOTSYSTEM: game clock multiplier (tools/tickrate)
   env.k_candidates:      {aliases: [k_candidates]}                 # BOTSYSTEM: candidate commands per step (K)
   env.region:            {aliases: [region]}                       # BOTSYSTEM: half-width of the reset region in blocks

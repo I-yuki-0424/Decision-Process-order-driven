@@ -172,11 +172,12 @@ class TestPopulation(unittest.TestCase):
 class FakeEnv:
     """Writes the environment side of the file API for two bots; candidate cmd 2 at a random index pays reward 1."""
 
-    def __init__(self, root: Path, base: str, run: str, seed=0):
+    def __init__(self, root: Path, base: str, run: str, seed=0, ids=(0, 1), current=None):
         from integrations.botsystem.file_channel import LineReader, LineWriter
         d = root / run
         d.mkdir(parents=True)
-        (root / f"{base}.current").write_text(run + "\n")
+        (root / (current or f"{base}.current")).write_text(run + "\n")
+        self.ids = ids
         self.w = LineWriter(d / "env_to_policy.jsonl")
         self.r = LineReader(d / "policy_to_env.jsonl", run_id=run, allowed=("hello_ack", "act"))
         self.run, self.seq, self.rng = run, 0, np.random.default_rng(seed)
@@ -196,15 +197,15 @@ class FakeEnv:
         raise TimeoutError
 
     def play(self, steps, ep_len=40, srv=None):
-        for e in (0, 1):
+        for e in self.ids:
             self.send(e, "hello", **HELLO)
             assert self.wait(lambda m: m["type"] == "hello_ack" and m["env_id"] == e)["accepted"]
-        state = {e: {"episode": 0, "step": 0, "good": None, "reward": 0.0} for e in (0, 1)}
+        state = {e: {"episode": 0, "step": 0, "good": None, "reward": 0.0} for e in self.ids}
         terms0 = {"survival": 0.0, "kills": 0.0, "notable": 0.0, "mined": 0.0, "achievements": 0.0}
         for i in range(steps):
             while srv is not None and i % 16 == 0 and any(len(m.queue) >= srv.a.batch_segs for m in srv.members):   # learner keeps up
                 time.sleep(0.05)
-            for e in (0, 1):
+            for e in self.ids:
                 s = state[e]
                 done = s["step"] >= ep_len
                 good = int(self.rng.integers(0, 8))
@@ -217,6 +218,29 @@ class FakeEnv:
                 hit = act["action"]["candidate"] == good
                 self.hits.append(hit)
                 s.update(step=s["step"] + 1, reward=1.0 if hit else 0.0)
+
+
+class TestShards(unittest.TestCase):
+    def test_two_environment_shards_feed_one_learner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = ["--root", tmp, "--base", "sh", "--seg", "8", "--batch-segs", "4", "--epochs", "1", "--minibatches", "1",
+                    "--n-max", "4", "--poll-s", "0.002", "--stage1-max-steps", "10000000"]
+            srv = sp.Server(sp.parse_args(args))
+            a = FakeEnv(root, "sh", "sh-s0-1", ids=(0, 1), current="sh.s0.current")
+            b = FakeEnv(root, "sh", "sh-s1-1", seed=1, ids=(2, 3), current="sh.s1.current")
+            th = threading.Thread(target=srv.loop, daemon=True)
+            th.start()
+            ta = threading.Thread(target=a.play, args=(200,), kwargs={"ep_len": 20, "srv": srv})
+            tb = threading.Thread(target=b.play, args=(200,), kwargs={"ep_len": 20, "srv": srv})
+            ta.start(), tb.start(), ta.join(120), tb.join(120)
+            srv.stop.set(), th.join(10), srv.learn_thread.join(60)
+            self.assertEqual((len(a.hits), len(b.hits)), (382, 382))   # every step of both shards answered (2 bots x 191)
+            self.assertEqual(set(srv.runs), {"sh.s0.current", "sh.s1.current"})
+            self.assertGreaterEqual(srv.learner.updates, 2)
+            eps = [json.loads(x) for x in (root / "sh" / "train" / "episodes.jsonl").read_text().splitlines()]
+            self.assertEqual({e["env_id"] for e in eps}, {0, 1, 2, 3})
+            self.assertEqual({e["run_id"] for e in eps}, {"sh-s0-1", "sh-s1-1"})
 
 
 class TestEndToEnd(unittest.TestCase):

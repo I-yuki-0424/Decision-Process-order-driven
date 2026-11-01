@@ -317,7 +317,10 @@ class Server:
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.train_log = open(self.out_dir / "train_log.jsonl", "a")
         self.ep_log = open(self.out_dir / "episodes.jsonl", "a")
-        self.run = None
+        self.run = self.reader = None      # the run followed last (logs, tests)
+        self.runs: dict[str, dict] = {}     # current file -> {rid, reader, writer, seq}: one per environment shard
+        self.envs: dict[int, dict] = {}
+        self.obs_spec = self.spec = None
         self.model = self.curr = self.hello = None
         self.members: list[Member] = []
         self.rng = np.random.default_rng(a.seed)
@@ -331,26 +334,33 @@ class Server:
 
     # -- run following --
     def follow(self):
-        try:
-            rid = (self.root / f"{self.base}.current").read_text().strip()
-        except OSError:
-            return
-        if rid == self.run or not (self.root / rid / "env_to_policy.jsonl").exists():
-            return
-        self.run = rid
-        d = self.root / rid
-        self.reader = LineReader(d / "env_to_policy.jsonl", run_id=rid, allowed=("hello", "obs", "bye"))
-        self.writer = LineWriter(d / "policy_to_env.jsonl")
-        self.seq, self.envs, self.obs_spec, self.spec = 0, {}, None, None
-        self.tlog(event="run", run_id=rid)
-        log.info("following run %s", rid)
+        """Follow every environment shard of this base: <base>.current and <base>.s<i>.current each name the live run of one
+        environment process (a restart of a shard is a new run; its bots' state is dropped and they say hello again)."""
+        for cur in [self.root / f"{self.base}.current", *sorted(self.root.glob(f"{self.base}.s*.current"))]:
+            try:
+                rid = cur.read_text().strip()
+            except OSError:
+                continue
+            key = cur.name
+            if (key in self.runs and self.runs[key]["rid"] == rid) or not (self.root / rid / "env_to_policy.jsonl").exists():
+                continue
+            d = self.root / rid
+            self.runs[key] = {"rid": rid, "reader": LineReader(d / "env_to_policy.jsonl", run_id=rid, allowed=("hello", "obs", "bye")),
+                              "writer": LineWriter(d / "policy_to_env.jsonl"), "seq": 0}
+            for e in [k for k, v in self.envs.items() if v["run"] == key]:
+                del self.envs[e]
+            self.run, self.reader = rid, self.runs[key]["reader"]
+            self.tlog(event="run", run_id=rid, shard=key)
+            log.info("following run %s (%s)", rid, key)
 
-    def send(self, env_id, type_, **kw):
-        self.writer.send({"v": 1, "type": type_, "run_id": self.run, "env_id": env_id, "seq": self.seq, "t": round(time.time(), 3), **kw})
-        self.seq += 1
+    def send(self, env_id, type_, run=None, **kw):
+        r = self.runs[run or self.envs[env_id]["run"]]
+        r["writer"].send({"v": 1, "type": type_, "run_id": r["rid"], "env_id": env_id, "seq": r["seq"], "t": round(time.time(), 3), **kw})
+        r["seq"] += 1
 
     # -- hello --
-    def on_hello(self, msg):
+    def on_hello(self, msg, run=None):
+        run = run or next(iter(self.runs))
         try:
             spec = ActionSpec.from_wire(msg["action_spec"])
             if spec.name != SPEC_NAME:
@@ -360,10 +370,10 @@ class Server:
             self.ensure_model(sizes, msg)
         except (ValueError, KeyError, ProtocolError) as e:
             log.error("hello refused: %s", e)
-            self.send(msg["env_id"], "hello_ack", accepted=False, reason=str(e)[:300])
+            self.send(msg["env_id"], "hello_ack", run=run, accepted=False, reason=str(e)[:300])
             return
         self.spec, self.obs_spec = spec, obs_spec
-        self.envs[msg["env_id"]] = self.fresh_env()
+        self.envs[msg["env_id"]] = {**self.fresh_env(), "run": run}
         self.send(msg["env_id"], "hello_ack", accepted=True, action_spec_hash=spec.spec_hash())
 
     @property
@@ -488,7 +498,7 @@ class Server:
         ep = e["ep"] or {"terms": {}, "steps": 0, "stage": self.curr.stage, "t0": time.time()}
         prog = m["obs"]["progress"]
         nights, slept = round(prog[-2] * 10, 3), round(prog[-1] * 10, 3)
-        rec = {"t": round(time.time(), 3), "run_id": self.run, "env_id": m["env_id"], "episode": m["episode"], "steps": ep["steps"],
+        rec = {"t": round(time.time(), 3), "run_id": self.runs[e["run"]]["rid"] if e.get("run") in self.runs else self.run, "env_id": m["env_id"], "episode": m["episode"], "steps": ep["steps"],
                "terminated": m["terminated"], "stage": STAGES[ep["stage"]], "nights": nights, "slept": slept,
                "terms": {k: round(v, 4) for k, v in ep["terms"].items()},
                "return_stage": round(stage_reward(ep["terms"], self.hello["stages"][STAGES[ep["stage"]]]), 4),
@@ -552,17 +562,19 @@ class Server:
             if time.time() - last_follow > 2.0:
                 self.follow()
                 last_follow = time.time()
-            if self.run is None:
+            if not self.runs:
                 time.sleep(0.5)
                 continue
             obs = []
-            for m in self.reader.poll():
-                if m["type"] == "hello":
-                    self.on_hello(m)
-                elif m["type"] == "obs":
-                    obs.append(m)
-                elif m["type"] == "bye":
-                    self.envs.pop(m["env_id"], None)
+            for key, r in list(self.runs.items()):
+                for m in r["reader"].poll():
+                    if m["type"] == "hello":
+                        self.on_hello(m, key)
+                    elif m["type"] == "obs":
+                        if self.envs.get(m["env_id"], {}).get("run") == key:
+                            obs.append(m)
+                    elif m["type"] == "bye" and self.envs.get(m["env_id"], {}).get("run") == key:
+                        self.envs.pop(m["env_id"], None)
             if obs:
                 self.on_obs_batch(obs)
             else:
