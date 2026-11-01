@@ -1561,3 +1561,38 @@ hazards:
       pre_commit_ban_check passed. Impact: SkillTruck.step and Learner._loss/_update_fn/update ALLOWED (scip, index at 2f88111),
       dependents only these scripts and tests.
     blockers: ["Operator go-ahead for the one-week training run (the run is prepared, not started)."]
+
+  - id: "TASK-20261101-031-botsystem-architecture-review"
+    created_at: "2026-11-01T21:00:00+09:00"
+    status: "done"
+    description: >
+      Operator request 2026-11-01: evaluate and organise a proposal for the BOTSYSTEM model: goal subdivision, batch (plan)
+      generation, a world model, a Hamiltonian-NN "physical constraint layer" that flags procedures that are too early (e.g. a
+      pickaxe before a stick) without hard-coding, hidden dimensions as physical state (S, A with time/step/inventory/state on
+      success, H, T with free values), surroundings as surface/visible blocks, and a per-action condition sub-vector.
+    spec_ref: "operator chat 2026-11-01 (not stored); evidence: docs/experiments/2026-09-26_physics_benchmark/03_findings.md,
+      ../forge1201-MODED-AIPlayer/docs/proposed/RL-TRAINING-v2.md, ../forge1201-MODED-AIPlayer/docs/implemented/MODEL-SKILLTRUCK.md"
+    validation_commands: []
+    result: >
+      Review only, no code. Verdict: keep goal-conditioning with free values (= goal mask), relative goals over a statistics
+      vector, hindsight relabelling, an explicit-state world model and plan scoring; refute the Hamiltonian NN as the feasibility
+      mechanism; refute environment-computed "inventory/state on success" as action input. Objections: (1) HNN: its measured
+      advantage is on smooth conservative systems in canonical (q,p) (Kepler 0.075 vs MLP 0.66); it lost on dissipative
+      fall_drag and failed to extrapolate sine OOD (findings 2-3), and needs canonical coordinates and event jumps neither of
+      which exist here (STATE line ~85). Inventory dynamics are discrete, non-conservative (mining creates, eating destroys)
+      stoichiometry; "a pickaxe without sticks" is a negative-marking violation of a resource balance (Petri net), not energy
+      creation. Replacement: learned per-action inventory delta + non-negativity of the cumulative inventory along a plan, plus
+      a success/availability head trained on last_reason and on later candidate-list membership. (2) A-token fields "time,
+      inventory and state on success" computed by the environment are the consequence of the action handed to the model
+      (answer leakage); they must be world-model outputs. Recipe ingredients from the game's recipe book are player-visible and
+      allowed (labelled). (3) A hand-written goal tree (dragon -> portal -> eyes ...) is P5-class tech-tree knowledge; subgoals
+      must be learned (sampled from achieved states / chosen by a goal-conditioned value). (4) Full-chunk voxels include
+      ores hidden behind stone (x-ray, privileged); the visible-surface raycast is the honest form. (5) One-step infeasibility
+      is already removed by the environment since v1.3; a feasibility layer only pays off with multi-step plans, so it must be
+      tested together with plan generation, and plan compute must be counted. (6) Run 3 (update 113, 103k steps, entropy
+      ~2.4, stage survive) does not yet show that missing hints are the binding limit; the dragon is unreachable by the
+      candidate list and the step budget is ~20k/h. Decisive experiments proposed: E1 offline feasibility/availability head
+      on the run 1-3 logs vs a frequency prior; E2 plan-feasibility classification with injected premature plans: HNN-energy
+      vs stoichiometric non-negativity vs MLP; E3 goal-conditioned + HER vs SkillTruck at equal env steps on milestone rates.
+      No gate id: side track. Impact: no symbol touched. Knowledge-DB unreachable this session (re-authentication required).
+    blockers: ["Operator choice of which of E1-E3 to run; knowledge-DB re-authentication (portal_toggle_servers) to record the note."]
