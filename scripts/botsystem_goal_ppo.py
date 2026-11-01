@@ -513,12 +513,11 @@ class GoalServer(Server):
                 self.stats["replans_infeasible"] += 1
                 e["plan"] = None
                 continue
-            if d in self.goals.archive:
-                self.goals.archive[d]["tries"] += 1
+            counted = self.count_tries([d])
             self.stats["assigned"] += 1
             ctx = [(pl["T"], vals.get(pl["T"], 0.0), 1.0)] if d != pl["T"] else []
             return {"tokens": [(d, vals.get(d, 0.0), 1.0)], "ctx": ctx, "t0": step, "task": pl["T"] in self.goals.task_dims(self.item_ix) and d == pl["T"],
-                    "p": p, "plan": True}
+                    "p": p, "plan": True, "counted": counted}
         return None
 
     def propose(self, e, vals, step) -> dict:
@@ -536,12 +535,20 @@ class GoalServer(Server):
             n = 2 if (len(cand) > 1 and self.rng.random() < self.a.p_pair) else 1
             idx = self.rng.choice(len(cand), size=n, replace=False, p=w / w.sum())
             dims, p_sel = [cand[i] for i in idx], p[idx]
-        for d in dims:
-            if d in self.goals.archive:
-                self.goals.archive[d]["tries"] += 1
+        counted = self.count_tries(dims)
         self.stats["assigned"] += 1
         self.stats["task_assigned"] += int(is_task)
-        return {"tokens": [(d, vals.get(d, 0.0), 1.0) for d in dims], "t0": step, "task": is_task, "p": float(np.prod(p_sel))}
+        return {"tokens": [(d, vals.get(d, 0.0), 1.0) for d in dims], "t0": step, "task": is_task, "p": float(np.prod(p_sel)),
+                "counted": counted}
+
+    def count_tries(self, dims) -> list:
+        """Count an assignment for the archived dimensions among dims and return them: a win is later counted only for these,
+        so wins <= tries even when a dimension enters the archive while assigned (else the success rate exceeds 1 and the
+        p(1 - p) proposal weight turns negative: run 5 crash, 2026-11-02)."""
+        counted = [d for d in dims if d in self.goals.archive]
+        for d in counted:
+            self.goals.archive[d]["tries"] += 1
+        return counted
 
     # -- observations --
     def on_obs_batch(self, msgs):
@@ -607,9 +614,8 @@ class GoalServer(Server):
                 e["reached_dims"][d] = e["reached_dims"].get(d, 0) + 1
             self.stats["reached"] += 1
             self.stats["task_reached"] += int(g["task"])
-            for d, _, _ in g["tokens"]:
-                if d in self.goals.archive:
-                    self.goals.archive[d]["wins"] += 1
+            for d in g.get("counted", ()):
+                self.goals.archive[d]["wins"] += 1
             if e["ep"]:
                 e["ep"]["goals_reached"] += 1
             if g.get("plan") and e["plan"] is not None:

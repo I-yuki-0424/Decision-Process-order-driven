@@ -63,6 +63,21 @@ class TestGoalSpace(unittest.TestCase):
     def setUp(self):
         self.gs = gp.GoalSpace(sizes_from_hello(HELLO), MILESTONES)
 
+    def test_wins_never_exceed_tries(self):
+        """Negative control of the run-5 crash: a dimension archived only after its assignment must not collect a win (else
+        the success rate (wins + 1) / (tries + 2) exceeds 1 and the proposal weight p(1 - p) is negative)."""
+        from types import SimpleNamespace
+        srv = SimpleNamespace(goals=self.gs)
+        d_new, d_old = ("item", 5), ("item", 3)
+        self.gs.archive[d_old] = {"seen": 1, "tries": 0, "wins": 0}
+        counted = gp.GoalServer.count_tries(srv, [d_new, d_old])
+        self.assertEqual(counted, [d_old])
+        self.gs.archive[d_new] = {"seen": 1, "tries": 0, "wins": 0}        # raised while assigned
+        for d in counted:                                                   # the server's win bookkeeping
+            self.gs.archive[d]["wins"] += 1
+        for v in self.gs.archive.values():
+            self.assertLessEqual(v["wins"], v["tries"])
+
     def test_values_reached_encode(self):
         rng = np.random.default_rng(0)
         o = make_obs(rng, {3: 2, 7: 1}, kills={4: 2}, nights=0.1)
