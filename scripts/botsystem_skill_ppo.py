@@ -19,8 +19,18 @@ all weights 1). Stable = the last W-episode block means of nights survived diffe
 `windows` blocks and that mean >= min_nights; or the stage-1 step budget is spent (logged as the reason). Each stage has its own
 value head and return scale. The target is the learner's: the environment sends progress only, never a goal.
 
+Population (--population M, default 1; owner 2026-11-01: keep the greedy learner and add cautious ones, combine like a
+genetic algorithm): M members with their own parameters, optimiser state, return scale, entropy coefficient and per-term
+reward multipliers (member 0 'greedy' = the stage weights as they are; member 1 'cautious' = invalid x3, survival x2, kills
+x0.5; further members drawn around 1). Bot env_id % M acts for member env_id % M. Every --pbt-interval updates of every
+member, once each has --pbt-window finished episodes, members are ranked by the mean return under the unmodified stage
+weights (fitness never uses a member's own multipliers, so members are comparable); the worst takes a copy of the best's
+parameters and optimiser state and the best's settings, each multiplied by 0.8 or 1.25 (exploit/explore of population-based
+training, Jaderberg et al. 2017). With M = 1 this is the single learner of before.
+
 Outputs in <root>/<base>/train/: checkpoint.pkl (every update, atomic; resumed on start), train_log.jsonl (updates, stage
-switches, run changes), episodes.jsonl (one line per finished episode: return per term, nights, slept, steps, stage).
+switches, run changes, pbt), episodes.jsonl (one line per finished episode: return per term, nights, slept, steps, stage,
+member).
 """
 from __future__ import annotations
 
@@ -52,7 +62,8 @@ from botsystem_skill_truck import INT_KEYS, OBS_KEYS, SkillTruck, sizes_from_hel
 log = logging.getLogger("skill_ppo")
 STAGES = ("survive", "dragon")
 SPEC_NAME = "skills_v1"
-CKPT_VERSION = 1
+CKPT_VERSION = 2
+HP_TERMS = ("survival", "kills", "notable", "mined", "achievements", "invalid")
 
 
 def parse_args(argv=None):
@@ -66,6 +77,8 @@ def parse_args(argv=None):
     a("--stage-window", type=int, default=100), a("--stage-windows", type=int, default=3), a("--stage-tol", type=float, default=0.1)
     a("--stage-min-nights", type=float, default=1.0), a("--stage1-max-steps", type=int, default=600_000)
     a("--poll-s", type=float, default=0.01)
+    a("--population", type=int, default=1), a("--pbt-interval", type=int, default=20), a("--pbt-window", type=int, default=20)
+    a("--kind-prior", type=int, default=1)
     return p.parse_args(argv)
 
 
@@ -163,7 +176,7 @@ class Learner:
         self.updates = 0
         self._update = jax.jit(self._update_fn)
 
-    def _loss(self, params, b):
+    def _loss(self, params, b, ent_coef):
         def body(h, x):
             o, st = x
             logits, value, h2 = self.model.step(params, h, o, st)
@@ -178,21 +191,22 @@ class Learner:
         adv = b["adv"]
         pg = -jnp.minimum(ratio * adv, jnp.clip(ratio, 1 - self.a.clip, 1 + self.a.clip) * adv)
         vl = 0.5 * (value - b["ret"]) ** 2
-        ent = masked_entropy(logits, b["obs"]["cand_mask"])
+        entropy = masked_entropy(logits, b["obs"]["cand_mask"])
         m = b["valid"]
         den = jnp.maximum(m.sum(), 1.0)
         mean = lambda x: (x * m).sum() / den
-        loss = mean(pg) + self.a.vf * mean(vl) - self.a.ent * mean(ent)
-        return loss, {"pg": mean(pg), "vf": mean(vl), "ent": mean(ent), "kl": mean(b["logp"] - nlp),
+        loss = mean(pg) + self.a.vf * mean(vl) - ent_coef * mean(entropy)
+        return loss, {"pg": mean(pg), "vf": mean(vl), "ent": mean(entropy), "kl": mean(b["logp"] - nlp),
                       "clipfrac": mean((jnp.abs(ratio - 1) > self.a.clip).astype(jnp.float32))}
 
-    def _update_fn(self, params, opt_state, b):
-        (loss, aux), g = jax.value_and_grad(self._loss, has_aux=True)(params, b)
+    def _update_fn(self, params, opt_state, b, ent_coef):
+        (loss, aux), g = jax.value_and_grad(self._loss, has_aux=True)(params, b, ent_coef)
         up, opt_state = self.opt.update(g, opt_state, params)
         return optax.apply_updates(params, up), opt_state, {**aux, "loss": loss}
 
-    def update(self, segs, scale: ReturnScale):
+    def update(self, segs, scale: ReturnScale, ent_coef: float | None = None):
         """segs: list of dicts from Server._emit; all of one stage. Returns metrics."""
+        ent_coef = jnp.float32(self.a.ent if ent_coef is None else ent_coef)
         a = self.a
         T = a.seg
         stage = segs[0]["stage"]
@@ -225,7 +239,7 @@ class Learner:
             for i in range(0, B, mb):
                 idx = perm[i:i + mb]
                 sub = jax.tree_util.tree_map(lambda x: x[idx], batch)
-                params, opt_state, m = self._update(params, opt_state, sub)
+                params, opt_state, m = self._update(params, opt_state, sub, ent_coef)
                 mets.append({k: float(v) for k, v in m.items()})
         self.params, self.opt_state = params, opt_state
         self.updates += 1
@@ -233,6 +247,60 @@ class Learner:
         out.update(segments=B, steps=int(batch["valid"].sum()), ret_std=sd, stage=STAGES[stage],
                    adv_raw_mean=float(mu), reward_mean=float(np.mean(np.concatenate([s["rew"] for s in segs]))))
         return out
+
+
+# ---------------------------------------------------------------- population ------------------------------------------------
+class Member:
+    """One learner of the population: its own parameters (in .learner), return scale, segment queue, settings, fitness."""
+
+    def __init__(self, idx: int, name: str, ent: float, w: dict):
+        self.idx, self.name, self.ent, self.w = idx, name, float(ent), {k: float(v) for k, v in w.items()}
+        self.learner: Learner | None = None
+        self.scale = ReturnScale()
+        self.queue: list[dict] = []
+        self.fit: list[float] = []       # returns of finished episodes under the unmodified stage weights
+        self.since = 0                   # updates since the last population step
+
+    @property
+    def params(self):
+        return self.learner.params
+
+    def weights(self, base: dict) -> dict:
+        return {k: v * self.w.get(k, 1.0) for k, v in base.items()}
+
+    def hp(self) -> dict:
+        return {"member": self.idx, "name": self.name, "ent": round(self.ent, 5), "w": {k: round(v, 3) for k, v in self.w.items()}}
+
+
+def initial_members(a, rng) -> list[Member]:
+    out = [Member(0, "greedy", a.ent, {}), Member(1, "cautious", a.ent, {"invalid": 3.0, "survival": 2.0, "kills": 0.5})]
+    for i in range(2, a.population):
+        out.append(Member(i, f"m{i}", float(np.exp(rng.uniform(np.log(a.ent / 3), np.log(a.ent * 3)))),
+                          {k: float(np.exp(rng.uniform(np.log(0.5), np.log(2.0)))) for k in HP_TERMS}))
+    return out[:a.population]
+
+
+def pbt_step(members: list[Member], a, rng) -> dict | None:
+    """Exploit/explore once every member has had --pbt-interval updates and --pbt-window episodes: the worst member (mean
+    fitness over its last window) takes the best's parameters, optimiser state and return scale, and the best's settings
+    perturbed by x0.8 or x1.25 each. Returns the record logged as event 'pbt', or None when it is not time yet."""
+    if len(members) < 2 or any(m.since < a.pbt_interval or len(m.fit) < a.pbt_window for m in members):
+        return None
+    fit = {m.idx: float(np.mean(m.fit[-a.pbt_window:])) for m in members}
+    best, worst = max(members, key=lambda m: fit[m.idx]), min(members, key=lambda m: fit[m.idx])
+    for m in members:
+        m.since = 0
+    rec = {"fitness": {str(k): round(v, 4) for k, v in fit.items()}, "exploit": None}
+    if best is worst or fit[best.idx] <= fit[worst.idx]:
+        return rec
+    f = lambda: float(rng.choice([0.8, 1.25]))
+    worst.learner.params, worst.learner.opt_state = best.learner.params, best.learner.opt_state   # immutable pytrees
+    worst.scale.__dict__.update({k: list(v) for k, v in best.scale.__dict__.items()})
+    worst.ent = float(np.clip(best.ent * f(), 1e-3, 0.1))
+    worst.w = {k: float(np.clip(best.w.get(k, 1.0) * f(), 0.25, 4.0)) for k in HP_TERMS}
+    worst.name, worst.fit, worst.queue = f"{best.name}>{worst.idx}", [], []
+    rec["exploit"] = {"from": best.idx, "to": worst.idx, "new": worst.hp()}
+    return rec
 
 
 # ---------------------------------------------------------------- server ----------------------------------------------------
@@ -250,10 +318,9 @@ class Server:
         self.train_log = open(self.out_dir / "train_log.jsonl", "a")
         self.ep_log = open(self.out_dir / "episodes.jsonl", "a")
         self.run = None
-        self.model = self.learner = self.curr = self.hello = None
-        self.scale = ReturnScale()
+        self.model = self.curr = self.hello = None
+        self.members: list[Member] = []
         self.rng = np.random.default_rng(a.seed)
-        self.queue: list[dict] = []
         self.qlock = threading.Lock()
         self.stop = threading.Event()
         self.total_steps = 0
@@ -299,32 +366,43 @@ class Server:
         self.envs[msg["env_id"]] = self.fresh_env()
         self.send(msg["env_id"], "hello_ack", accepted=True, action_spec_hash=spec.spec_hash())
 
+    @property
+    def learner(self):
+        """Member 0's learner (the only one with --population 1)."""
+        return self.members[0].learner if self.members else None
+
+    def member(self, env_id: int) -> Member:
+        return self.members[env_id % len(self.members)]
+
     def ensure_model(self, sizes, hello):
         if self.model is not None:
             if sizes != self.sizes:
                 raise ValueError(f"environment sizes {sizes} differ from the model's {self.sizes}")
             return
         self.sizes, self.hello = sizes, hello
-        self.model = SkillTruck(sizes)
+        self.model = SkillTruck(sizes, kind_prior=bool(self.a.kind_prior))
         self.curr = Curriculum(self.a, hello["milestones"], hello["notable"])
-        params, opt_state, upd = self.model.init(jax.random.PRNGKey(self.a.seed)), None, 0
+        self.members = initial_members(self.a, self.rng)
+        for m in self.members:
+            m.learner = Learner(self.a, self.model, self.model.init(jax.random.PRNGKey(self.a.seed + m.idx)))
         if self.ckpt.exists():
             with open(self.ckpt, "rb") as f:
                 ck = pickle.load(f)
-            if ck["version"] != CKPT_VERSION or ck["sizes"] != sizes:
-                raise ValueError("checkpoint does not fit this environment (version or sizes); move it away to start fresh")
-            params, opt_state, upd = ck["params"], ck["opt_state"], ck["updates"]
-            self.curr.load(ck["curriculum"]), self.scale.__dict__.update(ck["scale"])
+            if ck["version"] != CKPT_VERSION or ck["sizes"] != sizes or len(ck["members"]) != len(self.members) or ck["model"] != self.model.name:
+                raise ValueError("checkpoint does not fit (version, sizes, population or model); move it away to start fresh")
+            for m, c in zip(self.members, ck["members"]):
+                m.name, m.ent, m.w, m.fit = c["name"], c["ent"], c["w"], list(c["fit"])
+                m.learner.params, m.learner.opt_state, m.learner.updates = c["params"], c["opt_state"], c["updates"]
+                m.scale.__dict__.update(c["scale"])
+            self.curr.load(ck["curriculum"])
             self.total_steps = ck["total_steps"]
-            self.rng = np.random.default_rng(self.a.seed + upd)
-            log.info("resumed from %s: update %d, stage %s, %d steps", self.ckpt, upd, STAGES[self.curr.stage], self.total_steps)
-        self.params = params
-        self.learner = Learner(self.a, self.model, params, opt_state)
-        self.learner.updates = upd
+            self.rng = np.random.default_rng(self.a.seed + sum(m.learner.updates for m in self.members))
+            log.info("resumed from %s: updates %s, stage %s, %d steps", self.ckpt, [m.learner.updates for m in self.members],
+                     STAGES[self.curr.stage], self.total_steps)
         self._serve = jax.jit(self.model.step)
-        tot, dep = self.model.param_counts(params)
+        tot, dep = self.model.param_counts(self.members[0].params)
         self.tlog(event="model", name=self.model.name, sizes=sizes, params_total=tot, params_deployed=dep, stage=STAGES[self.curr.stage],
-                  updates=upd, learn=bool(self.a.learn))
+                  updates=[m.learner.updates for m in self.members], learn=bool(self.a.learn), population=[m.hp() for m in self.members])
         if self.a.learn:
             self.learn_thread = threading.Thread(target=self.learn_loop, daemon=True)
             self.learn_thread.start()
@@ -349,15 +427,17 @@ class Server:
             return
         target, stage = self.curr.target(), self.curr.stage
         n = self.a.n_max
-        for i in range(0, len(rows), n):
-            chunk = rows[i:i + n]
-            arrs = [to_arrays(m["obs"], target) for m, _ in chunk]
-            batch = {k: np.stack([x[k] for x in arrs] + [arrs[0][k]] * (n - len(arrs))) for k in arrs[0]}
-            h = np.stack([e["h"] for _, e in chunk] + [chunk[0][1]["h"]] * (n - len(chunk)))
-            logits, value, h2 = self._serve(self.params, h, batch, np.full((n,), stage, np.int32))
-            logits, value, h2 = np.asarray(logits), np.asarray(value), np.asarray(h2)
-            for j, (m, e) in enumerate(chunk):
-                self.handle(m, e, arrs[j], logits[j], float(value[j]), h2[j], stage)
+        for mem in self.members:                    # one forward pass per member over its bots that arrived in this poll
+            mine = [r for r in rows if self.member(r[0]["env_id"]) is mem]
+            for i in range(0, len(mine), n):
+                chunk = mine[i:i + n]
+                arrs = [to_arrays(m["obs"], target) for m, _ in chunk]
+                batch = {k: np.stack([x[k] for x in arrs] + [arrs[0][k]] * (n - len(arrs))) for k in arrs[0]}
+                h = np.stack([e["h"] for _, e in chunk] + [chunk[0][1]["h"]] * (n - len(chunk)))
+                logits, value, h2 = self._serve(mem.params, h, batch, np.full((n,), stage, np.int32))
+                logits, value, h2 = np.asarray(logits), np.asarray(value), np.asarray(h2)
+                for j, (m, e) in enumerate(chunk):
+                    self.handle(m, e, arrs[j], logits[j], float(value[j]), h2[j], stage)
 
     def handle(self, m, e, x, logits, value, h2, stage):
         terms, term, trunc = m.get("reward_terms", {}), m["terminated"], m["truncated"]
@@ -370,11 +450,11 @@ class Server:
         if p is not None and m["step"] == p["step"] + 1:
             s = e["seg"]
             s["obs"].append(p["x"]), s["act"].append(p["a"]), s["logp"].append(p["logp"]), s["val"].append(p["v"])
-            s["rew"].append(stage_reward(terms, self.hello["stages"][STAGES[s["stage"]]]))
+            s["rew"].append(stage_reward(terms, self.member(m["env_id"]).weights(self.hello["stages"][STAGES[s["stage"]]])))
             s["dt"].append(float(m["obs"]["dt_ticks"])), s["done"].append(bool(term)), s["u"].append(p["u"])
             if term or trunc or len(s["act"]) >= self.a.seg:
                 s["boot"] = 0.0 if term or s["stage"] != stage else value
-                self.emit(s)
+                self.emit(s, self.member(m["env_id"]))
                 e["seg"] = None
         e["pending"] = None
         if term or trunc:
@@ -389,7 +469,7 @@ class Server:
         pr /= pr.sum()
         a = int(self.rng.choice(len(pr), p=pr))
         e["pending"] = {"step": m["step"], "x": x, "a": a, "logp": float(np.log(pr[a] + 1e-12)), "v": value,
-                        "u": self.learner.updates}
+                        "u": self.member(m["env_id"]).learner.updates}
         e["h"] = h2
         e["ep"]["steps"] += 1
         self.total_steps += 1
@@ -397,11 +477,11 @@ class Server:
         self.send(m["env_id"], "act", episode=m["episode"], step=m["step"], obs_seq=m["seq"], action={"candidate": a},
                   latency_ms=0.0)
 
-    def emit(self, seg):
+    def emit(self, seg, mem: Member):
         if not self.a.learn or not seg["act"]:
             return
         with self.qlock:
-            self.queue.append(seg)
+            mem.queue.append(seg)
 
     def end_episode(self, m, e):
         ep = e["ep"] or {"terms": {}, "steps": 0, "stage": self.curr.stage, "t0": time.time()}
@@ -411,8 +491,11 @@ class Server:
                "terminated": m["terminated"], "stage": STAGES[ep["stage"]], "nights": nights, "slept": slept,
                "terms": {k: round(v, 4) for k, v in ep["terms"].items()},
                "return_stage": round(stage_reward(ep["terms"], self.hello["stages"][STAGES[ep["stage"]]]), 4),
-               "achievements": int(sum(prog[:len(self.hello["milestones"])])), "wall_s": round(time.time() - ep["t0"], 1)}
+               "achievements": int(sum(prog[:len(self.hello["milestones"])])), "wall_s": round(time.time() - ep["t0"], 1),
+               "member": self.member(m["env_id"]).idx}
         self.ep_log.write(json.dumps(rec) + "\n"), self.ep_log.flush()
+        with self.qlock:
+            self.member(m["env_id"]).fit.append(rec["return_stage"])
         if self.a.learn:
             why = self.curr.end_episode(nights)
             if why:
@@ -423,28 +506,40 @@ class Server:
     # -- learning thread --
     def learn_loop(self):
         while not self.stop.is_set():
-            with self.qlock:
-                stage = self.curr.stage
-                self.queue = [s for s in self.queue if s["stage"] == stage]   # a stage switch drops older segments
-                ready = len(self.queue) >= self.a.batch_segs
-                segs = self.queue[:self.a.batch_segs] if ready else None
-                if ready:
-                    self.queue = self.queue[self.a.batch_segs:]
-            if not segs:
+            did = False
+            for mem in self.members:
+                with self.qlock:
+                    stage = self.curr.stage
+                    mem.queue = [s for s in mem.queue if s["stage"] == stage]   # a stage switch drops older segments
+                    segs = mem.queue[:self.a.batch_segs] if len(mem.queue) >= self.a.batch_segs else None
+                    if segs:
+                        mem.queue = mem.queue[self.a.batch_segs:]
+                if not segs:
+                    continue
+                t0 = time.time()
+                mets = mem.learner.update(segs, mem.scale, mem.ent)   # the server reads mem.params from its next poll on
+                mem.since += 1
+                did = True
+                self.tlog(event="update", update=mem.learner.updates, member=mem.idx, seconds=round(time.time() - t0, 2),
+                          total_steps=self.total_steps, queue=len(mem.queue), ent_coef=round(mem.ent, 5),
+                          staleness_mean=round(float(np.mean([mem.learner.updates - 1 - u for sg in segs for u in sg["u"]])), 3), **mets)
+                with self.qlock:
+                    rec = pbt_step(self.members, self.a, self.rng)
+                if rec:
+                    self.tlog(event="pbt", **rec)
+                    if rec["exploit"]:
+                        log.info("population: member %s <- %s %s", rec["exploit"]["to"], rec["exploit"]["from"], rec["fitness"])
+            if did:
+                self.save()
+            else:
                 time.sleep(0.2)
-                continue
-            t0 = time.time()
-            mets = self.learner.update(segs, self.scale)
-            self.params = self.learner.params        # atomic reference swap; the server uses it from its next poll
-            self.save()
-            self.tlog(event="update", update=self.learner.updates, seconds=round(time.time() - t0, 2), total_steps=self.total_steps,
-                      queue=len(self.queue),
-                      staleness_mean=round(float(np.mean([self.learner.updates - 1 - u for sg in segs for u in sg["u"]])), 3), **mets)
 
     def save(self):
-        ck = {"version": CKPT_VERSION, "sizes": self.sizes, "params": jax.device_get(self.learner.params),
-              "opt_state": jax.device_get(self.learner.opt_state), "updates": self.learner.updates, "curriculum": self.curr.state(),
-              "scale": dict(self.scale.__dict__), "total_steps": self.total_steps, "t": time.time()}
+        mem = [{"idx": m.idx, "name": m.name, "ent": m.ent, "w": m.w, "fit": m.fit[-self.a.pbt_window:],
+                "params": jax.device_get(m.learner.params), "opt_state": jax.device_get(m.learner.opt_state),
+                "updates": m.learner.updates, "scale": dict(m.scale.__dict__)} for m in self.members]
+        ck = {"version": CKPT_VERSION, "sizes": self.sizes, "model": self.model.name, "members": mem, "curriculum": self.curr.state(),
+              "total_steps": self.total_steps, "t": time.time()}
         tmp = self.ckpt.with_suffix(".tmp")
         with open(tmp, "wb") as f:
             pickle.dump(ck, f)

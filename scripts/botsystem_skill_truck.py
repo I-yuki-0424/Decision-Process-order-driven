@@ -12,6 +12,10 @@ What changes against Truck, and why:
   readout    Truck adds Dense(h) over the 17 actions; with a variable set the memory enters as a bilinear term
              <W h, token_k> / sqrt(d), so h can still re-rank every candidate.
   value      one head per curriculum stage (the reward changes meaning at the switch; a fresh head avoids a stale baseline).
+  kind prior the logits get -log(number of offered candidates with the same command), so an untrained policy is uniform over
+             command kinds first and over targets within a kind second. Without it the list's composition decided behaviour:
+             up to 12 move_to and 11 mine candidates against one wait made a near-uniform policy walk and dig ~70 % of the time
+             (run 2, 2026-11-01, entropy 2.83 after 11 updates). A fixed reparameterisation of the action set, no game knowledge.
 Kept: d=64, 2 layers, 4 heads, GRU width 256, LayerNorm pre-norm blocks, orthogonal heads (logit scale 0.01, value 1.0).
 """
 from __future__ import annotations
@@ -30,9 +34,10 @@ N_TYPES = 9   # columns, self, inventory, entity, progress, target, last, candid
 
 
 class SkillTruck:
-    def __init__(self, sizes: dict, *, d=64, layers=2, heads=4, width=256, n_stages=2):
+    def __init__(self, sizes: dict, *, d=64, layers=2, heads=4, width=256, n_stages=2, kind_prior=True):
         self.s, self.d, self.layers, self.heads, self.width, self.n_stages = sizes, d, layers, heads, width, n_stages
-        self.name = f"skilltruck{d}x{layers}w{width}"
+        self.kind_prior = kind_prior
+        self.name = f"skilltruck{d}x{layers}w{width}" + ("kp" if kind_prior else "")
 
     def init(self, key):
         s, d, w = self.s, self.d, self.width
@@ -102,6 +107,10 @@ class SkillTruck:
         r, zg = jax.nn.sigmoid(ir + hr), jax.nn.sigmoid(iz + hz)
         h2 = (1.0 - zg) * jnp.tanh(inn + r * hn) + zg * h
         logits = _ap(pi["logit"], ch)[..., 0] + jnp.einsum("nd,nkd->nk", _ap(pi["h_q"], h2), ch) / jnp.sqrt(self.d)
+        if self.kind_prior:
+            cmd, mask = obs["cand_cmd"], obs["cand_mask"]
+            n_kind = jnp.sum((cmd[:, :, None] == cmd[:, None, :]) & mask[:, None, :], -1)
+            logits = logits - jnp.log(jnp.maximum(n_kind, 1).astype(logits.dtype))
         logits = jnp.where(obs["cand_mask"], logits, -1e9)
         values = jnp.stack([_ap(v, h2)[:, 0] for v in pi["h_value"]], -1)
         value = jnp.take_along_axis(values, stage[:, None], 1)[:, 0]

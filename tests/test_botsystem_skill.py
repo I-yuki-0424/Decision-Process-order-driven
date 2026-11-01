@@ -97,6 +97,77 @@ class TestModel(unittest.TestCase):
         self.assertLess(tot, 600_000)
         self.assertLess(dep, tot)
 
+    def test_kind_prior_untrained_policy_is_uniform_over_command_kinds(self):
+        # 6 candidates of command 1, one of 2, one of 3: without the prior an untrained policy puts ~6/8 on command 1.
+        sizes = sizes_from_hello(HELLO)
+        rng = np.random.default_rng(1)
+        o = make_obs(rng, n_valid=8)
+        o["cand_cmd"] = [1, 1, 1, 1, 1, 1, 2, 3] + [0] * (K - 8)
+        batch = {k: v[None] for k, v in sp.to_arrays(o, np.zeros(P, np.float32)).items()}
+        for prior, lo, hi in ((True, 0.25, 0.42), (False, 0.65, 0.85)):
+            m = SkillTruck(sizes, kind_prior=prior)
+            logits, _, _ = m.step(m.init(jax.random.PRNGKey(3)), m.init_carry(1), batch, jnp.array([0]))
+            pr = np.asarray(jax.nn.softmax(logits[0]))
+            mass1 = float(pr[:6].sum())
+            self.assertTrue(lo < mass1 < hi, f"kind_prior={prior}: mass on command 1 = {mass1:.3f}")
+
+
+class FakeLearner:
+    def __init__(self, tag):
+        self.params, self.opt_state, self.updates = {"w": tag}, {"m": tag}, 0
+
+
+class TestPopulation(unittest.TestCase):
+    def test_pbt_step_copies_best_into_worst_and_perturbs(self):
+        a = sp.parse_args(["--root", "x", "--base", "b", "--population", "3", "--pbt-interval", "2", "--pbt-window", "3"])
+        rng = np.random.default_rng(0)
+        mem = sp.initial_members(a, rng)
+        self.assertEqual([m.name for m in mem][:2], ["greedy", "cautious"])
+        self.assertEqual(mem[0].w, {})                                   # greedy: the stage weights as they are
+        for i, m in enumerate(mem):
+            m.learner, m.fit = FakeLearner(i), [float(i)] * 3
+        mem[1].fit = [9.0, 9.0, 9.0]                                     # cautious is best, greedy (0) worst
+        self.assertIsNone(sp.pbt_step(mem, a, rng))                      # not enough updates yet
+        for m in mem:
+            m.since = 2
+        rec = sp.pbt_step(mem, a, rng)
+        self.assertEqual((rec["exploit"]["from"], rec["exploit"]["to"]), (1, 0))
+        self.assertIs(mem[0].learner.params, mem[1].learner.params)
+        self.assertTrue(all(0.25 <= v <= 4.0 for v in mem[0].w.values()) and set(mem[0].w) == set(sp.HP_TERMS))
+        self.assertTrue(1e-3 <= mem[0].ent <= 0.1)
+        self.assertEqual(mem[0].fit, [])
+        self.assertTrue(all(m.since == 0 for m in mem))
+        self.assertAlmostEqual(sp.stage_reward({"invalid": -1.0, "survival": 1.0}, mem[1].weights({"invalid": 1.0, "survival": 1.0})), -1.0)
+
+    def test_population_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = ["--root", tmp, "--base", "pp", "--seg", "8", "--batch-segs", "4", "--epochs", "1", "--minibatches", "1",
+                    "--n-max", "2", "--poll-s", "0.002", "--stage1-max-steps", "10000000", "--population", "2",
+                    "--pbt-interval", "2", "--pbt-window", "2"]
+            srv = sp.Server(sp.parse_args(args))
+            th = threading.Thread(target=srv.loop, daemon=True)
+            th.start()
+            env = FakeEnv(root, "pp", "pp-1")
+            env.play(500, ep_len=20, srv=srv)
+            time.sleep(1.0)
+            srv.stop.set(), th.join(10), srv.learn_thread.join(60)
+            self.assertTrue(all(m.learner.updates >= 2 for m in srv.members), [m.learner.updates for m in srv.members])
+            log = [json.loads(x) for x in (root / "pp" / "train" / "train_log.jsonl").read_text().splitlines()]
+            self.assertTrue(any(x.get("event") == "pbt" for x in log))
+            self.assertEqual({x["member"] for x in log if x.get("event") == "update"}, {0, 1})
+            eps = [json.loads(x) for x in (root / "pp" / "train" / "episodes.jsonl").read_text().splitlines()]
+            self.assertEqual({e["member"] for e in eps}, {0, 1})
+            srv2 = sp.Server(sp.parse_args(args))                        # resume: the population comes back as saved
+            srv2.follow()
+            for m in srv2.reader.poll():
+                if m["type"] == "hello":
+                    srv2.on_hello(m)
+                    break
+            self.assertEqual([m.learner.updates for m in srv2.members], [m.learner.updates for m in srv.members])
+            self.assertEqual([m.name for m in srv2.members], [m.name for m in srv.members])
+            srv2.stop.set()
+
 
 class FakeEnv:
     """Writes the environment side of the file API for two bots; candidate cmd 2 at a random index pays reward 1."""
@@ -131,7 +202,7 @@ class FakeEnv:
         state = {e: {"episode": 0, "step": 0, "good": None, "reward": 0.0} for e in (0, 1)}
         terms0 = {"survival": 0.0, "kills": 0.0, "notable": 0.0, "mined": 0.0, "achievements": 0.0}
         for i in range(steps):
-            while srv is not None and i % 16 == 0 and len(srv.queue) >= srv.a.batch_segs:   # let the learner keep up
+            while srv is not None and i % 16 == 0 and any(len(m.queue) >= srv.a.batch_segs for m in srv.members):   # learner keeps up
                 time.sleep(0.05)
             for e in (0, 1):
                 s = state[e]

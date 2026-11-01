@@ -1547,4 +1547,17 @@ hazards:
       which this is not. (3) Stage 1 keeps the non-survival terms at weight 0.1, not 0: TASK-20260927-009 found 'do nothing' to be
       the best survival-only arm, the degenerate optimum a pure survival stage would converge to. (4) The previous failure of a
       two-stage scheme here was a world-model/heuristic setup (TASK-009/010), not an RL curriculum; it is not evidence either way.
+      2026-11-01 evening (operator brief via forge1201 TASK-20261101-025, after runs 1-2 of the environment side): (5) kind prior in
+      SkillTruck (logits - log n_same_command; model name suffix 'kp'): an untrained policy is uniform over command kinds, not over
+      candidates; run 2 showed a near-uniform policy walking/digging ~70 % only because the list held 12 move_to + 11 mine
+      candidates. Test: mass on a 6-of-8 kind 0.25-0.42 with the prior vs 0.65-0.85 without. (6) Population (--population M,
+      operator's 'greedy + cautious, combined genetic-style'): population-based training (Jaderberg et al. 2017) with members
+      greedy (stage weights as given) / cautious (invalid x3, survival x2, kills x0.5) / drawn; fitness = return under the
+      UNMODIFIED stage weights (members' own multipliers never enter the ranking, so the comparison cannot be won by
+      re-weighting); worst <- best params + settings x0.8/x1.25 every --pbt-interval updates per member. Critical note recorded:
+      with few bots each member sees 1/M of the data, so M > 2 slows every member; default M = 1. Entropy coefficient is now a
+      traced argument of the jitted update. Checkpoint v2 (members). K is read from hello (environment now K = 64, spec hash
+      18d6d5c4...). 25 tests OK incl. positive control 0.180 -> 0.577 (chance 0.125) and a population end-to-end with resume;
+      pre_commit_ban_check passed. Impact: SkillTruck.step and Learner._loss/_update_fn/update ALLOWED (scip, index at 2f88111),
+      dependents only these scripts and tests.
     blockers: ["Operator go-ahead for the one-week training run (the run is prepared, not started)."]
