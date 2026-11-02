@@ -30,7 +30,7 @@ LEARNER_PARAMS = ("lr", "gamma_s", "lam", "clip", "ent", "vf", "max_grad_norm", 
                   # GoalWM learner (botsystem_goal_ppo.py, TASK-20261101-031)
                   "goals", "goal_bonus", "goal_horizon", "p_task", "p_pair", "ext_stage", "her_horizon", "replay", "aux_batch", "aux_coef",
                   "aux_lr", "aux_max_grad_norm", "init", "plan", "p_explore", "p_task_plan", "plan_beam", "plan_tau", "plan_coef",
-                  "plan_replay", "plan_batch", "plan_anchor")
+                  "plan_replay", "plan_batch", "plan_anchor", "goal_mode", "sil_coef", "sil_vcoef", "sil_batch", "sil_buffer")
 
 
 def lines(p: Path):
@@ -84,7 +84,8 @@ def build(sch: Schema, root: Path, base: str, aip: Path):
     rkey = "return_task" if goal else "return_stage"     # GoalWM: episode return under the --ext-stage weights alone
     if start:
         params.update({"env.version": start.get("env_version", ""), "env.bots": str(start.get("bots", "")), "env.shards": str(start["shards"]), "env.game_speed": str(start.get("speed", 1)),
-                       "env.episode_limit": str(start.get("max_steps", "")), "env.region": str(start.get("region", ""))})
+                       "env.episode_limit": str(start.get("max_steps", "")), "env.region": str(start.get("region", "")),
+                       "env.episode_days": str(start.get("days", ""))})
     ups = [x for x in tl if x.get("event") == "update"]
     pbt = [x for x in tl if x.get("event") == "pbt"]
     stopped = bool(tl) and tl[-1].get("event") == "stop"

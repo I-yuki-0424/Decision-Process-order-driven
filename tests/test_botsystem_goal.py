@@ -340,6 +340,82 @@ class FakeEnv:
                 s["step"] += 1
 
 
+class ListEnv(FakeEnv):
+    """Environment v3.0 in miniature for two bots of one pair: progress entry 0 ('story/root' here: the list's first) is reached by
+    holding item 3, entry 1 by holding item 7; an episode is ep_len commands and ends terminated (the days are over)."""
+
+    hello = HELLO
+
+    def play(self, steps, ep_len=24, srv=None):
+        for e in self.ids:
+            self.send(e, "hello", **self.hello, start={"pair": 0, "shard": 0, "member": e})
+            assert self.wait(lambda m: m["type"] == "hello_ack" and m["env_id"] == e)["accepted"]
+        st = {e: {"episode": 0, "step": 0, "inv": {}} for e in self.ids}
+        zero = {t: 0.0 for t in TERMS}
+        for i in range(steps):
+            while srv is not None and i % 8 == 0 and len(srv.queue) >= srv.a.batch_segs:
+                time.sleep(0.05)
+            for e in self.ids:
+                s = st[e]
+                done = s["step"] >= ep_len
+                items = self.rng.permutation(np.arange(1, 11))[:8]
+                o = make_obs(self.rng, s["inv"], items=items)
+                o["progress"][0], o["progress"][1] = float(3 in s["inv"]), float(7 in s["inv"])
+                self.send(e, "obs", episode=s["episode"], step=s["step"], obs=o, reward=0.0, reward_terms=zero, terminated=done, truncated=False)
+                if done:
+                    st[e] = {"episode": s["episode"] + 1, "step": 0, "inv": {}}
+                    continue
+                act = self.wait(lambda m: m["type"] == "act" and m["env_id"] == e and m["step"] == s["step"] and m["episode"] == s["episode"])
+                it = int(items[act["action"]["candidate"]])
+                s["inv"][it] = s["inv"].get(it, 0) + 1
+                s["step"] += 1
+
+
+class TestPairGoals(unittest.TestCase):
+    """Owner 2026-11-02: goals in progress-list order, easiest first; both bots of a pair always pursue the same entry."""
+
+    def setUp(self):
+        self.srv = gp.GoalServer(gp.parse_args(["--root", tempfile.mkdtemp(), "--base", "x"]))
+        self.srv.goals = gp.GoalSpace(sizes_from_hello(HELLO), ["a", "b", "c"])   # three entries, easiest first
+        self.srv.names = {"adv": ["a", "b", "c"]}
+        mk = lambda i, pair: {**{"vals": {}, "start": {"pair": pair}, "id": i}}
+        self.A, self.B, self.C = mk(0, 0), mk(1, 0), mk(2, 1)
+        self.srv.envs = {0: self.A, 1: self.B, 2: self.C}
+
+    def test_pair_goal_order_sharing_skip_and_end(self):
+        g = self.srv.pair_goal
+        self.assertEqual(g(self.A, 0, {}), ("adv", 0))
+        self.assertEqual(g(self.B, 0, {}), ("adv", 0))
+        self.A["vals"] = {("adv", 0): 1.0}                       # A reached the easiest entry: both move on
+        self.assertEqual(g(self.B, 0, {}), ("adv", 1))
+        self.assertEqual(g(self.A, 0, self.A["vals"]), ("adv", 1))
+        self.assertEqual(g(self.C, 0, {}), ("adv", 0))            # another pair is not affected
+        self.srv.pairs[("pair", 0)]["skip"].add(1)                # entry b expired for the pair: c next, for both
+        self.assertEqual(g(self.A, 0, self.A["vals"]), ("adv", 2))
+        self.assertEqual(g(self.B, 0, {}), ("adv", 2))
+        self.B["vals"] = {("adv", 2): 1.0}                        # something new reached: the skip is lifted
+        self.assertEqual(g(self.A, 0, self.A["vals"]), ("adv", 1))
+        self.A["vals"] = {("adv", 0): 1.0, ("adv", 1): 1.0}
+        self.assertEqual(g(self.A, 0, self.A["vals"]), ("night", 0))   # every entry reached by the pair
+        self.assertEqual(g(self.A, 1, {}), ("adv", 0))           # a new episode: from the easiest again, skips cleared
+        self.assertEqual(self.srv.pairs[("pair", 0)]["episode"], 1)
+
+    def test_self_imitation_returns_and_chunks(self):
+        srv = self.srv
+        srv.a.seg, srv.a.gamma_s = 2, 0.9
+        tr = {"h": [np.full(4, k, np.float32) for k in range(3)], "obs": [{"k": k} for k in range(3)], "act": [5, 6, 7],
+              "rew": [0.0, 0.0, 1.0], "dt": [20.0, 40.0, 20.0]}
+        srv.emit_sil(tr)
+        self.assertEqual(len(srv.sil), 2)
+        a, b = srv.sil
+        np.testing.assert_allclose(a["ret"], [0.9 * 0.81, 0.81], rtol=1e-6)      # gamma per 20 ticks; the 40-tick step is gamma^2
+        np.testing.assert_allclose(b["ret"], [1.0])
+        self.assertEqual((a["act"], b["act"], float(b["h0"][0])), ([5, 6], [7], 2.0))
+        srv.a.learn = 0
+        srv.emit_sil(tr)
+        self.assertEqual(len(srv.sil), 2)                         # nothing kept without learning
+
+
 class TestCatchUp(unittest.TestCase):
     def test_backlog_keeps_hellos_and_only_each_bots_unanswered_last_obs(self):
         from botsystem_skill_ppo import catch_up
@@ -380,7 +456,8 @@ class TestEndToEnd(unittest.TestCase):
             root = Path(tmp)
             args = ["--root", tmp, "--base", "gc", "--seg", "8", "--batch-segs", "8", "--epochs", "4", "--minibatches", "2",
                     "--lr", "1e-3", "--n-max", "2", "--poll-s", "0.002", "--goal-horizon", "1", "--p-task", "0", "--p-pair", "0",
-                    "--ext-stage", "zero", "--her-horizon", "4", "--replay", "2000", "--aux-batch", "32", "--aux-lr", "3e-3", "--plan", "0"]
+                    "--ext-stage", "zero", "--her-horizon", "4", "--replay", "2000", "--aux-batch", "32", "--aux-lr", "3e-3", "--plan", "0",
+                    "--goal-mode", "archive"]
             srv = gp.GoalServer(gp.parse_args(args))
             th = threading.Thread(target=srv.loop, daemon=True)
             th.start()
@@ -424,7 +501,7 @@ class TestEndToEnd(unittest.TestCase):
             args = ["--root", tmp, "--base", "pm", "--seg", "8", "--batch-segs", "4", "--epochs", "1", "--minibatches", "1",
                     "--n-max", "2", "--poll-s", "0.002", "--goal-horizon", "6", "--p-task", "0", "--ext-stage", "zero",
                     "--her-horizon", "4", "--replay", "500", "--aux-batch", "8", "--plan", "1", "--p-explore", "0.2",
-                    "--plan-batch", "4", "--plan-anchor", "8"]
+                    "--plan-batch", "4", "--plan-anchor", "8", "--goal-mode", "archive"]
             srv = gp.GoalServer(gp.parse_args(args))
             th = threading.Thread(target=srv.loop, daemon=True)
             th.start()
@@ -453,6 +530,37 @@ class TestEndToEnd(unittest.TestCase):
             self.assertGreater(ups[-1]["goals"]["plans"], 0)
             self.assertGreater(ups[-1]["plan_replay"], 0)
             self.assertTrue(all(np.isfinite(x["aux_plan"]) for x in ups))
+
+    def test_list_mode_pairs_share_goals_and_self_imitation_trains(self):
+        """Environment v3.0 shape: both bots of a pair get the same progress-list entry at the same time, a partner's success
+        moves both on, goal-reaching trajectories enter the self-imitation buffer and the loss runs (finite)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            hello_ms = ["minecraft:story/root", "minecraft:end/kill_dragon"]   # the list: entry 0 = item 3, entry 1 = item 7
+            args = ["--root", tmp, "--base", "lm", "--seg", "8", "--batch-segs", "4", "--epochs", "1", "--minibatches", "1",
+                    "--n-max", "2", "--poll-s", "0.002", "--goal-horizon", "10", "--ext-stage", "zero", "--her-horizon", "4",
+                    "--replay", "500", "--aux-batch", "8", "--sil-batch", "2"]
+            srv = gp.GoalServer(gp.parse_args(args))
+            self.assertEqual(srv.a.goal_mode, "list")
+            th = threading.Thread(target=srv.loop, daemon=True)
+            th.start()
+            env = ListEnv(root, "lm", "lm-s0-20261102T000000")
+            env.hello = {**HELLO, "milestones": hello_ms}
+            env.play(400, srv=srv)
+            time.sleep(1.0)
+            srv.stop.set(), th.join(10), srv.learn_thread.join(120)
+            board = json.loads((root / "lm" / "train" / "goals.json").read_text())
+            goals = {b: [g for g in reversed(v["goals"])] for b, v in board["bots"].items()}
+            self.assertTrue(all(g["src"].startswith(("progress list #", "every entry reached")) for v in goals.values() for g in v), goals)
+            self.assertTrue(all("pair 0" in g["src"] for v in goals.values() for g in v))
+            log = [json.loads(x) for x in (root / "lm" / "train" / "train_log.jsonl").read_text().splitlines()]
+            ups = [x for x in log if x.get("event") == "update"]
+            self.assertTrue(ups and all(np.isfinite(x["loss"]) and np.isfinite(x["sil_pol"]) for x in ups))
+            self.assertGreater(ups[-1]["goals"]["sil_chunks"], 0)
+            self.assertGreater(ups[-1]["goals"]["pair_moved_on"], 0, "a partner's success never moved the other bot on")
+            self.assertGreater(max(x["sil_n"] for x in ups), 0)
+            eps = [json.loads(x) for x in (root / "lm" / "train" / "episodes.jsonl").read_text().splitlines()]
+            self.assertTrue(eps and all(x["pair"] == 0 and x["terminated"] and x["deaths"] == 0 for x in eps))
 
     def test_v13_hello_is_refused_by_the_online_learner(self):
         with tempfile.TemporaryDirectory() as tmp:

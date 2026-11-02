@@ -186,6 +186,11 @@ models:
     description: "GoalWM + batch plan generation (TASK-20261101-031, owner 2026-11-02): S10 with world-model copy gates and a x4 world-model feature scale, plus a plan decoder that generates a sequence of up to 8 goal-space dimensions by beam search at episode start (replanned when the reach head says a step is too early), trained on hindsight first-raise orders"
     status: provisional
     proper_name: null
+  Idea4_O01_D01_S12:
+    arms: ["goalwm64x2w256g2kppl8+list+sil"]
+    description: "GoalWM for BOTSYSTEM env v3.0 (owner 2026-11-02, TASK-20261102-032): episodes of N in-game days, goals in progress-list order (easiest first) shared by the two bots of a pair, self-imitation loss on goal-reaching trajectories; trained from scratch (no pretrained init)"
+    status: provisional
+    proper_name: null
   # --- TASK-20261005-024: Truck-improved (Idea4_O01_D01_S06) hidden-dimension scale study; the training recipe is in the run parameters ---
   Idea4_O01_D04_S00:
     arms: ["tfgru64x2w128+mem+pa+hs"]

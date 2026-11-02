@@ -8,6 +8,16 @@ counts toward a roadmap gate.
 Serving, segments, semi-MDP GAE, staleness correction and run following are those of botsystem_skill_ppo.py (Server is
 subclassed). What changes:
 
+Progress-list goals and pairs (owner 2026-11-02, environment >= v3.0; --goal-mode list, the default). An episode is a fixed number
+of in-game days (terminated when they are over: the time left is observed); the environment judges progress from server
+statistics against its progress list, ordered easiest first (hello `milestones`). Goals are given in that order: a bot's goal is
+the easiest entry that neither bot of its pair (hello `start.pair`: the two bots of one world) has reached this episode, so both
+pursue the same entry at the same time; when either reaches it, both move on (the one that did not gets no bonus). An entry that
+expires (--goal-horizon commands) is skipped by the pair until it reaches something new. Self-imitation (Oh et al. 2018): every
+trajectory that reached its goal, from the goal's assignment, with its discounted return, is kept (--sil-buffer chunks) and each
+update adds --sil-coef x [-log pi(a | s, g) max(R - V, 0)] + --sil-vcoef x 0.5 max(R - V, 0)^2; the pair shares one policy, so a
+success of either partner is imitated by both. The archive/plan machinery below is --goal-mode archive (environments < v3.0).
+
 Goals (owner 2026-11-01: subdivide the objective; free values). A goal is 1-2 tokens over the goal space the player can read
 from its own observation: 'item' (count held), 'kill' (kills this episode per entity type), 'adv' (an advancement flag),
 'night' (nights survived). Each token asks for +delta (default 1) relative to the value at assignment; every other dimension
@@ -95,7 +105,10 @@ def parse_args(argv=None):
     a("--ent", type=float, default=0.01), a("--vf", type=float, default=0.5), a("--max-grad-norm", type=float, default=0.5)
     a("--poll-s", type=float, default=0.01), a("--kind-prior", type=int, default=1)
     a("--goals", type=int, default=2), a("--goal-bonus", type=float, default=0.5), a("--goal-horizon", type=int, default=150)
-    a("--p-task", type=float, default=0.2), a("--p-pair", type=float, default=0.15), a("--ext-stage", default="dragon")
+    a("--p-task", type=float, default=0.2), a("--p-pair", type=float, default=0.15), a("--ext-stage", default="days")
+    a("--goal-mode", choices=("list", "archive"), default="list")
+    a("--sil-coef", type=float, default=0.5), a("--sil-vcoef", type=float, default=0.01), a("--sil-batch", type=int, default=4)
+    a("--sil-buffer", type=int, default=512)
     a("--her-horizon", type=int, default=32), a("--replay", type=int, default=12000), a("--aux-batch", type=int, default=64)
     a("--aux-coef", type=float, default=1.0), a("--aux-lr", type=float, default=1e-3), a("--aux-max-grad-norm", type=float, default=5.0)
     a("--plan", type=int, default=1), a("--p-explore", type=float, default=0.3), a("--p-task-plan", type=float, default=0.5)
@@ -306,13 +319,27 @@ class GoalLearner:
         on = jnp.any(p_lab["mask"]).astype(jnp.float32)
         return self.a.aux_coef * aux + self.a.plan_coef * on * pl, {**terms, "plan": pl, "plan_acc": acc}
 
-    def _loss(self, params, b, ent_coef):
+    def _unroll(self, params, h0, obs):
         def body(h, o):
             logits, value, h2, _ = self.model.step(params, h, o)
             return h2, (logits, value)
-        obs_t = {k: jnp.swapaxes(v, 0, 1) for k, v in b["obs"].items()}
-        _, (logits, value) = jax.lax.scan(body, b["h0"], obs_t)
-        logits, value = jnp.swapaxes(logits, 0, 1), jnp.swapaxes(value, 0, 1)
+        _, (logits, value) = jax.lax.scan(body, h0, {k: jnp.swapaxes(v, 0, 1) for k, v in obs.items()})
+        return jnp.swapaxes(logits, 0, 1), jnp.swapaxes(value, 0, 1)
+
+    def _sil(self, params, sb):
+        """Self-imitation (Oh et al. 2018) on goal-reaching trajectories: -log pi(a | s, g) x max(R - V, 0) and
+        0.5 x max(R - V, 0)^2 for the value, R = the discounted return up to reaching the goal (scaled like the PPO targets)."""
+        logits, value = self._unroll(params, sb["h0"], sb["obs"])
+        lp = jnp.take_along_axis(jax.nn.log_softmax(logits, -1), sb["act"][..., None], -1)[..., 0]
+        gap = jnp.maximum(sb["ret"] - value, 0.0)
+        m = sb["valid"]
+        den = jnp.maximum(m.sum(), 1.0)
+        pol = (-lp * jax.lax.stop_gradient(gap) * m).sum() / den
+        val = (0.5 * gap ** 2 * m).sum() / den
+        return pol + self.a.sil_vcoef * val, {"sil_pol": pol, "sil_val": val, "sil_gap": (gap * m).sum() / den, "sil_n": m.sum()}
+
+    def _loss(self, params, b, sb, ent_coef):
+        logits, value = self._unroll(params, b["h0"], b["obs"])
         lp = jax.nn.log_softmax(logits, -1)
         nlp = jnp.take_along_axis(lp, b["act"][..., None], -1)[..., 0]
         ratio = jnp.exp(nlp - b["logp"])
@@ -323,21 +350,36 @@ class GoalLearner:
         m = b["valid"]
         den = jnp.maximum(m.sum(), 1.0)
         mean = lambda x: (x * m).sum() / den
-        loss = mean(pg) + self.a.vf * mean(vl) - ent_coef * mean(entropy)
-        return loss, {"pg": mean(pg), "vf": mean(vl), "ent": mean(entropy), "kl": mean(b["logp"] - nlp),
+        sil, sm = self._sil(params, sb)
+        loss = mean(pg) + self.a.vf * mean(vl) - ent_coef * mean(entropy) + self.a.sil_coef * sil
+        return loss, {**sm, "pg": mean(pg), "vf": mean(vl), "ent": mean(entropy), "kl": mean(b["logp"] - nlp),
                       "clipfrac": mean((jnp.abs(ratio - 1) > self.a.clip).astype(jnp.float32)),
                       "u_ok": params["pi"]["u"][0], "u_dt": params["pi"]["u"][1], "u_gain": params["pi"]["u"][2]}
 
-    def _update_fn(self, params, opt_state, b, aux_obs, aux_lab, p_obs, p_lab, ent_coef):
+    def _update_fn(self, params, opt_state, b, sb, aux_obs, aux_lab, p_obs, p_lab, ent_coef):
         o_pi, o_aux = opt_state
-        (loss, mets), g = jax.value_and_grad(self._loss, has_aux=True)(params, b, ent_coef)
+        (loss, mets), g = jax.value_and_grad(self._loss, has_aux=True)(params, b, sb, ent_coef)
         up, o_pi = self.opt.update(g, o_pi, params)
         params = optax.apply_updates(params, up)
         (aux, terms), g2 = jax.value_and_grad(self._aux, has_aux=True)(params, aux_obs, aux_lab, p_obs, p_lab)
         up2, o_aux = self.aux_opt.update(g2, o_aux, params)
         return optax.apply_updates(params, up2), (o_pi, o_aux), {**mets, "loss": loss, "aux": aux, **{"aux_" + k: v for k, v in terms.items()}}
 
-    def update(self, segs, scale: ReturnScale, replay: Replay, rng, plan_replay: Replay | None = None):
+    def sil_batch(self, sil: list[dict], sd: float, template: dict, rng) -> dict:
+        """--sil-batch stored goal-reaching chunks (padded to --seg); an all-invalid batch when there are none yet."""
+        T, n = self.a.seg, self.a.sil_batch
+        pick = [sil[i] for i in rng.integers(0, len(sil), n)] if sil else []
+        pad = lambda x: np.concatenate([x, np.zeros((T - len(x),) + np.shape(x)[1:], np.asarray(x).dtype)]) if len(x) < T else np.asarray(x)[:T]
+        empty = {"h0": np.zeros(self.model.width, np.float32), "obs": [template], "act": [0], "ret": [0.0], "valid": [0.0]}
+        rows = pick or [empty] * n
+        sb = {"obs": {k: np.stack([pad(np.stack([o[k] for o in r["obs"]])) for r in rows]) for k in template},
+              "h0": np.stack([r["h0"] for r in rows]), "act": np.stack([pad(np.asarray(r["act"], np.int32)) for r in rows]),
+              "ret": np.stack([pad(np.asarray(r["ret"], np.float32) / sd) for r in rows]),
+              "valid": np.stack([pad(np.asarray(r.get("valid", np.ones(len(r["act"]))), np.float32)) for r in rows])}
+        sb["obs"]["cand_mask"][..., 0] |= sb["valid"] == 0
+        return sb
+
+    def update(self, segs, scale: ReturnScale, replay: Replay, rng, plan_replay: Replay | None = None, sil: list | None = None):
         a, T = self.a, self.a.seg
         sd = scale.std(0)
         advs, rets = [], []
@@ -365,14 +407,15 @@ class GoalLearner:
                 ao, al = replay.sample(a.aux_batch, rng) if replay.n >= a.aux_batch else dummy_aux(segs[0]["obs"][0], a.aux_batch)
                 po, pla = (plan_replay.sample(a.plan_batch, rng) if plan_replay is not None and plan_replay.n >= a.plan_batch
                            else dummy_plan(segs[0]["obs"][0], a.plan_batch, self.model.L))
-                params, opt_state, m = self._update(params, opt_state, sub, ao, al, po, pla, jnp.float32(a.ent))
+                sb = self.sil_batch(sil or [], sd, segs[0]["obs"][0], rng)
+                params, opt_state, m = self._update(params, opt_state, sub, sb, ao, al, po, pla, jnp.float32(a.ent))
                 mets.append({k: float(v) for k, v in m.items()})
         self.params, self.opt_state = params, opt_state
         self.updates += 1
         out = {k: float(np.mean([m[k] for m in mets])) for k in mets[0]}
         out.update(segments=B, steps=int(batch["valid"].sum()), ret_std=sd, adv_raw_mean=float(mu),
                    reward_mean=float(np.mean(np.concatenate([s["rew"] for s in segs]))), replay=replay.n,
-                   plan_replay=plan_replay.n if plan_replay is not None else 0)
+                   plan_replay=plan_replay.n if plan_replay is not None else 0, sil_buffer=len(sil or []))
         return out
 
 
@@ -387,7 +430,9 @@ class GoalServer(Server):
         self.queue: list[dict] = []
         self.glearner: GoalLearner | None = None
         self.stats = {"assigned": 0, "reached": 0, "task_assigned": 0, "task_reached": 0, "plans": 0, "plan_steps_reached": 0,
-                      "plans_completed": 0, "replans_infeasible": 0, "plan_steps_expired": 0}
+                      "plans_completed": 0, "replans_infeasible": 0, "plan_steps_expired": 0, "pair_moved_on": 0, "sil_chunks": 0}
+        self.pairs: dict = {}                 # pair key -> {"episode", "skip": entries skipped after expiring, "n_done"}
+        self.sil: deque = deque(maxlen=a.sil_buffer)   # goal-reaching chunks for the self-imitation loss
 
     @property
     def learner(self):
@@ -409,7 +454,7 @@ class GoalServer(Server):
             self.send(msg["env_id"], "hello_ack", run=run, accepted=False, reason=str(e)[:300])
             return
         self.spec, self.obs_spec = spec, obs_spec
-        self.envs[msg["env_id"]] = {**self.fresh_env(), "run": run, "start": msg.get("start")}
+        self.envs[msg["env_id"]] = {**self.fresh_env(), "run": run, "start": msg.get("start"), "id": msg["env_id"]}
         self.send(msg["env_id"], "hello_ack", accepted=True, action_spec_hash=spec.spec_hash())
 
     def ensure_model(self, sizes, hello):
@@ -451,7 +496,8 @@ class GoalServer(Server):
         v = hello.get("vocab", {})
         self.names = {"item": v.get("items", []), "kill": v.get("entities", []), "adv": hello["milestones"] + [f"notable:{n}" for n in hello.get("notable", [])] + ["nights", "slept"]}
         tot, dep = self.model.param_counts(self.glearner.params)
-        self.tlog(event="model", name=self.model.name, sizes={k: v for k, v in sizes.items()}, params_total=tot, params_deployed=dep,
+        arm = self.model.name + ("+list" if self.a.goal_mode == "list" else "") + ("+sil" if self.a.sil_coef > 0 else "")
+        self.tlog(event="model", name=arm, sizes={k: v for k, v in sizes.items()}, params_total=tot, params_deployed=dep,
                   updates=self.glearner.updates, learn=bool(self.a.learn), init=self.a.init or None,
                   args={k: v for k, v in vars(self.a).items() if k not in ("root", "base")})
         if self.a.learn:
@@ -461,7 +507,7 @@ class GoalServer(Server):
     def fresh_env(self):
         return {"h": np.zeros(self.model.width, np.float32), "pending": None, "seg": None, "ep": None, "goal": None, "cls": None,
                 "hist": [], "vals": None, "reached_dims": {}, "plan": None, "firsts": [], "anchors": [], "base": {}, "replans": 0,
-                "plan_end": None, "plans_log": deque(maxlen=5), "goals_log": deque(maxlen=8), "start": None}
+                "plan_end": None, "plans_log": deque(maxlen=5), "goals_log": deque(maxlen=8), "start": None, "trace": None, "sil_close": False}
 
     # -- goals --
     def reach_r(self, e, dims: list) -> np.ndarray | None:
@@ -569,6 +615,41 @@ class GoalServer(Server):
         return {"tokens": [(d, vals.get(d, 0.0), 1.0) for d in dims], "t0": step, "task": is_task, "p": float(np.prod(p_sel)),
                 "counted": counted, "src": src}
 
+    # -- progress-list goals shared by a pair (env >= v3.0, owner 2026-11-02) --
+    @staticmethod
+    def pair_key(e):
+        st = e.get("start") or {}
+        return ("pair", st["pair"]) if "pair" in st else ("bot", e.get("id"))
+
+    def pair_goal(self, e, episode: int, vals: dict) -> tuple:
+        """The pair's goal now: the easiest progress-list entry neither bot of the pair has reached this episode and the pair has
+        not skipped (an entry is skipped when it expires; skips are cleared when the pair reaches anything new, since that can
+        make it reachable). Every entry reached or skipped: skips are cleared; all reached: one more day survived."""
+        key = self.pair_key(e)
+        P = self.pairs.setdefault(key, {"episode": None, "skip": set(), "n_done": 0})
+        if P["episode"] != episode:
+            P.update(episode=episode, skip=set(), n_done=0)
+        mates = [x for x in self.envs.values() if self.pair_key(x) == key]
+        n = self.goals.n_mil
+        done = [j for j in range(n) if any(((vals if x is e else (x["vals"] or {})).get(("adv", j), 0.0) >= 1) for x in mates)]
+        if len(done) > P["n_done"]:
+            P["skip"].clear()
+        P["n_done"] = len(done)
+        open_ = [j for j in range(n) if j not in done]
+        cand = [j for j in open_ if j not in P["skip"]]
+        if not cand and open_:
+            P["skip"].clear()
+            cand = open_
+        return ("adv", cand[0]) if cand else ("night", 0)
+
+    def list_goal(self, e, episode: int, vals: dict, step: int) -> dict:
+        d = self.pair_goal(e, episode, vals)
+        counted = self.count_tries([d])
+        self.stats["assigned"] += 1
+        what = f"progress list #{d[1] + 1} {self.dim_name(d)}" if d[0] == "adv" else "every entry reached: one more day"
+        return {"tokens": [(d, vals.get(d, 0.0), 1.0)], "t0": step, "task": False, "p": float(self.reach_p(e, [d])[0]),
+                "counted": counted, "src": f"{what}, shared by pair {self.pair_key(e)[1]}"}
+
     # -- provenance (goals.json) --
     def close_plan(self, e, outcome: str, step: int):
         pl = e["plan"]
@@ -610,7 +691,10 @@ class GoalServer(Server):
                "bots": bots}
         tmp = self.out_dir / "goals.json.tmp"
         tmp.write_text(json.dumps(doc, separators=(",", ":")) + "\n")
-        os.replace(tmp, self.out_dir / "goals.json")
+        try:
+            os.replace(tmp, self.out_dir / "goals.json")
+        except PermissionError:      # Windows: a reader (the relay) holds the file; the next board is a second away
+            pass
 
     def count_tries(self, dims) -> list:
         """Count an assignment for the archived dimensions among dims and return them: a win is later counted only for these,
@@ -691,6 +775,7 @@ class GoalServer(Server):
             self.stats["task_reached"] += int(g["task"])
             for d in g.get("counted", ()):
                 self.goals.archive[d]["wins"] += 1
+            e["sil_close"] = True
             if e["ep"]:
                 e["ep"]["goals_reached"] += 1
             if g.get("plan") and e["plan"] is not None:
@@ -703,25 +788,36 @@ class GoalServer(Server):
             g = None
         if g is not None and m["step"] - g["t0"] >= self.a.goal_horizon:
             self.close_goal(e, f"expired after {self.a.goal_horizon} commands", m["step"])
+            if self.a.goal_mode == "list" and g["tokens"][0][0][0] == "adv":
+                self.pairs.setdefault(self.pair_key(e), {"episode": m["episode"], "skip": set(), "n_done": 0})["skip"].add(g["tokens"][0][0][1])
             if g.get("plan"):
                 self.stats["plan_steps_expired"] += 1
                 if e["plan"] is not None:
                     self.close_plan(e, f"step {e['plan']['k'] + 1} {self.dim_name(e['plan']['steps'][e['plan']['k']])} expired after {self.a.goal_horizon} commands", m["step"])
             g = None
         if m["terminated"] or m["truncated"]:
-            end = "episode ended: " + ("died" if m["terminated"] else "cut")
+            end = "episode ended: " + (("days over" if "days" in self.hello else "died") if m["terminated"] else "cut")
             e["goal"] = g
             self.close_goal(e, end, m["step"])
             self.close_plan(e, end, m["step"])
             g = None
-            if self.a.learn:
+            if self.a.learn and self.a.goal_mode == "archive":      # list mode generates no plans: nothing to train
                 for xo, lab in plan_samples(e["firsts"], e["anchors"], self.sizes, self.model.L, self.rng):
                     self.plan_replay.add(xo, lab)
+        elif self.a.goal_mode == "list":
+            want = self.pair_goal(e, m["episode"], vals)
+            if g is not None and g["tokens"][0][0] != want:
+                self.stats["pair_moved_on"] += 1
+                self.close_goal(e, f"pair moved on to {self.dim_name(want)}", m["step"])
+                g = None
+            if g is None:
+                g = self.list_goal(e, m["episode"], vals, m["step"])
         elif g is None:
             if self.a.plan and self.rng.random() >= self.a.p_explore:
                 g = self.plan_goal(e, x, vals, m["step"])
             if g is None:
                 g = self.propose(e, vals, m["step"])
+        e["goal_changed"] = g is not e["goal"]
         e["goal"], e["vals"] = g, vals
         return self.goals.encode(g, vals, m["step"], self.a.goal_horizon, self.a.goals), bonus
 
@@ -732,12 +828,16 @@ class GoalServer(Server):
         if m["step"] > 0:
             for k, v in terms.items():
                 e["ep"]["terms"][k] = e["ep"]["terms"].get(k, 0.0) + float(v)
+            e["ep"]["deaths"] = e["ep"].get("deaths", 0) + int(float(terms.get("death", 0.0)) < 0)
             e["ep"]["bonus"] += bonus
         p = e["pending"]
         if p is not None and m["step"] == p["step"] + 1:
             s = e["seg"]
+            r = stage_reward(terms, self.hello["stages"][self.a.ext_stage]) + bonus
             s["obs"].append(p["x"]), s["act"].append(p["a"]), s["logp"].append(p["logp"]), s["val"].append(p["v"])
-            s["rew"].append(stage_reward(terms, self.hello["stages"][self.a.ext_stage]) + bonus)
+            s["rew"].append(r)
+            tr = e["trace"] = e["trace"] or {"h": [], "obs": [], "act": [], "rew": [], "dt": []}
+            tr["h"].append(p["h"]), tr["obs"].append(p["x"]), tr["act"].append(p["a"]), tr["rew"].append(r), tr["dt"].append(float(m["obs"]["dt_ticks"]))
             s["dt"].append(float(m["obs"]["dt_ticks"])), s["done"].append(bool(term)), s["u"].append(p["u"])
             e["hist"].append({"x": {k: v for k, v in p["x"].items() if k not in GOAL_KEYS},
                               "lab": wm_labels(x, m["obs"], term, p["a"], self.sizes["has_killed"]), "vals": e["hist_vals"]})
@@ -746,6 +846,11 @@ class GoalServer(Server):
                 self.emit(s)
                 e["seg"] = None
         e["pending"] = None
+        if e["sil_close"] and e["trace"]:
+            self.emit_sil(e["trace"])
+        e["sil_close"] = False
+        if e.get("goal_changed") or term or trunc:
+            e["trace"] = None
         self.flush_hindsight(e, final=term or trunc)
         if term or trunc:
             self.end_episode(m, e)
@@ -758,7 +863,7 @@ class GoalServer(Server):
         pr = np.exp(lg - lg.max())
         pr /= pr.sum()
         a = int(self.rng.choice(len(pr), p=pr))
-        e["pending"] = {"step": m["step"], "x": x, "a": a, "logp": float(np.log(pr[a] + 1e-12)), "v": value, "u": self.glearner.updates}
+        e["pending"] = {"step": m["step"], "x": x, "a": a, "logp": float(np.log(pr[a] + 1e-12)), "v": value, "u": self.glearner.updates, "h": e["h"]}
         e["hist_vals"] = e["vals"]
         e["h"] = h2
         e["ep"]["steps"] += 1
@@ -782,6 +887,23 @@ class GoalServer(Server):
             self.replay.add(hist[t]["x"], {**hist[t]["lab"], **her})
         e["hist"] = [] if final else hist[n_ready:]
 
+    def emit_sil(self, tr: dict):
+        """A goal was reached: the bot's trajectory since the goal was set, with its discounted return to the goal, becomes
+        self-imitation data (chunks of --seg steps, each with the recurrent state it started from). The pair pursued the same
+        goal, so the policy both share learns from whichever partner reached it."""
+        if not self.a.learn or self.a.sil_coef <= 0:
+            return
+        R, ret = 0.0, []
+        for r, dt in zip(reversed(tr["rew"]), reversed(tr["dt"])):
+            R = r + self.a.gamma_s ** (dt / 20.0) * R
+            ret.append(R)
+        ret.reverse()
+        T = self.a.seg
+        with self.qlock:
+            for i in range(0, len(tr["act"]), T):
+                self.sil.append({"h0": tr["h"][i], "obs": tr["obs"][i:i + T], "act": tr["act"][i:i + T], "ret": ret[i:i + T]})
+                self.stats["sil_chunks"] += 1
+
     def emit(self, seg):
         if self.a.learn and seg["act"]:
             with self.qlock:
@@ -796,7 +918,8 @@ class GoalServer(Server):
                "return_task": round(stage_reward(ep["terms"], self.hello["stages"][self.a.ext_stage]), 4),
                "goals_reached": ep["goals_reached"], "goal_bonus": round(ep["bonus"], 3),
                "achievements": int(sum(prog[:len(self.hello["milestones"])])), "wall_s": round(time.time() - ep["t0"], 1),
-               **({"pair": e["start"]["site"], "shard": e["start"].get("shard")} if e.get("start") else {})}
+               "deaths": ep.get("deaths", 0),
+               **({"pair": e["start"].get("pair", e["start"].get("site")), "shard": e["start"].get("shard")} if e.get("start") else {})}
         self.ep_log.write(json.dumps(rec) + "\n"), self.ep_log.flush()
         e["ep"], e["goal"], e["vals"] = None, None, None
 
@@ -812,7 +935,9 @@ class GoalServer(Server):
                 continue
             t0 = time.time()
             rep_n = self.replay.n
-            mets = self.glearner.update(segs, self.scale, self.replay, self.rng, self.plan_replay)
+            with self.qlock:
+                sil = list(self.sil)
+            mets = self.glearner.update(segs, self.scale, self.replay, self.rng, self.plan_replay, sil)
             top = sorted(self.goals.archive.items(), key=lambda kv: -kv[1]["tries"])[:5]
             self.tlog(event="update", update=self.glearner.updates, seconds=round(time.time() - t0, 2), total_steps=self.total_steps,
                       queue=len(self.queue), staleness_mean=round(float(np.mean([self.glearner.updates - 1 - u for sg in segs for u in sg["u"]])), 3),

@@ -1621,3 +1621,34 @@ hazards:
       docs/proposed/RL-TRAINING-v2.md (Run 6). Impact: GoalServer ALLOWED; Server.loop/follow changed for every botsystem
       learner (SkillTruck tests re-run, OK).
     blockers: ["Self-imitation between paired bots (same start, different worlds): the loss is the owner's to choose (which partner, from when the worlds diverge); pair ids are logged.", "E2/E3 not run (E3 = run 5 vs run 3 at equal env steps, pending steps); PC (5800X) lacks WSL/Docker: needs owner admin + reboot."]
+
+  - id: "TASK-20261102-032-botsystem-days-pairs-sil"
+    created_at: "2026-11-02T17:30:00+09:00"
+    status: "in_progress"
+    description: >
+      Owner 2026-11-02 (with forge1201 TASK-20261102-029, BOTSYSTEM env v3.0; rebuild from scratch): episodes of N in-game
+      days with a death penalty and paid survival days; progress judged by the environment from an ordered progress list and
+      goals given from its easiest entry; the two bots of a pair do the same thing (self-imitation); training on the owner's PC.
+    spec_ref: "scripts/botsystem_goal_ppo.py (docstring: Progress-list goals and pairs); forge1201 docs/proposed/RL-TRAINING-v2.md#run-7"
+    validation_commands:
+      - "docker run --rm -v rl-jaxvenv:/venv:ro -v \"$PWD\":/dpod -w /dpod python:3.12-slim /venv/bin/python -m unittest tests.test_botsystem_goal tests.test_botsystem_skill tests.test_botsystem_interface"
+      - "python scripts/pre_commit_ban_check.py"
+    result: >
+      Implemented and live. --goal-mode list (default): a bot's goal is the easiest progress-list entry neither bot of its pair
+      (hello start.pair) has reached this episode; a partner's success moves both on (no bonus to the one that did not reach
+      it); an expired entry is skipped by the pair until it reaches something new; all reached -> one more day. Self-imitation
+      (Oh et al. 2018): goal-reaching trajectories from the goal's assignment, with discounted return, kept as --seg chunks with
+      their recurrent start state; loss --sil-coef 0.5 x [-log pi(a|s,g) max(R - V, 0)] + --sil-vcoef 0.01 x 0.5 max(R-V,0)^2,
+      on the shared policy. ext-stage default 'days' (reward v5 terms survival/death/progress/invalid); episode records carry
+      deaths; plan samples off in list mode. Arm goalwm64x2w256g2kppl8+list+sil registered as Idea4_O01_D01_S12 (provisional);
+      parameter names goal.mode, train.sil_*, env.episode_days. Tests (Linux, rl-jaxvenv): 44 OK before the last three small
+      edits (arm name, plan samples off in list mode, tolerant goals.json replace), then the changed goal tests 9 OK; new: pair goal
+      order/sharing/skip/new-episode, SIL returns and chunks (gamma per 20 ticks), list-mode end-to-end (pair hand-overs > 0, SIL
+      chunks > 0, finite SIL loss, terminated episodes with deaths). Same suite on the PC (Windows, same pins): positive controls
+      pass; 15 errors are WinError 32 at temp-dir cleanup (files still open), none an assertion. Run 7 (forge1201 base train7,
+      from scratch, no --init): learner on the PC, 20 bots; first 33 updates 26-40 s each (VPS learner: 396 s for update 1 under
+      5 servers), 47 of 224 goals reached, 103 pair hand-overs, 63 SIL chunks. Critical review: the progress list and its order
+      are hand-specified game knowledge (owner's explicit instruction); allowed here only because BOTSYSTEM never counts toward a
+      roadmap gate (P-rules apply to gate runs). No oracle at decision time: progress flags come from the bot's own statistics.
+      Impact: scip-neo4j GoalLearner ALLOWED; GoalServer dependents = this file's main only. MLflow ingest of run 7: at its end.
+    blockers: []

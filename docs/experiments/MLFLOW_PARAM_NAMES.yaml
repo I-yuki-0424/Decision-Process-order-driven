@@ -86,6 +86,11 @@ params:
   train.plan_coef:       {aliases: [plan_coef]}                    # BOTSYSTEM GoalWM: weight of the plan-decoder loss
   train.plan_replay:     {aliases: [plan_replay]}                  # BOTSYSTEM GoalWM: plan samples kept in the plan replay ring
   train.plan_batch:      {aliases: [plan_batch]}                   # BOTSYSTEM GoalWM: plan samples per auxiliary step
+  goal.mode:             {aliases: [goal_mode]}                    # BOTSYSTEM GoalWM: list = progress-list goals shared by a pair (env v3.0, 2026-11-02); archive = proposals/plans
+  train.sil_coef:        {aliases: [sil_coef]}                     # BOTSYSTEM GoalWM: weight of the self-imitation policy loss (Oh et al. 2018)
+  train.sil_vcoef:       {aliases: [sil_vcoef]}                    # BOTSYSTEM GoalWM: weight of the self-imitation value loss
+  train.sil_batch:       {aliases: [sil_batch]}                    # BOTSYSTEM GoalWM: goal-reaching chunks per self-imitation step
+  train.sil_buffer:      {aliases: [sil_buffer]}                   # BOTSYSTEM GoalWM: goal-reaching chunks kept
   train.init_params:     {aliases: [init]}                         # BOTSYSTEM GoalWM: offline-pretrained parameter file ('' = none)
   train.poll_seconds:    {aliases: [poll_s]}                       # BOTSYSTEM: server poll interval
   train.serve_batch:     {aliases: [n_max]}                        # BOTSYSTEM: observations per forward pass at most
@@ -119,6 +124,7 @@ params:
   env.k_candidates:      {aliases: [k_candidates]}                 # BOTSYSTEM: candidate commands per step (K)
   env.region:            {aliases: [region]}                       # BOTSYSTEM: half-width of the reset region in blocks
   env.episode_limit:     {aliases: [episode_limit, max_episode_steps]}
+  env.episode_days:      {aliases: [days, episode_days]}           # BOTSYSTEM env >= v3.0: in-game days per episode (an episode is days, not one life)
   env.latency_delta:     {aliases: [latency_delta]}
   env.observation:       {aliases: [observation]}
   seed.train:            {aliases: [seed, train_seed]}      # default 42; replicate k uses 42 + k
