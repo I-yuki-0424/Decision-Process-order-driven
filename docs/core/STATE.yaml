@@ -1610,4 +1610,14 @@ hazards:
       (forge1201 base train5, 2 shards x 10 bots, init pretrain/goalwm_plan_pretrain.pkl) started 2026-11-02 02:26 JST.
       HNN not implemented (refuted above). Impact: new files only except botsystem_skill_ppo.Server (subclassed, unchanged)
       and mlflow_ingest_botsystem.py (parameter list); scip-neo4j checks returned ALLOWED, no locked symbols.
-    blockers: ["E2/E3 not run (E3 = run 5 vs run 3 at equal env steps, pending steps); PC (5800X) lacks WSL/Docker: needs owner admin + reboot."]
+      2026-11-02 (owner review of run 5, forge1201 TASK-20261102-028): run 5 stopped at update 594, 266,287 steps; run 6
+      (base train6, owner's ten start sites, pairs across 2 shards, fresh world, reward v4) initialised from run 5's
+      enc/wm/reach/goal/plan (policy fresh). be99b8c: provenance board goals.json (plan target and why, trigger, beams, R per
+      step, goal source/p/bonus, outcomes), episodes carry pair. f8fabff: plan infeasibility tested on R alone (max(R, Laplace
+      0.5) never fell below tau: run 5 had 0 infeasible replans in 2,173 plans). 9f9740b: botsystem_skill_ppo.catch_up, a
+      restarted learner no longer replays a live run (would train on actions it never chose; negative control 61 -> 1).
+      Tests: test_botsystem_goal 13 OK, test_botsystem_skill + interface + catch-up 28 OK. Run 5 evidence against the plans:
+      46 of 2,173 completed, hindsight orders (diamond: sand -> kill tropical_fish -> diamond); see forge1201
+      docs/proposed/RL-TRAINING-v2.md (Run 6). Impact: GoalServer ALLOWED; Server.loop/follow changed for every botsystem
+      learner (SkillTruck tests re-run, OK).
+    blockers: ["Self-imitation between paired bots (same start, different worlds): the loss is the owner's to choose (which partner, from when the worlds diverge); pair ids are logged.", "E2/E3 not run (E3 = run 5 vs run 3 at equal env steps, pending steps); PC (5800X) lacks WSL/Docker: needs owner admin + reboot."]
