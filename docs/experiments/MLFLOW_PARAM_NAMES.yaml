@@ -136,3 +136,8 @@ family_aliases:
   candidate: {T: env.episode_limit}
   phase1:    {delta: env.latency_delta, d: arch.d_model, layers: arch.n_layers, k: arch.commit_length, critic: arch.critic_type,
               width: arch.hidden_width}
+  train.teacher_beta:    {aliases: [teacher_beta]}                 # BOTSYSTEM GoalWM: probability that the scripted teacher's action is executed (x fade level)
+  train.teacher_bc:      {aliases: [teacher_bc]}                   # BOTSYSTEM GoalWM: weight of the behaviour-cloning loss on teacher labels (x fade level)
+  train.teacher_agree:   {aliases: [teacher_agree]}                # BOTSYSTEM GoalWM: policy/teacher agreement (EMA) at which the teacher starts to fade
+  train.teacher_fade:    {aliases: [teacher_fade]}                 # BOTSYSTEM GoalWM: per-update multiplier of the teacher level once settled
+  train.pair_prune:      {aliases: [pair_prune]}                   # BOTSYSTEM GoalWM: bottom share of pairs (by progress) that feed no self-imitation data

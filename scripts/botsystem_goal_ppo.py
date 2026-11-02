@@ -88,6 +88,8 @@ from botsystem_skill_ppo import SPEC_NAME, ReturnScale, Server, gae, masked_entr
 
 log = logging.getLogger("goal_ppo")
 CKPT_VERSION = 1
+import botsystem_teacher as teacher_mod
+
 GOAL_KEYS = ("goal_kind", "goal_id", "goal_feat", "goal_mask")
 PLAN_LAB = ("task", "seq", "mask")
 NH = 4                     # hindsight goals per transition (2 positives, 2 negatives at most)
@@ -113,6 +115,10 @@ def parse_args(argv=None):
     a("--aux-coef", type=float, default=1.0), a("--aux-lr", type=float, default=1e-3), a("--aux-max-grad-norm", type=float, default=5.0)
     a("--plan", type=int, default=1), a("--p-explore", type=float, default=0.3), a("--p-task-plan", type=float, default=0.5)
     a("--plan-beam", type=int, default=4), a("--plan-tau", type=float, default=0.02), a("--plan-coef", type=float, default=1.0)
+    a("--teacher-beta", type=float, default=0.3), a("--teacher-bc", type=float, default=0.5), a("--teacher-agree", type=float, default=0.55)
+    a("--teacher-fade", type=float, default=0.97), a("--teacher-min", type=float, default=0.02), a("--teacher-min-n", type=int, default=200)
+    a("--max-queue", type=int, default=0), a("--max-steps", type=int, default=0)
+    a("--pair-prune", type=float, default=0.25), a("--pair-min-eps", type=int, default=4)
     a("--plan-replay", type=int, default=4000), a("--plan-batch", type=int, default=32), a("--plan-anchor", type=int, default=64)
     return p.parse_args(argv)
 
@@ -338,7 +344,7 @@ class GoalLearner:
         val = (0.5 * gap ** 2 * m).sum() / den
         return pol + self.a.sil_vcoef * val, {"sil_pol": pol, "sil_val": val, "sil_gap": (gap * m).sum() / den, "sil_n": m.sum()}
 
-    def _loss(self, params, b, sb, ent_coef):
+    def _loss(self, params, b, sb, ent_coef, bc_w):
         logits, value = self._unroll(params, b["h0"], b["obs"])
         lp = jax.nn.log_softmax(logits, -1)
         nlp = jnp.take_along_axis(lp, b["act"][..., None], -1)[..., 0]
@@ -351,14 +357,22 @@ class GoalLearner:
         den = jnp.maximum(m.sum(), 1.0)
         mean = lambda x: (x * m).sum() / den
         sil, sm = self._sil(params, sb)
-        loss = mean(pg) + self.a.vf * mean(vl) - ent_coef * mean(entropy) + self.a.sil_coef * sil
-        return loss, {**sm, "pg": mean(pg), "vf": mean(vl), "ent": mean(entropy), "kl": mean(b["logp"] - nlp),
+        # Teacher (owner 2026-11-02): steps the teacher executed carry no policy gradient (the action was not sampled from pi) but
+        # train the value; behaviour cloning on every step the teacher labelled (DAgger: also on the policy's own states), weight
+        # bc_w = --teacher-bc x the fade level.
+        pm = m * (1.0 - b["src"])
+        pmean = lambda x: (x * pm).sum() / jnp.maximum(pm.sum(), 1.0)
+        lab = (b["tch"] >= 0) * m
+        tl = jnp.take_along_axis(lp, jnp.maximum(b["tch"], 0)[..., None], -1)[..., 0]
+        bc = -(tl * lab).sum() / jnp.maximum(lab.sum(), 1.0)
+        loss = pmean(pg) + self.a.vf * mean(vl) - ent_coef * mean(entropy) + self.a.sil_coef * sil + bc_w * bc
+        return loss, {**sm, "bc": bc, "bc_n": lab.sum(), "pg": pmean(pg), "vf": mean(vl), "ent": mean(entropy), "kl": mean(b["logp"] - nlp),
                       "clipfrac": mean((jnp.abs(ratio - 1) > self.a.clip).astype(jnp.float32)),
                       "u_ok": params["pi"]["u"][0], "u_dt": params["pi"]["u"][1], "u_gain": params["pi"]["u"][2]}
 
-    def _update_fn(self, params, opt_state, b, sb, aux_obs, aux_lab, p_obs, p_lab, ent_coef):
+    def _update_fn(self, params, opt_state, b, sb, aux_obs, aux_lab, p_obs, p_lab, ent_coef, bc_w):
         o_pi, o_aux = opt_state
-        (loss, mets), g = jax.value_and_grad(self._loss, has_aux=True)(params, b, sb, ent_coef)
+        (loss, mets), g = jax.value_and_grad(self._loss, has_aux=True)(params, b, sb, ent_coef, bc_w)
         up, o_pi = self.opt.update(g, o_pi, params)
         params = optax.apply_updates(params, up)
         (aux, terms), g2 = jax.value_and_grad(self._aux, has_aux=True)(params, aux_obs, aux_lab, p_obs, p_lab)
@@ -379,7 +393,7 @@ class GoalLearner:
         sb["obs"]["cand_mask"][..., 0] |= sb["valid"] == 0
         return sb
 
-    def update(self, segs, scale: ReturnScale, replay: Replay, rng, plan_replay: Replay | None = None, sil: list | None = None):
+    def update(self, segs, scale: ReturnScale, replay: Replay, rng, plan_replay: Replay | None = None, sil: list | None = None, bc_w: float = 0.0):
         a, T = self.a, self.a.seg
         sd = scale.std(0)
         advs, rets = [], []
@@ -396,7 +410,9 @@ class GoalLearner:
                  "h0": np.stack([s["h0"] for s in segs]), "act": np.stack([pad(np.asarray(s["act"], np.int32)) for s in segs]),
                  "logp": np.stack([pad(np.asarray(s["logp"], np.float32)) for s in segs]),
                  "adv": np.stack([pad((ad - mu) / sg) for ad in advs]), "ret": np.stack([pad(rt) for rt in rets]),
-                 "valid": np.stack([pad(np.ones(len(s["act"]), np.float32)) for s in segs])}
+                 "valid": np.stack([pad(np.ones(len(s["act"]), np.float32)) for s in segs]),
+                 "tch": np.stack([np.concatenate([np.asarray(s.get("tch") or [-1] * len(s["act"]), np.int32), -np.ones(T - len(s["act"]), np.int32)]) for s in segs]),
+                 "src": np.stack([pad(np.asarray(s.get("src") or [0] * len(s["act"]), np.float32)) for s in segs])}
         batch["obs"]["cand_mask"][..., 0] |= batch["valid"] == 0
         mets, params, opt_state = [], self.params, self.opt_state
         mb = max(1, B // a.minibatches)
@@ -408,7 +424,7 @@ class GoalLearner:
                 po, pla = (plan_replay.sample(a.plan_batch, rng) if plan_replay is not None and plan_replay.n >= a.plan_batch
                            else dummy_plan(segs[0]["obs"][0], a.plan_batch, self.model.L))
                 sb = self.sil_batch(sil or [], sd, segs[0]["obs"][0], rng)
-                params, opt_state, m = self._update(params, opt_state, sub, sb, ao, al, po, pla, jnp.float32(a.ent))
+                params, opt_state, m = self._update(params, opt_state, sub, sb, ao, al, po, pla, jnp.float32(a.ent), jnp.float32(bc_w))
                 mets.append({k: float(v) for k, v in m.items()})
         self.params, self.opt_state = params, opt_state
         self.updates += 1
@@ -430,13 +446,21 @@ class GoalServer(Server):
         self.queue: list[dict] = []
         self.glearner: GoalLearner | None = None
         self.stats = {"assigned": 0, "reached": 0, "task_assigned": 0, "task_reached": 0, "plans": 0, "plan_steps_reached": 0,
-                      "plans_completed": 0, "replans_infeasible": 0, "plan_steps_expired": 0, "pair_moved_on": 0, "sil_chunks": 0}
+                      "plans_completed": 0, "replans_infeasible": 0, "plan_steps_expired": 0, "pair_moved_on": 0, "sil_chunks": 0, "sil_pruned": 0}
         self.pairs: dict = {}                 # pair key -> {"episode", "skip": entries skipped after expiring, "n_done"}
         self.sil: deque = deque(maxlen=a.sil_buffer)   # goal-reaching chunks for the self-imitation loss
+        # Scripted teacher (owner 2026-11-02): executes with probability beta x level, labels every step it has an opinion on.
+        # level fades once the policy agrees with it (settled) and then only goes down; it is saved in the checkpoint.
+        self.teach = {"level": 1.0, "agree_ema": None, "hit": 0, "n": 0, "ex": 0, "lab": 0}
+        self.teacher: teacher_mod.Teacher | None = None
+        self.pair_score: dict = {}            # pair key -> {"ema": progress per episode, "n": episodes}
 
     @property
     def learner(self):
         return self.glearner
+
+    def backlog(self) -> int:
+        return len(self.queue)
 
     def on_hello(self, msg, run=None):
         run = run or next(iter(self.runs))
@@ -472,6 +496,10 @@ class GoalServer(Server):
         if self.ckpt.exists():
             with open(self.ckpt, "rb") as f:
                 ck = pickle.load(f)
+            if ck.get("teach"):
+                self.teach.update(ck["teach"])
+            if ck.get("pair_score"):
+                self.pair_score = ck["pair_score"]
             if ck.get("stats"):
                 self.stats.update(ck["stats"])
                 ck["stats"] = self.stats
@@ -496,7 +524,7 @@ class GoalServer(Server):
         v = hello.get("vocab", {})
         self.names = {"item": v.get("items", []), "kill": v.get("entities", []), "adv": hello["milestones"] + [f"notable:{n}" for n in hello.get("notable", [])] + ["nights", "slept"]}
         tot, dep = self.model.param_counts(self.glearner.params)
-        arm = self.model.name + ("+list" if self.a.goal_mode == "list" else "") + ("+sil" if self.a.sil_coef > 0 else "")
+        arm = self.model.name + ("+list" if self.a.goal_mode == "list" else "") + ("+sil" if self.a.sil_coef > 0 else "") + ("+teach" if self.a.teacher_beta > 0 else "")
         self.tlog(event="model", name=arm, sizes={k: v for k, v in sizes.items()}, params_total=tot, params_deployed=dep,
                   updates=self.glearner.updates, learn=bool(self.a.learn), init=self.a.init or None,
                   args={k: v for k, v in vars(self.a).items() if k not in ("root", "base")})
@@ -835,6 +863,7 @@ class GoalServer(Server):
             s = e["seg"]
             r = stage_reward(terms, self.hello["stages"][self.a.ext_stage]) + bonus
             s["obs"].append(p["x"]), s["act"].append(p["a"]), s["logp"].append(p["logp"]), s["val"].append(p["v"])
+            s["tch"].append(p["tch"]), s["src"].append(p["src"])
             s["rew"].append(r)
             tr = e["trace"] = e["trace"] or {"h": [], "obs": [], "act": [], "rew": [], "dt": []}
             tr["h"].append(p["h"]), tr["obs"].append(p["x"]), tr["act"].append(p["a"]), tr["rew"].append(r), tr["dt"].append(float(m["obs"]["dt_ticks"]))
@@ -847,7 +876,7 @@ class GoalServer(Server):
                 e["seg"] = None
         e["pending"] = None
         if e["sil_close"] and e["trace"]:
-            self.emit_sil(e["trace"])
+            self.emit_sil(e["trace"], e)
         e["sil_close"] = False
         if e.get("goal_changed") or term or trunc:
             e["trace"] = None
@@ -857,13 +886,23 @@ class GoalServer(Server):
             e["h"] = np.zeros_like(e["h"])
             return
         if e["seg"] is None:
-            e["seg"] = {"h0": e["h"].copy(), "obs": [], "act": [], "logp": [], "val": [], "rew": [], "dt": [], "done": [], "u": []}
+            e["seg"] = {"h0": e["h"].copy(), "obs": [], "act": [], "logp": [], "val": [], "rew": [], "dt": [], "done": [], "u": [], "tch": [], "src": []}
         mask = x["cand_mask"]
         lg = np.where(mask, logits, -np.inf)
         pr = np.exp(lg - lg.max())
         pr /= pr.sum()
         a = int(self.rng.choice(len(pr), p=pr))
-        e["pending"] = {"step": m["step"], "x": x, "a": a, "logp": float(np.log(pr[a] + 1e-12)), "v": value, "u": self.glearner.updates, "h": e["h"]}
+        t, src = self.teach_label(e, m["obs"]), 0
+        if t >= 0:
+            self.teach["lab"] += 1
+            if self.a.learn and self.rng.random() < self.a.teacher_beta * self.teach["level"]:
+                a, src = t, 1
+                self.teach["ex"] += 1
+            else:
+                self.teach["n"] += 1
+                self.teach["hit"] += int(a == t)
+        e["pending"] = {"step": m["step"], "x": x, "a": a, "logp": float(np.log(pr[a] + 1e-12)), "v": value, "u": self.glearner.updates, "h": e["h"],
+                        "tch": t, "src": src}
         e["hist_vals"] = e["vals"]
         e["h"] = h2
         e["ep"]["steps"] += 1
@@ -887,11 +926,54 @@ class GoalServer(Server):
             self.replay.add(hist[t]["x"], {**hist[t]["lab"], **her})
         e["hist"] = [] if final else hist[n_ready:]
 
-    def emit_sil(self, tr: dict):
+    def teach_label(self, e, obs: dict) -> int:
+        """The teacher's candidate for the entry this bot's pair is after (-1: no opinion, teaching faded out, or not a list goal)."""
+        if self.teach["level"] <= 0 or self.a.teacher_beta <= 0 or not self.a.learn:
+            return -1
+        g = e.get("goal")
+        if g is None:
+            return -1
+        name = self.dim_name(g["tokens"][0][0])
+        if not name.startswith("adv:"):
+            return -1
+        if self.teacher is None:
+            self.teacher = teacher_mod.Teacher(self.hello.get("vocab", {}).get("items", []))
+        return self.teacher.choose(obs, name[4:])
+
+    def fade_teacher(self) -> dict:
+        """After an update: once the policy, acting alone, picks the teacher's candidate at least --teacher-agree of the time
+        (EMA over updates, >= --teacher-min-n labelled own steps), the level shrinks by --teacher-fade per update; below
+        --teacher-min it is zero. It never rises again: a policy that settles and then drifts is a result, not a reason to teach."""
+        T = self.teach
+        if T["n"] >= self.a.teacher_min_n:
+            ag = T["hit"] / T["n"]
+            T["agree_ema"] = ag if T["agree_ema"] is None else 0.7 * T["agree_ema"] + 0.3 * ag
+            T["hit"] = T["n"] = 0
+        if T["level"] > 0 and T["agree_ema"] is not None and T["agree_ema"] >= self.a.teacher_agree:
+            T["level"] = T["level"] * self.a.teacher_fade
+            if T["level"] < self.a.teacher_min:
+                T["level"] = 0.0
+        return {"level": round(T["level"], 4), "agree_ema": None if T["agree_ema"] is None else round(T["agree_ema"], 3),
+                "executed": T["ex"], "labelled": T["lab"]}
+
+    def pair_ok(self, e) -> bool:
+        """Pruning (owner 2026-11-02, "merging/pruning of pairs", read as): pairs whose progress per episode is in the bottom
+        --pair-prune share (once --pair-min-eps episodes each and at least 4 pairs known) put nothing into the shared self-imitation
+        buffer; the buffer is the merge point, fed by the better pairs only."""
+        sc = {k: v for k, v in self.pair_score.items() if v["n"] >= self.a.pair_min_eps}
+        mine = sc.get(self.pair_key(e))
+        if mine is None or len(sc) < 4 or self.a.pair_prune <= 0:
+            return True
+        return mine["ema"] > float(np.quantile([v["ema"] for v in sc.values()], self.a.pair_prune))
+
+    def emit_sil(self, tr: dict, e=None):
         """A goal was reached: the bot's trajectory since the goal was set, with its discounted return to the goal, becomes
         self-imitation data (chunks of --seg steps, each with the recurrent state it started from). The pair pursued the same
         goal, so the policy both share learns from whichever partner reached it."""
         if not self.a.learn or self.a.sil_coef <= 0:
+            return
+        if e is not None and not self.pair_ok(e):
+            self.stats["sil_pruned"] += 1
             return
         R, ret = 0.0, []
         for r, dt in zip(reversed(tr["rew"]), reversed(tr["dt"])):
@@ -921,6 +1003,9 @@ class GoalServer(Server):
                "deaths": ep.get("deaths", 0),
                **({"pair": e["start"].get("pair", e["start"].get("site")), "shard": e["start"].get("shard")} if e.get("start") else {})}
         self.ep_log.write(json.dumps(rec) + "\n"), self.ep_log.flush()
+        ps = self.pair_score.setdefault(self.pair_key(e), {"ema": float(ep["terms"].get("progress", 0.0)), "n": 0})
+        ps["ema"] = 0.8 * ps["ema"] + 0.2 * float(ep["terms"].get("progress", 0.0))
+        ps["n"] += 1
         e["ep"], e["goal"], e["vals"] = None, None, None
 
     # -- learning --
@@ -937,18 +1022,28 @@ class GoalServer(Server):
             rep_n = self.replay.n
             with self.qlock:
                 sil = list(self.sil)
-            mets = self.glearner.update(segs, self.scale, self.replay, self.rng, self.plan_replay, sil)
+            mets = self.glearner.update(segs, self.scale, self.replay, self.rng, self.plan_replay, sil,
+                                        bc_w=self.a.teacher_bc * self.teach["level"])
+            tmet = self.fade_teacher()
             top = sorted(self.goals.archive.items(), key=lambda kv: -kv[1]["tries"])[:5]
             self.tlog(event="update", update=self.glearner.updates, seconds=round(time.time() - t0, 2), total_steps=self.total_steps,
                       queue=len(self.queue), staleness_mean=round(float(np.mean([self.glearner.updates - 1 - u for sg in segs for u in sg["u"]])), 3),
                       archive=len(self.goals.archive), goals=dict(self.stats), replay_at_start=rep_n,
-                      top_goals=[[k[0], k[1], v["tries"], v["wins"]] for k, v in top], **mets)
+                      top_goals=[[k[0], k[1], v["tries"], v["wins"]] for k, v in top], teacher=tmet,
+                      devices=[str(d) for d in jax.local_devices()][:2], **mets)
             self.save()
+            if self.a.max_steps and self.total_steps >= self.a.max_steps:
+                # The budget is spent: final checkpoint (just written), a marker the environments poll, and the server loop ends.
+                self.tlog(event="done", total_steps=self.total_steps, updates=self.glearner.updates)
+                (Path(self.a.root) / f"{self.a.base}.done").write_text(f"{self.total_steps}\n")
+                self.stop.set()
+                return
 
     def save(self):
         ck = {"version": CKPT_VERSION, "sizes": self.sizes, "model": self.model.name, "params": jax.device_get(self.glearner.params),
               "opt_state": jax.device_get(self.glearner.opt_state), "updates": self.glearner.updates, "scale": dict(self.scale.__dict__),
-              "archive": self.goals.archive, "total_steps": self.total_steps, "stats": self.stats, "t": time.time()}
+              "archive": self.goals.archive, "total_steps": self.total_steps, "stats": self.stats, "t": time.time(),
+              "teach": self.teach, "pair_score": self.pair_score}
         tmp = self.ckpt.with_suffix(".tmp")
         with open(tmp, "wb") as f:
             pickle.dump(ck, f)

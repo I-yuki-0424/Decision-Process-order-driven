@@ -191,6 +191,11 @@ models:
     description: "GoalWM for BOTSYSTEM env v3.0 (owner 2026-11-02, TASK-20261102-032): episodes of N in-game days, goals in progress-list order (easiest first) shared by the two bots of a pair, self-imitation loss on goal-reaching trajectories; trained from scratch (no pretrained init)"
     status: provisional
     proper_name: null
+  Idea4_O01_D01_S13:
+    arms: ["goalwm64x2w256g2kppl8+list+sil+teach"]
+    description: "S12 plus a scripted teacher on the wood/stone tier (TASK-20261102-033, owner 2026-11-02): executes with probability beta x level, behaviour-cloning loss on its labels (DAgger), level faded once the policy agrees with it; pairs in the bottom quartile by progress feed no self-imitation data. Hand-specified game knowledge on purpose; side track, nothing counts toward a gate."
+    status: provisional
+    proper_name: null
   # --- TASK-20261005-024: Truck-improved (Idea4_O01_D01_S06) hidden-dimension scale study; the training recipe is in the run parameters ---
   Idea4_O01_D04_S00:
     arms: ["tfgru64x2w128+mem+pa+hs"]

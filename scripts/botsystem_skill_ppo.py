@@ -557,6 +557,9 @@ class Server:
             pickle.dump(ck, f)
         os.replace(tmp, self.ckpt)
 
+    def backlog(self) -> int:
+        return 0
+
     def loop(self):
         last_follow = 0.0
         while not self.stop.is_set():
@@ -565,6 +568,9 @@ class Server:
                 last_follow = time.time()
             if not self.runs:
                 time.sleep(0.5)
+                continue
+            if getattr(self.a, "max_queue", 0) and self.backlog() >= self.a.max_queue:
+                time.sleep(0.05)      # backpressure: a simulator is far faster than the learner; unread observations wait in the files
                 continue
             obs = []
             for key, r in list(self.runs.items()):

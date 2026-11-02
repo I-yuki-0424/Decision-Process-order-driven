@@ -1652,3 +1652,36 @@ hazards:
       roadmap gate (P-rules apply to gate runs). No oracle at decision time: progress flags come from the bot's own statistics.
       Impact: scip-neo4j GoalLearner ALLOWED; GoalServer dependents = this file's main only. MLflow ingest of run 7: at its end.
     blockers: []
+  - id: "TASK-20261102-033-botsystem-teacher-fade-gpu"
+    created_at: "2026-11-02T23:00:00+09:00"
+    status: "in_progress"
+    description: >
+      Owner 2026-11-02 (after run 7: policy near-uniform, progress 7.6 -> 8.3 of 24, 10-18 deaths per episode): (1) death penalty
+      greatly reduced (forge1201 reward v6, -2.0 -> -0.25); (2) learner on the PC's GPU; (4) tolerate interruptions, no heavy PC
+      load 12:00-18:00 JST; (5) a small amount of teacher data at the start, faded out once the policy settles, then self-imitation
+      and pair merging/pruning.
+    spec_ref: "scripts/botsystem_teacher.py, scripts/botsystem_goal_ppo.py (Teacher / fade_teacher / pair_ok); forge1201 docs/proposed/RL-TRAINING-v2.md#run-8"
+    validation_commands:
+      - "docker run --rm --network none -v rl-jaxvenv:/jax:ro -v \"$PWD\":/dpod -w /dpod -e PYTHONPATH=/jax/lib/python3.12/site-packages -e JAX_PLATFORMS=cpu python:3.12-slim python tests/test_botsystem_teacher.py"
+      - "same for tests/test_botsystem_goal.py tests/test_botsystem_skill.py tests/test_botsystem_interface.py"
+      - "python scripts/pre_commit_ban_check.py"
+    result: >
+      Code and unit tests done, not yet run live. Teacher: scripts/botsystem_teacher.py reads only what the policy reads (candidate
+      command/item ids, inventory) and answers with a candidate index for the wood/stone tier (log ... furnace, coal, torch), -1
+      elsewhere. In the learner: with probability --teacher-beta x level the teacher's candidate is executed (such steps carry no
+      policy gradient, they train the value), and every labelled step also gets a behaviour-cloning term (--teacher-bc x level;
+      DAgger: the policy's own states are labelled too). level fades x --teacher-fade per update once the policy's own choices
+      agree with the teacher's at >= --teacher-agree (EMA, >= --teacher-min-n labelled steps) and never rises again; 0 below
+      --teacher-min. Saved in the checkpoint. Pair pruning (interpretation of "merging/pruning of pairs", to be confirmed): pairs in
+      the bottom --pair-prune share by progress per episode (EMA; >= 4 pairs and >= 4 episodes known) put nothing into the shared
+      self-imitation buffer; the buffer is the merge point. Tests: tests/test_botsystem_teacher.py (9): recipe recursion, fade
+      waits for agreement and only falls, pruning needs evidence, behaviour-cloning positive control (0.4 -> >0.8 on the
+      teacher's candidate; teacher-executed steps have zero policy gradient). Registry: Idea4_O01_D01_S13 (provisional).
+      Critical review: the teacher is hand-specified game knowledge and a human-written expert; allowed only because BOTSYSTEM never
+      counts toward a roadmap gate (owner: "as research that's not good, but optimal for producing something that works"). Results
+      must say "with teacher" and must not be compared with S12. GPU: jax has no native-Windows CUDA wheels; the learner needs WSL2
+      on the PC (owner action), then forge1201 scripts/train/pc.sh gpu-setup (untested).
+      Impact: scip-neo4j check_symbol_constraints answered NOT_FOUND for GoalLearner and GoalServer.handle (index of main from
+      2026-10-30, these symbols live on botsystem/skills-v2), so the code was read instead: GoalLearner._loss/_update_fn/update gained
+      bc_w (callers: GoalServer.learn_loop, tests/test_botsystem_teacher.py), no locked symbol involved.
+    blockers: ["WSL2 not installed on the PC (owner, elevated PowerShell: wsl.exe --install -d Ubuntu-22.04, reboot)"]
