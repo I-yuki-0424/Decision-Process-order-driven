@@ -346,7 +346,8 @@ class Server:
                 continue
             d = self.root / rid
             self.runs[key] = {"rid": rid, "reader": LineReader(d / "env_to_policy.jsonl", run_id=rid, allowed=("hello", "obs", "bye")),
-                              "writer": LineWriter(d / "policy_to_env.jsonl"), "seq": 0}
+                              "writer": LineWriter(d / "policy_to_env.jsonl"), "seq": 0, "catch_up": True,
+                              "answered_path": d / "policy_to_env.jsonl"}
             for e in [k for k, v in self.envs.items() if v["run"] == key]:
                 del self.envs[e]
             self.run, self.reader = rid, self.runs[key]["reader"]
@@ -567,7 +568,10 @@ class Server:
                 continue
             obs = []
             for key, r in list(self.runs.items()):
-                for m in r["reader"].poll():
+                msgs = r["reader"].poll()
+                if r.pop("catch_up", False):
+                    msgs = catch_up(msgs, answered(r["answered_path"], r["rid"]))
+                for m in msgs:
                     if m["type"] == "hello":
                         self.on_hello(m, key)
                     elif m["type"] == "obs":
@@ -579,6 +583,27 @@ class Server:
                 self.on_obs_batch(obs)
             else:
                 time.sleep(self.a.poll_s)
+
+
+def answered(path: Path, rid: str) -> set:
+    """(env_id, episode, step) of every act already written to a run (by this learner's predecessor)."""
+    if not path.exists():
+        return set()
+    return {(m["env_id"], m["episode"], m["step"]) for m in LineReader(path, run_id=rid, allowed=("hello_ack", "act")).poll()
+            if m["type"] == "act"}
+
+
+def catch_up(msgs: list[dict], done: set) -> list[dict]:
+    """The backlog of a run the learner joins (its first read: a restarted learner reads the whole file). Hellos and byes stay
+    in order; of the observations only each bot's last one, and only if no act answered it: its bot is waiting. Serving the
+    older ones would answer steps already carried out with other actions and train on transitions this learner never chose
+    (learner restart in run train6, 2026-11-02: 18 k observations replayed)."""
+    last = {}
+    for m in msgs:
+        if m["type"] == "obs":
+            last[m["env_id"]] = m
+    keep = [m for m in last.values() if (m["env_id"], m["episode"], m["step"]) not in done]
+    return [m for m in msgs if m["type"] != "obs"] + keep
 
 
 def main(argv=None):

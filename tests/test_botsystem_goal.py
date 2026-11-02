@@ -340,6 +340,40 @@ class FakeEnv:
                 s["step"] += 1
 
 
+class TestCatchUp(unittest.TestCase):
+    def test_backlog_keeps_hellos_and_only_each_bots_unanswered_last_obs(self):
+        from botsystem_skill_ppo import catch_up
+        obs = lambda e, ep, st: {"type": "obs", "env_id": e, "episode": ep, "step": st}
+        msgs = [{"type": "hello", "env_id": 0}, {"type": "hello", "env_id": 1}, obs(0, 0, 0), obs(1, 0, 0), obs(0, 0, 1), obs(1, 0, 1),
+                obs(0, 1, 0), {"type": "bye", "env_id": 2}]
+        out = catch_up(msgs, done={(0, 0, 0), (1, 0, 0), (0, 0, 1), (1, 0, 1)})
+        self.assertEqual(out, [msgs[0], msgs[1], msgs[7], obs(0, 1, 0)])          # bot 1's last obs was answered: it is acting
+        self.assertEqual(catch_up(msgs[:2], set()), msgs[:2])                     # a fresh run: nothing dropped
+
+    def test_restarted_learner_answers_the_waiting_bot_and_trains_on_nothing_old(self):
+        """Negative control of the run-6 restart: the old code replayed every observation (one act per old step)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = ["--root", tmp, "--base", "cu", "--seg", "8", "--batch-segs", "4", "--n-max", "2", "--poll-s", "0.002",
+                    "--plan", "0", "--ext-stage", "zero", "--learn", "0"]
+            srv = gp.GoalServer(gp.parse_args(args))
+            th = threading.Thread(target=srv.loop, daemon=True)
+            th.start()
+            env = FakeEnv(root, "cu", "cu-1")
+            env.play(30, ep_len=100)
+            srv.stop.set(), th.join(10)
+            zero = {t: 0.0 for t in TERMS}
+            env.send(0, "obs", episode=0, step=30, obs=make_obs(env.rng, {}), reward=0.0, reward_terms=zero, terminated=False, truncated=False)
+            srv2 = gp.GoalServer(gp.parse_args(args))
+            th2 = threading.Thread(target=srv2.loop, daemon=True)
+            th2.start()
+            act = env.wait(lambda m: m["type"] == "act" and m["env_id"] == 0 and m["step"] == 30, timeout=120)
+            time.sleep(1.0)
+            srv2.stop.set(), th2.join(10)
+            self.assertEqual(act["episode"], 0)
+            self.assertEqual(srv2.total_steps, 1)                                 # the waiting bot only, nothing replayed
+
+
 class TestEndToEnd(unittest.TestCase):
     def test_goal_positive_control_learns_and_resumes(self):
         with tempfile.TemporaryDirectory() as tmp:
