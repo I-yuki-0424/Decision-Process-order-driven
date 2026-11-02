@@ -41,6 +41,13 @@ observation (success, duration, change of own state, inventory and kill counts);
 that were not = negatives) and enters a replay ring. Each PPO minibatch adds --aux-coef x the supervised loss on a replay
 minibatch, so the world model and R(s, g) keep learning off-policy without biasing the policy gradient (the policy itself is
 trained on its own goals only; relabelling a policy-gradient sample would need importance weights).
+
+Provenance (owner 2026-11-02: a generated instruction cannot be judged without knowing which goal it was made for and how):
+<root>/<base>/train/goals.json, rewritten at most once a second, holds per bot the current plan (target T and why it was
+chosen, what triggered the generation, the beams with their log-probabilities, R(s, step) of every step at generation time,
+progress through it), the current goal (where it came from, p, the bonus it would pay now) and the last plans and goals with
+their outcomes. tools/train-dash in forge1201-MODED-AIPlayer shows it on each bot's card. The environment's `start` (hello,
+env >= v2.1: the site index, equal for a pair of bots in different shards) is copied to every episode record as `pair`.
 """
 from __future__ import annotations
 
@@ -53,6 +60,7 @@ import signal
 import sys
 import threading
 import time
+from collections import deque
 from pathlib import Path
 
 import numpy as np
@@ -401,7 +409,7 @@ class GoalServer(Server):
             self.send(msg["env_id"], "hello_ack", run=run, accepted=False, reason=str(e)[:300])
             return
         self.spec, self.obs_spec = spec, obs_spec
-        self.envs[msg["env_id"]] = {**self.fresh_env(), "run": run}
+        self.envs[msg["env_id"]] = {**self.fresh_env(), "run": run, "start": msg.get("start")}
         self.send(msg["env_id"], "hello_ack", accepted=True, action_spec_hash=spec.spec_hash())
 
     def ensure_model(self, sizes, hello):
@@ -452,7 +460,8 @@ class GoalServer(Server):
 
     def fresh_env(self):
         return {"h": np.zeros(self.model.width, np.float32), "pending": None, "seg": None, "ep": None, "goal": None, "cls": None,
-                "hist": [], "vals": None, "reached_dims": {}, "plan": None, "firsts": [], "anchors": [], "base": {}, "replans": 0}
+                "hist": [], "vals": None, "reached_dims": {}, "plan": None, "firsts": [], "anchors": [], "base": {}, "replans": 0,
+                "plan_end": None, "plans_log": deque(maxlen=5), "goals_log": deque(maxlen=8), "start": None}
 
     # -- goals --
     def reach_p(self, e, dims: list) -> np.ndarray:
@@ -474,15 +483,19 @@ class GoalServer(Server):
         names = self.names.get(k, [])
         return f"{k}:{names[i] if i < len(names) else i}"
 
-    def make_plan(self, e, x, vals, step) -> dict | None:
+    def make_plan(self, e, x, vals, step, trigger: str = "") -> dict | None:
         """Batch-generate a plan from this observation: target T (owner task goal or a hard archive dimension), beam search."""
         task, arch = self.goals.task_dims(self.item_ix), list(self.goals.archive)
         if task and (not arch or self.rng.random() < self.a.p_task_plan):
             T = task[self.rng.integers(len(task))]
+            why = f"owner task goal (one of {len(task)}, chosen with p {self.a.p_task_plan})"
         elif arch:
             rate = np.array([(self.goals.archive[d]["wins"] + 1) / (self.goals.archive[d]["tries"] + 2) for d in arch])
             w = (1 - rate) + 1e-3
-            T = arch[self.rng.choice(len(arch), p=w / w.sum())]
+            j = self.rng.choice(len(arch), p=w / w.sum())
+            T = arch[j]
+            a_ = self.goals.archive[T]
+            why = f"archive dimension weighted by 1 - success rate: rate {rate[j]:.2f} ({a_['wins']}/{a_['tries']}), one of {len(arch)}"
         else:
             return None
         o = {k: v for k, v in x.items() if k not in GOAL_KEYS}
@@ -490,7 +503,11 @@ class GoalServer(Server):
         steps = [index_dim(j, self.sizes) for j in (beams[0][0] if beams else [])]
         steps = [d for d in steps if d is not None and d != T][:self.model.L - 1] + [T]
         self.stats["plans"] += 1
-        plan = {"T": T, "steps": steps, "k": 0, "t0": step, "logp": round(beams[0][1], 3) if beams else None}
+        plan = {"T": T, "steps": steps, "k": 0, "t0": step, "logp": round(beams[0][1], 3) if beams else None,
+                "why": why, "trigger": trigger or "no plan yet", "t": time.time(),
+                "r_steps": [round(float(v), 3) for v in self.reach_p(e, steps)],
+                "beams": [{"steps": [self.dim_name(d) for d in (index_dim(j, self.sizes) for j in sq) if d is not None], "logp": round(sc, 3)}
+                          for sq, sc in beams[:3]]}
         if self.stats["plans"] % 25 == 1:
             self.tlog(event="plan", n=self.stats["plans"], target=self.dim_name(T), steps=[self.dim_name(d) for d in steps],
                       logp=plan["logp"], updates=self.glearner.updates)
@@ -503,7 +520,8 @@ class GoalServer(Server):
             if e["plan"] is None or e["plan"]["k"] >= len(e["plan"]["steps"]):
                 if e["replans"] >= 4:
                     return None
-                e["plan"], e["replans"] = self.make_plan(e, x, vals, step), e["replans"] + 1
+                e["plan"], e["replans"] = self.make_plan(e, x, vals, step, e["plan_end"] or "episode start"), e["replans"] + 1
+                e["plan_end"] = None
                 if e["plan"] is None:
                     return None
             pl = e["plan"]
@@ -511,13 +529,13 @@ class GoalServer(Server):
             p = float(self.reach_p(e, [d])[0])
             if e["cls"] is not None and p < self.a.plan_tau:
                 self.stats["replans_infeasible"] += 1
-                e["plan"] = None
+                self.close_plan(e, f"infeasible: step {pl['k'] + 1} {self.dim_name(d)} has R {p:.3f} < tau {self.a.plan_tau}", step)
                 continue
             counted = self.count_tries([d])
             self.stats["assigned"] += 1
             ctx = [(pl["T"], vals.get(pl["T"], 0.0), 1.0)] if d != pl["T"] else []
             return {"tokens": [(d, vals.get(d, 0.0), 1.0)], "ctx": ctx, "t0": step, "task": pl["T"] in self.goals.task_dims(self.item_ix) and d == pl["T"],
-                    "p": p, "plan": True, "counted": counted}
+                    "p": p, "plan": True, "counted": counted, "src": f"plan step {pl['k'] + 1} of {len(pl['steps'])}"}
         return None
 
     def propose(self, e, vals, step) -> dict:
@@ -527,6 +545,7 @@ class GoalServer(Server):
         if is_task:
             dims = [task[self.rng.integers(len(task))]]
             p_sel = self.reach_p(e, dims)
+            src = f"owner task goal (p {self.a.p_task})"
         else:
             cand = [arch[i] for i in self.rng.permutation(len(arch))[:64]]
             p = self.reach_p(e, cand)
@@ -535,11 +554,55 @@ class GoalServer(Server):
             n = 2 if (len(cand) > 1 and self.rng.random() < self.a.p_pair) else 1
             idx = self.rng.choice(len(cand), size=n, replace=False, p=w / w.sum())
             dims, p_sel = [cand[i] for i in idx], p[idx]
+            src = f"archive, weight p(1-p) among {len(cand)} sampled dims (w {float(w[idx].sum() / w.sum()):.2f} of the total)"
         counted = self.count_tries(dims)
         self.stats["assigned"] += 1
         self.stats["task_assigned"] += int(is_task)
         return {"tokens": [(d, vals.get(d, 0.0), 1.0) for d in dims], "t0": step, "task": is_task, "p": float(np.prod(p_sel)),
-                "counted": counted}
+                "counted": counted, "src": src}
+
+    # -- provenance (goals.json) --
+    def close_plan(self, e, outcome: str, step: int):
+        pl = e["plan"]
+        if pl is not None:
+            e["plans_log"].appendleft({"target": self.dim_name(pl["T"]), "trigger": pl["trigger"], "steps": [self.dim_name(d) for d in pl["steps"]],
+                                       "reached": pl["k"], "outcome": outcome, "commands": step - pl["t0"]})
+        e["plan"], e["plan_end"] = None, outcome
+
+    def close_goal(self, e, outcome: str, step: int, bonus: float = 0.0):
+        g = e["goal"]
+        if g is not None:
+            e["goals_log"].appendleft({"goal": [self.dim_name(d) for d, _, _ in g["tokens"]], "src": g.get("src", ""), "p": round(g.get("p", 0.0), 3),
+                                       "outcome": outcome, "bonus": round(bonus, 4), "commands": step - g["t0"]})
+
+    def board(self, e, step: int) -> dict:
+        g, pl, vals = e["goal"], e["plan"], e["vals"] or {}
+        goal = None
+        if g is not None:
+            n_prev = max(e["reached_dims"].get(d, 0) for d, _, _ in g["tokens"])
+            goal = {"tokens": [{"dim": self.dim_name(d), "from": base, "to": base + dl, "now": vals.get(d, 0.0)} for d, base, dl in g["tokens"]],
+                    "context": [self.dim_name(d) for d, _, _ in g.get("ctx", [])], "src": g.get("src", ""), "p": round(g.get("p", 0.0), 3),
+                    "bonus_if_reached": round(goal_value(self.a.goal_bonus, g.get("p", 0.5), n_prev), 4), "repeat": n_prev,
+                    "age": step - g["t0"], "horizon": self.a.goal_horizon}
+        plan = None
+        if pl is not None:
+            plan = {"target": self.dim_name(pl["T"]), "why": pl["why"], "trigger": pl["trigger"], "k": pl["k"],
+                    "steps": [{"dim": self.dim_name(d), "r_at_start": r} for d, r in zip(pl["steps"], pl["r_steps"])],
+                    "beams": pl["beams"], "logp": pl["logp"], "age_s": round(time.time() - pl["t"], 1), "commands": step - pl["t0"]}
+        return {"goal": goal, "plan": plan, "plans": list(e["plans_log"]), "goals": list(e["goals_log"]), "start": e.get("start")}
+
+    def write_board(self, force: bool = False):
+        now = time.time()
+        if not force and now - getattr(self, "_board_t", 0.0) < 1.0:
+            return
+        self._board_t = now
+        bots = {str(i): self.board(e, e.get("step", 0)) for i, e in sorted(self.envs.items())}
+        doc = {"v": 1, "t": round(now, 3), "updates": self.glearner.updates if self.glearner else 0,
+               "args": {k: getattr(self.a, k) for k in ("plan", "p_explore", "p_task", "p_task_plan", "plan_tau", "goal_bonus", "goal_horizon", "plan_beam")},
+               "bots": bots}
+        tmp = self.out_dir / "goals.json.tmp"
+        tmp.write_text(json.dumps(doc, separators=(",", ":")) + "\n")
+        os.replace(tmp, self.out_dir / "goals.json")
 
     def count_tries(self, dims) -> list:
         """Count an assignment for the archived dimensions among dims and return them: a win is later counted only for these,
@@ -575,6 +638,8 @@ class GoalServer(Server):
                 rounds.append([r])
         for rd in rounds:
             self.serve_round(rd)
+        if rows:
+            self.write_board()
 
     def serve_round(self, rows):
         prepared = [(m, e, x, self.goal_step(m, e, x)) for m, e, x in rows]
@@ -593,9 +658,10 @@ class GoalServer(Server):
         """Goal bookkeeping on arrival of an observation: archive, hindsight labels, reached/expired goals, the next goal.
         Returns (goal arrays for this observation, goal bonus earned by the step that led here)."""
         vals = self.goals.values(m["obs"])
+        e["step"] = m["step"]
         if m["step"] == 0 or e["vals"] is None:
             e["goal"], e["hist"], e["reached_dims"] = None, [], {}
-            e["plan"], e["replans"], e["firsts"], e["base"] = None, 0, [], dict(vals)
+            e["plan"], e["replans"], e["firsts"], e["base"], e["plan_end"] = None, 0, [], dict(vals), None
             e["anchors"] = [(m["step"], {k: v for k, v in x.items()})]
         else:
             self.goals.note_raised(e["vals"], vals)
@@ -610,6 +676,7 @@ class GoalServer(Server):
         if g is not None and self.goals.reached(g, vals):
             n_prev = max(e["reached_dims"].get(d, 0) for d, _, _ in g["tokens"])
             bonus = goal_value(self.a.goal_bonus, g.get("p", 0.5), n_prev)
+            self.close_goal(e, "reached", m["step"], bonus)
             for d, _, _ in g["tokens"]:
                 e["reached_dims"][d] = e["reached_dims"].get(d, 0) + 1
             self.stats["reached"] += 1
@@ -623,14 +690,22 @@ class GoalServer(Server):
                 e["plan"]["k"] += 1
                 if e["plan"]["k"] >= len(e["plan"]["steps"]):
                     self.stats["plans_completed"] += 1
-                    e["plan"], e["replans"] = None, 0
+                    self.close_plan(e, "completed", m["step"])
+                    e["replans"] = 0
             g = None
         if g is not None and m["step"] - g["t0"] >= self.a.goal_horizon:
+            self.close_goal(e, f"expired after {self.a.goal_horizon} commands", m["step"])
             if g.get("plan"):
                 self.stats["plan_steps_expired"] += 1
-                e["plan"] = None
+                if e["plan"] is not None:
+                    self.close_plan(e, f"step {e['plan']['k'] + 1} {self.dim_name(e['plan']['steps'][e['plan']['k']])} expired after {self.a.goal_horizon} commands", m["step"])
             g = None
         if m["terminated"] or m["truncated"]:
+            end = "episode ended: " + ("died" if m["terminated"] else "cut")
+            e["goal"] = g
+            self.close_goal(e, end, m["step"])
+            self.close_plan(e, end, m["step"])
+            g = None
             if self.a.learn:
                 for xo, lab in plan_samples(e["firsts"], e["anchors"], self.sizes, self.model.L, self.rng):
                     self.plan_replay.add(xo, lab)
@@ -712,7 +787,8 @@ class GoalServer(Server):
                "nights": round(prog[-2] * 10, 3), "slept": round(prog[-1] * 10, 3), "terms": {k: round(v, 4) for k, v in ep["terms"].items()},
                "return_task": round(stage_reward(ep["terms"], self.hello["stages"][self.a.ext_stage]), 4),
                "goals_reached": ep["goals_reached"], "goal_bonus": round(ep["bonus"], 3),
-               "achievements": int(sum(prog[:len(self.hello["milestones"])])), "wall_s": round(time.time() - ep["t0"], 1)}
+               "achievements": int(sum(prog[:len(self.hello["milestones"])])), "wall_s": round(time.time() - ep["t0"], 1),
+               **({"pair": e["start"]["site"], "shard": e["start"].get("shard")} if e.get("start") else {})}
         self.ep_log.write(json.dumps(rec) + "\n"), self.ep_log.flush()
         e["ep"], e["goal"], e["vals"] = None, None, None
 

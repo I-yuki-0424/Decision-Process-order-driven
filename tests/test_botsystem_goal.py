@@ -264,7 +264,7 @@ class FakeEnv:
     """Environment side of the file API for two bots. Each step offers 8 candidates with random items 1..10; choosing one
     adds that item to the bot's inventory. The environment pays nothing: only the learner's goal bonus rewards."""
 
-    def __init__(self, root: Path, base: str, run: str, seed=0, ids=(0, 1)):
+    def __init__(self, root: Path, base: str, run: str, seed=0, ids=(0, 1), starts=None):
         from integrations.botsystem.file_channel import LineReader, LineWriter
         d = root / run
         d.mkdir(parents=True)
@@ -272,6 +272,7 @@ class FakeEnv:
         self.ids, self.w = ids, LineWriter(d / "env_to_policy.jsonl")
         self.r = LineReader(d / "policy_to_env.jsonl", run_id=run, allowed=("hello_ack", "act"))
         self.run, self.seq, self.rng = run, 0, np.random.default_rng(seed)
+        self.starts = starts or {}
 
     def send(self, env_id, type_, **kw):
         self.w.send({"v": 1, "type": type_, "run_id": self.run, "env_id": env_id, "seq": self.seq, "t": time.time(), **kw})
@@ -288,7 +289,7 @@ class FakeEnv:
 
     def play(self, steps, ep_len=40, srv=None):
         for e in self.ids:
-            self.send(e, "hello", **HELLO)
+            self.send(e, "hello", **HELLO, **({"start": self.starts[e]} if e in self.starts else {}))
             assert self.wait(lambda m: m["type"] == "hello_ack" and m["env_id"] == e)["accepted"]
         st = {e: {"episode": 0, "step": 0, "inv": {}} for e in self.ids}
         zero = {t: 0.0 for t in TERMS}
@@ -364,9 +365,24 @@ class TestEndToEnd(unittest.TestCase):
             srv = gp.GoalServer(gp.parse_args(args))
             th = threading.Thread(target=srv.loop, daemon=True)
             th.start()
-            FakeEnv(root, "pm", "pm-1").play(300, ep_len=30, srv=srv)
+            FakeEnv(root, "pm", "pm-1", starts={0: {"site": 3, "pos": [1, 70, 2], "shard": 1}}).play(300, ep_len=30, srv=srv)
             time.sleep(1.0)
             srv.stop.set(), th.join(10), srv.learn_thread.join(120)
+            # Provenance board (owner 2026-11-02): every plan says what triggered it and why its target was chosen, closes
+            # with an outcome; every goal says where it came from; episodes carry the pair (site) of their bot.
+            board = json.loads((root / "pm" / "train" / "goals.json").read_text())
+            self.assertEqual(sorted(board["bots"]), ["0", "1"])
+            plans_log = [p for b in board["bots"].values() for p in b["plans"]]
+            goals_log = [g for b in board["bots"].values() for g in b["goals"]]
+            self.assertTrue(plans_log and goals_log)
+            self.assertTrue(any(p["trigger"] == "episode start" for p in plans_log), plans_log[:3])
+            self.assertTrue(all(p["outcome"] and p["steps"] and p["steps"][-1] == p["target"] for p in plans_log))
+            ok = ("reached", "expired after", "episode ended")
+            self.assertTrue(all(g["src"] and g["outcome"].startswith(ok) for g in goals_log), goals_log[:3])
+            self.assertTrue(any(g["src"].startswith("plan step") for g in goals_log))
+            self.assertEqual(board["bots"]["0"]["start"]["site"], 3)
+            eps = [json.loads(x) for x in (root / "pm" / "train" / "episodes.jsonl").read_text().splitlines()]
+            self.assertTrue(eps and all((x.get("pair") == 3) == (x["env_id"] == 0) for x in eps))
             log = [json.loads(x) for x in (root / "pm" / "train" / "train_log.jsonl").read_text().splitlines()]
             plans = [x for x in log if x.get("event") == "plan"]
             ups = [x for x in log if x.get("event") == "update"]
