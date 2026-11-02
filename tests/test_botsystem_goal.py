@@ -78,6 +78,35 @@ class TestGoalSpace(unittest.TestCase):
         for v in self.gs.archive.values():
             self.assertLessEqual(v["wins"], v["tries"])
 
+    def test_infeasible_step_is_judged_by_the_reach_head_not_the_prior(self):
+        """Run 5 had 0 infeasible replans in 2,173 plans: the test used max(R, Laplace rate) and an untried dimension's rate
+        is 0.5. With R ~ 0 the step must be judged physically too early; with R ~ 1 (control) it becomes the goal."""
+        from collections import deque
+        from types import SimpleNamespace
+        d, T = ("item", 5), ("item", 9)
+
+        def server(logit):
+            srv = gp.GoalServer.__new__(gp.GoalServer)
+            srv.a = gp.parse_args(["--root", "/x", "--base", "t"])
+            srv.goals, srv.item_ix, srv.names = self.gs, {}, {"item": []}
+            srv.glearner = SimpleNamespace(params=None)
+            srv._reach = lambda params, cls, k, g, m: np.full((len(k), 1), logit, np.float32)
+            srv.stats = {"replans_infeasible": 0, "assigned": 0}
+            return srv
+
+        def bot():
+            return {"cls": np.zeros(4, np.float32), "replans": 4, "plan_end": None, "plans_log": deque(maxlen=5),
+                    "plan": {"T": T, "steps": [d, T], "k": 0, "t0": 0, "trigger": "episode start"}}
+
+        srv, e = server(-8.0), bot()                         # R = 0.0003, prior rate of the untried d = 0.5
+        self.assertGreaterEqual(float(srv.reach_p(e, [d])[0]), 0.5)
+        self.assertIsNone(srv.plan_goal(e, {}, {}, 3))       # judged infeasible; no regeneration left this episode
+        self.assertEqual(srv.stats["replans_infeasible"], 1)
+        self.assertTrue(e["plans_log"][0]["outcome"].startswith("infeasible: step 1 item:5 has R 0.000"))
+        srv, e = server(8.0), bot()
+        g = srv.plan_goal(e, {}, {}, 3)
+        self.assertEqual((g["tokens"][0][0], srv.stats["replans_infeasible"]), (d, 0))
+
     def test_values_reached_encode(self):
         rng = np.random.default_rng(0)
         o = make_obs(rng, {3: 2, 7: 1}, kills={4: 2}, nights=0.1)

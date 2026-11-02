@@ -464,17 +464,23 @@ class GoalServer(Server):
                 "plan_end": None, "plans_log": deque(maxlen=5), "goals_log": deque(maxlen=8), "start": None}
 
     # -- goals --
-    def reach_p(self, e, dims: list) -> np.ndarray:
-        """max(R(s, g), past success rate) per dimension; R only once the bot has an encoded state."""
-        rate = np.array([(self.goals.archive.get(d, {}).get("wins", 0) + 1) / (self.goals.archive.get(d, {}).get("tries", 0) + 2)
-                         for d in dims], np.float32)
+    def reach_r(self, e, dims: list) -> np.ndarray | None:
+        """R(s, g) of the reach head per dimension from the bot's current encoded state; None before the first one."""
         if e["cls"] is None or self.glearner is None:
-            return rate
+            return None
         k = np.array([GK[d[0]] for d in dims], np.int32)
         g = np.array([d[1] for d in dims], np.int32)
-        r = 1 / (1 + np.exp(-np.asarray(self._reach(self.glearner.params, jnp.asarray(e["cls"]), k[:, None], g[:, None],
-                                                     np.ones((len(dims), 1), np.float32)))[:, 0]))
-        return np.maximum(r, rate)
+        return 1 / (1 + np.exp(-np.asarray(self._reach(self.glearner.params, jnp.asarray(e["cls"]), k[:, None], g[:, None],
+                                                       np.ones((len(dims), 1), np.float32)))[:, 0]))
+
+    def reach_p(self, e, dims: list) -> np.ndarray:
+        """max(R(s, g), past success rate) per dimension (the goal's price and proposal weight); R only once the bot has an
+        encoded state. Not the feasibility test: the Laplace rate of an untried dimension is 0.5, so this p is never below
+        --plan-tau (run 5: 0 infeasible replans in 2,173 plans); plan_goal tests R alone."""
+        rate = np.array([(self.goals.archive.get(d, {}).get("wins", 0) + 1) / (self.goals.archive.get(d, {}).get("tries", 0) + 2)
+                         for d in dims], np.float32)
+        r = self.reach_r(e, dims)
+        return rate if r is None else np.maximum(r, rate)
 
     def dim_name(self, d) -> str:
         k, i = d
@@ -503,9 +509,10 @@ class GoalServer(Server):
         steps = [index_dim(j, self.sizes) for j in (beams[0][0] if beams else [])]
         steps = [d for d in steps if d is not None and d != T][:self.model.L - 1] + [T]
         self.stats["plans"] += 1
+        r = self.reach_r(e, steps)
         plan = {"T": T, "steps": steps, "k": 0, "t0": step, "logp": round(beams[0][1], 3) if beams else None,
                 "why": why, "trigger": trigger or "no plan yet", "t": time.time(),
-                "r_steps": [round(float(v), 3) for v in self.reach_p(e, steps)],
+                "r_steps": [None] * len(steps) if r is None else [round(float(v), 3) for v in r],
                 "beams": [{"steps": [self.dim_name(d) for d in (index_dim(j, self.sizes) for j in sq) if d is not None], "logp": round(sc, 3)}
                           for sq, sc in beams[:3]]}
         if self.stats["plans"] % 25 == 1:
@@ -527,9 +534,10 @@ class GoalServer(Server):
             pl = e["plan"]
             d = pl["steps"][pl["k"]]
             p = float(self.reach_p(e, [d])[0])
-            if e["cls"] is not None and p < self.a.plan_tau:
+            r = self.reach_r(e, [d])
+            if r is not None and float(r[0]) < self.a.plan_tau:
                 self.stats["replans_infeasible"] += 1
-                self.close_plan(e, f"infeasible: step {pl['k'] + 1} {self.dim_name(d)} has R {p:.3f} < tau {self.a.plan_tau}", step)
+                self.close_plan(e, f"infeasible: step {pl['k'] + 1} {self.dim_name(d)} has R {float(r[0]):.3f} < tau {self.a.plan_tau}", step)
                 continue
             counted = self.count_tries([d])
             self.stats["assigned"] += 1
