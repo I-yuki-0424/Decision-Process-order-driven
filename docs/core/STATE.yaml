@@ -1499,6 +1499,30 @@ tasks:
       Mineflayer are unverified. OPEN OWNER DECISIONS: is the DPOD model the policy here (BOTSYSTEM task 013); final action
       set and ticks_per_step; whether a second machine (HTTP transport) is needed.
 
+  - id: "TASK-20261103-034-botsystem-learner-large-matrices"
+    created_at: "2026-11-03T18:00:00+09:00"
+    status: "in_progress"
+    description: >
+      Owner 2026-11-03 (forge1201 TASK-20261103-031, point 4): the Rust simulator brought little because the learner was slow; find the
+      slow parts, enable the GPU, make the computation large matrices. Side track (BOTSYSTEM): nothing here counts toward a roadmap gate.
+    spec_ref: "forge1201-MODED-AIPlayer docs/proposed/LEARNER-GPU-v1.md (profile, changes, what the GPU still needs)"
+    validation_commands:
+      - "docker run --rm --network none -v rl-jaxvenv:/venv:ro -v \"$PWD\":/dpod:ro -w /dpod python:3.12-slim /venv/bin/python -m unittest tests.test_botsystem_unroll tests.test_botsystem_interface tests.test_botsystem_teacher tests.test_botsystem_goal tests.test_botsystem_skill"
+      - "python scripts/pre_commit_ban_check.py"
+    result: >
+      Measured (forge1201 scripts/train/profile_learner.py and profile_server.sh; VPS, real observations): one update of 512 steps took
+      33.2 s (PPO pass 43 %, self-imitation pass 39 %, world-model aux 11 %, an all-masked plan batch 7 %), i.e. 15 steps/s, so the
+      simulator (hundreds of steps/s) never mattered; the policy decision was 1.7 ms per observation. Changes, each equal in value and
+      gradient to the old computation (tests/test_botsystem_unroll.py): GoalWM.unroll encodes all B x T observations in chunks under
+      jax.checkpoint and scans only the recurrence (the encoder does not depend on h); PPO and SIL share one pass; the empty plan batch is
+      skipped (use_plan); serving pads to the next power of two; expl_var is logged; flags --scale, --tf32, --enc-chunk, --serve-buckets.
+      CPU: update 33.2 s -> 22.8 s (15 -> 22 steps/s). Serving: protocol._shape_ok (44 % of the learner process) rewritten with
+      C-level builtins, same verdicts on 36,000 random values (tests/test_botsystem_interface.py), standard library only: 120 -> 221
+      steps/s through the file API, check 932 -> 188 us per observation. NOT measured: the GPU (the PC has no WSL2; JAX has no
+      native-Windows CUDA); the speed-up there is a prediction (~0.15-0.25 s per 512-step update). Python work per step is ~1.9 ms, so
+      one learner process caps near 500 steps/s on any device.
+    blockers: ["WSL2 not installed on the PC (owner, elevated PowerShell: wsl.exe --install -d Ubuntu-22.04, reboot, first-run user setup); then forge1201 scripts/train/pc.sh gpu-setup and scripts/train/profile_learner.py inside WSL"]
+
 hazards:
   - "<condition to watch for>: <what breaks if it's ignored>"  # Example
   - >

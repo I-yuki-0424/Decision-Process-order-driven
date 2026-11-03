@@ -243,5 +243,42 @@ class TestBoundary(unittest.TestCase):
                 self.assertLessEqual(roots, allowed, f"{py.name} imports outside the standard library")
 
 
+class TestShapeCheck(unittest.TestCase):
+    def test_fast_check_gives_the_verdicts_of_the_one_number_at_a_time_check(self):
+        """protocol._shape_ok was rewritten with C-level builtins (the learner process spent 44 % of its time in it); the old
+        recursion is kept here as the reference and both must agree on 36,000 random values: numbers, bools, NaN, inf, None,
+        strings, ragged and wrong-length lists, for every dtype and shape."""
+        import math
+        import random
+        from integrations.botsystem.protocol import _shape_ok
+
+        def ref(value, shape, dtype):
+            if not shape:
+                if dtype == "bool":
+                    return isinstance(value, bool)
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    return False
+                return math.isfinite(value) and (dtype == "float" or isinstance(value, int))
+            return isinstance(value, list) and len(value) == shape[0] and all(ref(v, shape[1:], dtype) for v in value)
+
+        rng = random.Random(1)
+        vals = [1, 0, 2, -3, 1.5, 0.0, float("nan"), float("inf"), True, False, None, "x", [1], [1.5]]
+        n = 0
+        for dtype in ("float", "int", "bool"):
+            for shape in ((), (3,), (2, 2)):
+                for _ in range(4000):
+                    if not shape:
+                        v = rng.choice(vals)
+                    elif len(shape) == 1:
+                        v = [rng.choice(vals) for _ in range(rng.choice([2, 3, 3, 3, 4]))]
+                        if rng.random() < 0.3:
+                            v = [rng.choice([1, 2, 3]) for _ in range(3)] if dtype == "int" else [rng.random() for _ in range(3)]
+                    else:
+                        v = [[rng.choice(vals) for _ in range(rng.choice([2, 2, 2, 3]))] for _ in range(rng.choice([1, 2, 2, 3]))]
+                    n += 1
+                    self.assertEqual(ref(v, shape, dtype), _shape_ok(v, shape, dtype), (v, shape, dtype))
+        self.assertEqual(n, 36000)
+
+
 if __name__ == "__main__":
     unittest.main()

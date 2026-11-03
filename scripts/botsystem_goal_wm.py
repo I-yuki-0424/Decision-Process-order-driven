@@ -283,11 +283,11 @@ class GoalWM:
         feats = WM_FEAT_SCALE * jax.lax.stop_gradient(jnp.stack([jax.nn.sigmoid(okl), ldt / 5.0, self.goal_gain(P, o, z)], -1))
         return c, cls, gvec, feats
 
-    def step(self, P, h, obs):
-        """Batched: obs = dict of (N, ...) arrays incl. goal fields; h (N, width).
-        Returns logits (N, K) (-1e9 on padding), value (N,), next h, encoded CLS (N, d) for the reach head."""
-        pi, w = P["pi"], self.width
-        c, cls, gvec, feats = jax.vmap(lambda o: self._one(P, o))(obs)
+    def recur(self, P, h, c, cls, gvec, feats, cand_cmd, cand_mask):
+        """The part of a step that depends on the recurrent state h: GRU, candidate logits, value. Everything it reads from the
+        observation comes from _one (the encoder does not see h), so a whole segment can be encoded at once and only this part
+        run in the time loop. Batched over the leading axis: c (N, K, d), h (N, width)."""
+        pi = P["pi"]
         inp = cls + _ap(pi["g_in"], gvec)
         ir, iz, inn = jnp.split(_ap(pi["gru_wi"], inp), 3, -1)
         hr, hz, hn = jnp.split(_ap(pi["gru_wh"], h), 3, -1)
@@ -297,11 +297,46 @@ class GoalWM:
         logits = (_ap(pi["logit"], c)[..., 0] + jnp.einsum("nd,nkd->nk", _ap(pi["h_q"], h2), c) / sd
                   + jnp.einsum("nd,nkd->nk", _ap(pi["g_q"], gvec), c) / sd + feats @ pi["u"])
         if self.kind_prior:
-            cmd, mask = obs["cand_cmd"], obs["cand_mask"]
-            n_kind = jnp.sum((cmd[:, :, None] == cmd[:, None, :]) & mask[:, None, :], -1)
+            n_kind = jnp.sum((cand_cmd[:, :, None] == cand_cmd[:, None, :]) & cand_mask[:, None, :], -1)
             logits = logits - jnp.log(jnp.maximum(n_kind, 1).astype(logits.dtype))
-        logits = jnp.where(obs["cand_mask"], logits, -1e9)
-        return logits, _ap(pi["value"], h2)[:, 0], h2, cls
+        logits = jnp.where(cand_mask, logits, -1e9)
+        return logits, _ap(pi["value"], h2)[:, 0], h2
+
+    def step(self, P, h, obs):
+        """Batched: obs = dict of (N, ...) arrays incl. goal fields; h (N, width).
+        Returns logits (N, K) (-1e9 on padding), value (N,), next h, encoded CLS (N, d) for the reach head."""
+        c, cls, gvec, feats = jax.vmap(lambda o: self._one(P, o))(obs)
+        logits, value, h2 = self.recur(P, h, c, cls, gvec, feats, obs["cand_cmd"], obs["cand_mask"])
+        return logits, value, h2, cls
+
+    def encode_many(self, P, obs, chunk=512):
+        """_one over N observations (leading axis) in chunks of `chunk` under jax.checkpoint: the matrices are large (chunk x 194
+        tokens) and the memory of a backward pass stays that of one chunk, however many observations there are. N is padded to a
+        multiple of `chunk` with copies of the first one (dropped again)."""
+        n = next(iter(obs.values())).shape[0]
+        chunk = min(chunk, n)
+        pad = (-n) % chunk
+        if pad:
+            obs = {k: jnp.concatenate([v, jnp.broadcast_to(v[:1], (pad,) + v.shape[1:])]) for k, v in obs.items()}
+        grid = {k: v.reshape((-1, chunk) + v.shape[1:]) for k, v in obs.items()}
+        one = jax.checkpoint(lambda o: jax.vmap(lambda q: self._one(P, q))(o))
+        out = jax.lax.map(one, grid)
+        return tuple(z.reshape((-1,) + z.shape[2:])[:n] for z in out)
+
+    def unroll(self, P, h0, obs, chunk=512):
+        """A batch of segments: h0 (B, width), obs of (B, T, ...). The encoder runs once over all B x T observations
+        (encode_many), then a scan over T carries only the recurrence. Same values as T successive step() calls.
+        Returns logits (B, T, K), value (B, T)."""
+        B, T = h0.shape[0], next(iter(obs.values())).shape[1]
+        flat = {k: v.reshape((B * T,) + v.shape[2:]) for k, v in obs.items()}
+        enc = self.encode_many(P, flat, chunk)
+        xs = tuple(jnp.swapaxes(z.reshape((B, T) + z.shape[1:]), 0, 1) for z in enc[:1] + enc[1:] + (flat["cand_cmd"], flat["cand_mask"]))
+
+        def body(h, x):
+            logits, value, h2 = self.recur(P, h, *x)
+            return h2, (logits, value)
+        _, (logits, value) = jax.lax.scan(body, h0, xs)
+        return jnp.swapaxes(logits, 0, 1), jnp.swapaxes(value, 0, 1)
 
     # ------------------------------------------------------------------ auxiliary (supervised) losses
     def aux_loss_one(self, P, o, a):

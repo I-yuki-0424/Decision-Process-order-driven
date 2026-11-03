@@ -120,7 +120,17 @@ def parse_args(argv=None):
     a("--max-queue", type=int, default=0), a("--max-steps", type=int, default=0)
     a("--pair-prune", type=float, default=0.25), a("--pair-min-eps", type=int, default=4)
     a("--plan-replay", type=int, default=4000), a("--plan-batch", type=int, default=32), a("--plan-anchor", type=int, default=64)
-    return p.parse_args(argv)
+    # Large-matrix path (owner 2026-11-03): the encoder runs over every observation of a minibatch at once, in chunks of --enc-chunk
+    # under jax.checkpoint (memory of one chunk), and PPO and self-imitation share one pass. --scale N multiplies the batch sizes
+    # that set the matrix size (segments per update, aux/sil/plan batches) by N where the flag was left at its default: on a GPU
+    # 64 segments x 32 steps are one tiny launch, 8x that fills it. --tf32 turns on TensorFloat-32 matmuls (Ampere and later).
+    a("--enc-chunk", type=int, default=512), a("--scale", type=int, default=1), a("--tf32", type=int, default=0)
+    a("--serve-buckets", type=int, default=1)
+    a = p.parse_args(argv)
+    for name in ("batch_segs", "aux_batch", "sil_batch", "plan_batch"):
+        if a.scale > 1 and getattr(a, name) == p.get_default(name):
+            setattr(a, name, getattr(a, name) * a.scale)
+    return a
 
 
 # ---------------------------------------------------------------- goal space (pure numpy, tested) ---------------------------
@@ -317,25 +327,25 @@ class GoalLearner:
             opt_state = (self.opt.init(params), self.aux_opt.init(params))
         self.params, self.opt_state = params, opt_state
         self.updates = 0
-        self._update = jax.jit(self._update_fn)
+        self._update = jax.jit(self._update_fn, static_argnames=("use_plan",))
 
-    def _aux(self, params, aux_obs, aux_lab, p_obs, p_lab):
+    def _aux(self, params, aux_obs, aux_lab, p_obs, p_lab, use_plan=True):
         aux, terms, _ = self.model.aux_loss(params, aux_obs, aux_lab)
-        pl, acc = self.model.plan_loss(params, p_obs, p_lab["task"], p_lab["seq"], p_lab["mask"])
-        on = jnp.any(p_lab["mask"]).astype(jnp.float32)
+        if use_plan:
+            pl, acc = self.model.plan_loss(params, p_obs, p_lab["task"], p_lab["seq"], p_lab["mask"])
+            on = jnp.any(p_lab["mask"]).astype(jnp.float32)
+        else:
+            # No plan samples exist (list mode generates no plans): the all-masked dummy batch contributed exactly 0 but cost a
+            # full encoder pass per gradient step (7 % of the step, profile_learner.py).
+            pl, acc, on = jnp.float32(0.0), jnp.float32(0.0), jnp.float32(0.0)
         return self.a.aux_coef * aux + self.a.plan_coef * on * pl, {**terms, "plan": pl, "plan_acc": acc}
 
     def _unroll(self, params, h0, obs):
-        def body(h, o):
-            logits, value, h2, _ = self.model.step(params, h, o)
-            return h2, (logits, value)
-        _, (logits, value) = jax.lax.scan(body, h0, {k: jnp.swapaxes(v, 0, 1) for k, v in obs.items()})
-        return jnp.swapaxes(logits, 0, 1), jnp.swapaxes(value, 0, 1)
+        return self.model.unroll(params, h0, obs, self.a.enc_chunk)
 
-    def _sil(self, params, sb):
+    def _sil_terms(self, logits, value, sb):
         """Self-imitation (Oh et al. 2018) on goal-reaching trajectories: -log pi(a | s, g) x max(R - V, 0) and
         0.5 x max(R - V, 0)^2 for the value, R = the discounted return up to reaching the goal (scaled like the PPO targets)."""
-        logits, value = self._unroll(params, sb["h0"], sb["obs"])
         lp = jnp.take_along_axis(jax.nn.log_softmax(logits, -1), sb["act"][..., None], -1)[..., 0]
         gap = jnp.maximum(sb["ret"] - value, 0.0)
         m = sb["valid"]
@@ -344,8 +354,18 @@ class GoalLearner:
         val = (0.5 * gap ** 2 * m).sum() / den
         return pol + self.a.sil_vcoef * val, {"sil_pol": pol, "sil_val": val, "sil_gap": (gap * m).sum() / den, "sil_n": m.sum()}
 
+    def _sil(self, params, sb):
+        logits, value = self._unroll(params, sb["h0"], sb["obs"])
+        return self._sil_terms(logits, value, sb)
+
     def _loss(self, params, b, sb, ent_coef, bc_w):
-        logits, value = self._unroll(params, b["h0"], b["obs"])
+        # One encoder pass over the PPO minibatch and the self-imitation chunks together (one large matrix, not two).
+        nb = b["h0"].shape[0]
+        if b["valid"].shape[1] == sb["valid"].shape[1]:      # always in training (both padded to --seg)
+            both = self._unroll(params, jnp.concatenate([b["h0"], sb["h0"]]), {k: jnp.concatenate([b["obs"][k], sb["obs"][k]]) for k in b["obs"]})
+            (logits, value), (sil_logits, sil_value) = (both[0][:nb], both[1][:nb]), (both[0][nb:], both[1][nb:])
+        else:
+            (logits, value), (sil_logits, sil_value) = self._unroll(params, b["h0"], b["obs"]), self._unroll(params, sb["h0"], sb["obs"])
         lp = jax.nn.log_softmax(logits, -1)
         nlp = jnp.take_along_axis(lp, b["act"][..., None], -1)[..., 0]
         ratio = jnp.exp(nlp - b["logp"])
@@ -356,7 +376,7 @@ class GoalLearner:
         m = b["valid"]
         den = jnp.maximum(m.sum(), 1.0)
         mean = lambda x: (x * m).sum() / den
-        sil, sm = self._sil(params, sb)
+        sil, sm = self._sil_terms(sil_logits, sil_value, sb)
         # Teacher (owner 2026-11-02): steps the teacher executed carry no policy gradient (the action was not sampled from pi) but
         # train the value; behaviour cloning on every step the teacher labelled (DAgger: also on the policy's own states), weight
         # bc_w = --teacher-bc x the fade level.
@@ -366,16 +386,20 @@ class GoalLearner:
         tl = jnp.take_along_axis(lp, jnp.maximum(b["tch"], 0)[..., None], -1)[..., 0]
         bc = -(tl * lab).sum() / jnp.maximum(lab.sum(), 1.0)
         loss = pmean(pg) + self.a.vf * mean(vl) - ent_coef * mean(entropy) + self.a.sil_coef * sil + bc_w * bc
+        # Value quality for the learning-status record: 1 - Var(R - V) / Var(R) over the valid steps (1 = perfect, <= 0 = no better
+        # than predicting the mean return).
+        rm = (b["ret"] * m).sum() / den
+        ev = 1.0 - mean((b["ret"] - value) ** 2) / jnp.maximum(mean((b["ret"] - rm) ** 2), 1e-8)
         return loss, {**sm, "bc": bc, "bc_n": lab.sum(), "pg": pmean(pg), "vf": mean(vl), "ent": mean(entropy), "kl": mean(b["logp"] - nlp),
-                      "clipfrac": mean((jnp.abs(ratio - 1) > self.a.clip).astype(jnp.float32)),
+                      "clipfrac": mean((jnp.abs(ratio - 1) > self.a.clip).astype(jnp.float32)), "expl_var": ev,
                       "u_ok": params["pi"]["u"][0], "u_dt": params["pi"]["u"][1], "u_gain": params["pi"]["u"][2]}
 
-    def _update_fn(self, params, opt_state, b, sb, aux_obs, aux_lab, p_obs, p_lab, ent_coef, bc_w):
+    def _update_fn(self, params, opt_state, b, sb, aux_obs, aux_lab, p_obs, p_lab, ent_coef, bc_w, use_plan=True):
         o_pi, o_aux = opt_state
         (loss, mets), g = jax.value_and_grad(self._loss, has_aux=True)(params, b, sb, ent_coef, bc_w)
         up, o_pi = self.opt.update(g, o_pi, params)
         params = optax.apply_updates(params, up)
-        (aux, terms), g2 = jax.value_and_grad(self._aux, has_aux=True)(params, aux_obs, aux_lab, p_obs, p_lab)
+        (aux, terms), g2 = jax.value_and_grad(self._aux, has_aux=True)(params, aux_obs, aux_lab, p_obs, p_lab, use_plan)
         up2, o_aux = self.aux_opt.update(g2, o_aux, params)
         return optax.apply_updates(params, up2), (o_pi, o_aux), {**mets, "loss": loss, "aux": aux, **{"aux_" + k: v for k, v in terms.items()}}
 
@@ -424,7 +448,8 @@ class GoalLearner:
                 po, pla = (plan_replay.sample(a.plan_batch, rng) if plan_replay is not None and plan_replay.n >= a.plan_batch
                            else dummy_plan(segs[0]["obs"][0], a.plan_batch, self.model.L))
                 sb = self.sil_batch(sil or [], sd, segs[0]["obs"][0], rng)
-                params, opt_state, m = self._update(params, opt_state, sub, sb, ao, al, po, pla, jnp.float32(a.ent), jnp.float32(bc_w))
+                use_plan = plan_replay is not None and plan_replay.n >= a.plan_batch
+                params, opt_state, m = self._update(params, opt_state, sub, sb, ao, al, po, pla, jnp.float32(a.ent), jnp.float32(bc_w), use_plan=use_plan)
                 mets.append({k: float(v) for k, v in m.items()})
         self.params, self.opt_state = params, opt_state
         self.updates += 1
@@ -767,8 +792,12 @@ class GoalServer(Server):
         for i in range(0, len(prepared), n):
             chunk = prepared[i:i + n]
             arrs = [{**x, **ge} for _, _, x, (ge, _) in chunk]
-            batch = {k: np.stack([x[k] for x in arrs] + [arrs[0][k]] * (n - len(arrs))) for k in arrs[0]}
-            h = np.stack([e["h"] for _, e, _, _ in chunk] + [chunk[0][1]["h"]] * (n - len(chunk)))
+            # Padded to the next power of two (one compiled shape each) instead of always to n_max: a poll with 3 observations
+            # costs 4 rows, not 16 (CPU) or 512 (GPU, where --n-max is large).
+            pad = (1 << (len(chunk) - 1).bit_length()) if self.a.serve_buckets else n
+            pad = min(max(pad, 1), n)
+            batch = {k: np.stack([x[k] for x in arrs] + [arrs[0][k]] * (pad - len(arrs))) for k in arrs[0]}
+            h = np.stack([e["h"] for _, e, _, _ in chunk] + [chunk[0][1]["h"]] * (pad - len(chunk)))
             logits, value, h2, cls = (np.asarray(v) for v in self._serve(self.glearner.params, h, batch))
             for j, (m, e, x, (ge, bonus)) in enumerate(chunk):
                 e["cls"] = cls[j]
@@ -1068,6 +1097,8 @@ def load_pretrained(params, path):
 def main(argv=None):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     a = parse_args(argv)
+    if a.tf32:
+        jax.config.update("jax_default_matmul_precision", "tensorfloat32")
     s = GoalServer(a)
     signal.signal(signal.SIGTERM, lambda *_: s.stop.set())
     try:

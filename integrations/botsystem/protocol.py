@@ -49,14 +49,26 @@ def loads(line: bytes, *, run_id: str, allowed: tuple[str, ...]) -> dict[str, An
 
 
 def _shape_ok(value: Any, shape: tuple[int, ...], dtype: str) -> bool:
+    """Same verdicts as the one-number-at-a-time recursion this replaces (profile of the learner process, forge1201
+    scripts/train/profile_server.sh: 44 % of its time, 932 us per observation, went into it). The innermost lists are checked
+    with C-level builtins: set(map(type, ...)) gives the exact element types (a bool is never an int there, as before) and
+    map(math.isfinite, ...) the finiteness, without a Python call per number."""
     if not shape:
         if dtype == "bool":
             return isinstance(value, bool)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             return False
         return math.isfinite(value) and (dtype == "float" or isinstance(value, int))
-    return (isinstance(value, list) and len(value) == shape[0]
-            and all(_shape_ok(v, shape[1:], dtype) for v in value))
+    if not isinstance(value, list) or len(value) != shape[0]:
+        return False
+    if len(shape) > 1:
+        return all(_shape_ok(v, shape[1:], dtype) for v in value)
+    kinds = set(map(type, value))
+    if dtype == "bool":
+        return kinds <= {bool}
+    if dtype == "int":
+        return kinds <= {int}
+    return kinds <= {int, float} and all(map(math.isfinite, value))
 
 
 def parse_obs_spec(d: Any) -> dict[str, tuple[tuple[int, ...], str]]:
