@@ -1499,6 +1499,30 @@ tasks:
       Mineflayer are unverified. OPEN OWNER DECISIONS: is the DPOD model the policy here (BOTSYSTEM task 013); final action
       set and ticks_per_step; whether a second machine (HTTP transport) is needed.
 
+  - id: "TASK-20261106-040-botsystem-router-skill-policies"
+    created_at: "2026-11-06T16:20:00+09:00"
+    status: "done"
+    description: >
+      Owner 2026-11-06 (forge1201 chat, records LLM-records/2026-11-06-dpod-goal-specific-expert-architecture-router-skill-policies...):
+      build the goal-specific expert architecture (router + one skill policy per goal, called on demand by the BOT mechanism) as a NEW
+      architecture, without overwriting the existing one, and do NOT add it to the learning queue. Side track (BOTSYSTEM): nothing here counts
+      toward a roadmap gate.
+    spec_ref: "integrations/botsystem/experts/DESIGN.md"
+    validation_commands:
+      - "python -m unittest tests.test_botsystem_experts tests.test_botsystem_interface"
+      - "python scripts/pre_commit_ban_check.py"
+    result: >
+      Added integrations/botsystem/experts/ (goal_spec, router, registry, escalation; standard library only) and tests/test_botsystem_experts.py
+      (16 tests); tests.test_botsystem_interface 18 still OK (its stdlib allowlist gained `re` and `collections`, nothing else changed). No
+      existing module, learner or protocol file was modified; no expert is trained, nothing is queued, no MODEL_REGISTRY entry (a model id is
+      registered before the first run). Critical review recorded in DESIGN.md: (1) the expert sees only goal, amount and inventory, never the
+      harness (enforced by Instance.expert_input and ExpertRegistry.act); (2) evaluation on the training start distribution is unfalsifiable, so
+      natural starts and logged escalation states must decide the claim; (3) gains are confounded with randomised preconditions, so a monolithic
+      policy on the same starts (M1) is a required control; (4) env steps are summed over all experts (StepBudget). Router labels from
+      "which expert would succeed" are refused as counterfactual branching (P3). Cross-check: a request built by forge1201 src/work/escalation.js
+      is answered by escalation.answer (run on 2026-11-06). Impact check: new files only, scip-neo4j not needed for modified symbols (none).
+    blockers: ["Owner decisions still open (DESIGN.md): router training, expert-to-expert interface, set-up delegation, the real start distribution per goal; the example goals are placeholders."]
+
   - id: "TASK-20261103-034-botsystem-learner-large-matrices"
     created_at: "2026-11-03T18:00:00+09:00"
     status: "in_progress"

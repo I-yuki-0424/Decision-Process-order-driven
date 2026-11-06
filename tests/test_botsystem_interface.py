@@ -230,7 +230,7 @@ class TestBoundary(unittest.TestCase):
         self.assertEqual(offenders, [])
 
     def test_interface_core_is_standard_library_only(self):
-        allowed = {"__future__", "argparse", "dataclasses", "hashlib", "itertools", "json", "logging", "math", "os", "pathlib",
+        allowed = {"__future__", "argparse", "collections", "dataclasses", "hashlib", "itertools", "json", "logging", "math", "os", "pathlib", "re",
                    "random", "time", "typing"}
         for py in sorted((ROOT / "integrations").glob("**/*.py")):
             for node in ast.walk(ast.parse(py.read_text(encoding="utf-8"))):
