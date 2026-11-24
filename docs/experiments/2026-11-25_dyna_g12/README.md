@@ -82,3 +82,11 @@ for 54 out of 681 instructions"); the PC GPU is shared with the owner's desktop 
 L2 seed 7100 diagnostics (end of training): changed-cell block accuracy 0.87 (v1 0.03), reward MSE 0.029 vs 0.043 for zero,
 predicted reward on achievement steps 0.35, inventory+intrinsics exact 0.65 per step. Per-step errors compound over the 16-step
 horizon. **L3 = L2 with `im_h=4, im_envs=1024`** (same 4096 imagined transitions per update, a quarter of the compounding).
+
+## Amendment 3 (before L4 runs)
+
+L3 seed 7100 = 42.58 (L2 43.20): a shorter horizon does not help, so per-step model error, not compounding, is the problem.
+Hypothesis: Craftax-Classic pays each achievement once per episode and the observation does not show which are done, so reward is
+not a function of (obs, action); the predicted reward on true achievement steps (~0.35) matches an average over repeats.
+**L4 = L2 + `wm_cond=True`**: the model also reads the agent's own recurrent state (built from its own past observations and
+actions, an allowed EP-A input; stop-gradient, the policy is not trained through the model). This is the last S2 candidate variant.

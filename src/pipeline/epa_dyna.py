@@ -54,24 +54,35 @@ def _cv(p, x):   # x (B, 7, 9, C), SAME padding
     return y + p["b"]
 
 
-def init_model(key, c=64, hidden=256, version=1):
+def init_model(key, c=64, hidden=256, version=1, cond_dim=0):
     """version 1: TASK-041 S1 model. version 2 (after the S1 diagnostic): the map and mob losses are SUMMED over the 63 cells
     (v1 averaged them, so a changed cell weighed 1/63 of an inventory slot and the model learned to copy the view), and reward
     is a two-hot categorical over REW_BINS (v1 regressed the mean and was worse than predicting 0). v2 is marked by the 'rew2' head."""
     k = iter(jax.random.split(key, 13))
     vec_in = 22 + N_ACT
     extra = {"rew2": _dense(jax.random.fold_in(key, 0xBE), hidden, REW_BINS.shape[0], 0.1)} if version == 2 else {}
+    if cond_dim:   # L4: the model also reads the agent's own recurrent state (memory of its past observations; an allowed EP-A input).
+        # Reason (S2 diagnostic): Craftax pays an achievement once per episode and the observation does not show which ones are done,
+        # so reward is not a function of the observation; predicted reward on true achievement steps was ~0.35.
+        extra["hc"] = _dense(jax.random.fold_in(key, 0xC0), cond_dim, c, 0.5)
     return extra | {"v": _dense(next(k), vec_in, c), "c0": _conv(next(k), TILE + c, c), "c1": _conv(next(k), c, c),
             "c2": _conv(next(k), c, c), "g": _dense(next(k), NCELL * c + c, hidden), "gm": _dense(next(k), hidden, c),
             "map": _dense(next(k), 2 * c, TILE, 0.1),
             "vec": _dense(next(k), hidden, NINV * NV + NINT * NV + 4 + 1 + 1 + 1 + 1, 0.1)}
 
 
-def model_forward(m, obs, act):
+def _hflat(h):
+    return jnp.concatenate([jnp.asarray(x, jnp.float32).reshape(x.shape[0], -1) for x in jax.tree_util.tree_leaves(h)], -1)
+
+
+def model_forward(m, obs, act, h=None):
     """obs (B, 1345), act (B,) -> dict of logits / predictions for the next observation, reward and termination."""
     B = obs.shape[0]
     grid = obs[:, :MAPD].reshape(B, GH, GW, TILE)
-    v = jax.nn.gelu(_ap(m["v"], jnp.concatenate([obs[:, MAPD:], jax.nn.one_hot(act, N_ACT)], -1)))
+    v = _ap(m["v"], jnp.concatenate([obs[:, MAPD:], jax.nn.one_hot(act, N_ACT)], -1))
+    if "hc" in m:
+        v = v + _ap(m["hc"], jax.lax.stop_gradient(_hflat(h)))
+    v = jax.nn.gelu(v)
     x = jax.nn.gelu(_cv(m["c0"], jnp.concatenate([grid, jnp.broadcast_to(v[:, None, None], (B, GH, GW, v.shape[-1]))], -1)))
     x = x + jax.nn.gelu(_cv(m["c1"], x))
     x = x + jax.nn.gelu(_cv(m["c2"], x))
@@ -113,10 +124,10 @@ def _split_obs(o):
                 dir=jnp.argmax(e[:, 16:20], -1), light=e[:, 20], sleep=e[:, 21])
 
 
-def model_loss(m, obs, act, nobs, rew, done, rew_w=10.0):
+def model_loss(m, obs, act, nobs, rew, done, rew_w=10.0, h=None):
     """Cross-entropy / BCE / MSE of the next observation (transitions that ended an episode are dropped: the env returns
     the first observation of a new episode there), plus reward and termination on every transition."""
-    p = model_forward(m, obs, act)
+    p = model_forward(m, obs, act, h)
     t = _split_obs(nobs)
     w = 1.0 - done.astype(jnp.float32)
     ce = lambda lg, y: -jnp.take_along_axis(jax.nn.log_softmax(lg), y[..., None], -1)[..., 0]
@@ -132,11 +143,11 @@ def model_loss(m, obs, act, nobs, rew, done, rew_w=10.0):
     return l_obs + l_rd
 
 
-def model_eval(m, obs, act, nobs, rew, done):
+def model_eval(m, obs, act, nobs, rew, done, h=None):
     """Held-out quality of the model on a real rollout it has not been trained on yet (diagnostics only, never used to act or select):
     [block acc. all cells, block acc. on cells that changed, mob-flag error per obs, inventory+intrinsics exact, reward MSE,
      reward MSE of predicting 0, mean predicted reward on events r >= 0.5, predicted done prob mean, real done rate]."""
-    p = model_forward(m, obs, act)
+    p = model_forward(m, obs, act, h)
     t, t0 = _split_obs(nobs), _split_obs(obs)
     w = 1.0 - done.astype(jnp.float32)
     wd = jnp.maximum(w.sum(), 1.0)
@@ -151,10 +162,10 @@ def model_eval(m, obs, act, nobs, rew, done):
                       (p["rew"] * ev).sum() / jnp.maximum(ev.sum(), 1.0), jax.nn.sigmoid(p["done"]).mean(), done.astype(jnp.float32).mean()])
 
 
-def model_sample(m, obs, act, key, mode=False):
+def model_sample(m, obs, act, key, mode=False, h=None):
     """Next observation in the env's own 1345-d format, reward (mean) and termination (sampled). mode=True takes the most likely
     value of every observation part (argmax / p > 0.5) instead of sampling it: less imagined noise, no model-uncertainty spread."""
-    p = model_forward(m, obs, act)
+    p = model_forward(m, obs, act, h)
     B = obs.shape[0]
     k = jax.random.split(key, 7)
     cat = (lambda kk, lg: jnp.argmax(lg, -1)) if mode else (lambda kk, lg: jax.random.categorical(kk, lg))
@@ -183,7 +194,7 @@ def _take(tree, t, n):
 
 class DynaTrainer(Trainer):
     def __init__(self, arm, cfg: PPOConfig, model="learned", im_envs=256, im_h=16, im_epochs=2, im_minibatches=8,
-                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False, wm_version=1):
+                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False, wm_version=1, wm_cond=False):
         if model not in ("learned", "oracle"):
             raise ValueError("model must be 'learned' or 'oracle'")
         if not arm.recurrent or cfg.lr_sched != "linear":
@@ -193,6 +204,7 @@ class DynaTrainer(Trainer):
         self.model, self.im_envs, self.im_h, self.im_epochs, self.im_mb = model, im_envs, im_h, im_epochs, im_minibatches
         self.buf_k, self.wm_steps, self.wm_batch, self.wm_c, self.wm_hidden = buf_k, wm_steps, wm_batch, wm_c, wm_hidden
         self.im_mode, self.wm_version = im_mode, wm_version
+        self.cond_dim = int(_hflat(jax.tree_util.tree_map(jnp.asarray, arm.init_carry(1))).shape[-1]) if wm_cond else 0
         super().__init__(arm, cfg)
         self.im_start_u = int(im_start * self.n_updates)
         # one lr schedule over every optimiser step, real and imagined (the base class only counts the real ones)
@@ -205,7 +217,7 @@ class DynaTrainer(Trainer):
         self.opt = make_optimizer(arm, lr, cfg.max_grad_norm)
         self.wm_opt = optax.chain(optax.clip_by_global_norm(1.0), optax.adam(wm_lr))
         self.update = jax.jit(self._update)
-        shapes = jax.eval_shape(lambda k: init_model(k, wm_c, wm_hidden, wm_version), jax.random.PRNGKey(0))
+        shapes = jax.eval_shape(lambda k: init_model(k, wm_c, wm_hidden, wm_version, self.cond_dim), jax.random.PRNGKey(0))
         self.model_params = 0 if model == "oracle" else int(sum(np.prod(x.shape) for x in jax.tree_util.tree_leaves(shapes)))
         self.im_steps_total = (self.n_updates - self.im_start_u) * im_envs * im_h
 
@@ -213,11 +225,13 @@ class DynaTrainer(Trainer):
         st = super().init(key)
         if self.model == "learned":
             K, T, N = self.buf_k, self.cfg.num_steps, self.cfg.num_envs
-            wm = init_model(jax.random.fold_in(key, 0xD1A), self.wm_c, self.wm_hidden, self.wm_version)
+            wm = init_model(jax.random.fold_in(key, 0xD1A), self.wm_c, self.wm_hidden, self.wm_version, self.cond_dim)
             st["wm"], st["wm_opt"] = wm, self.wm_opt.init(wm)
             od = st["obs"].shape[-1]
             st["wb"] = dict(obs=jnp.zeros((K, T, N, od), jnp.bfloat16), nobs=jnp.zeros((K, T, N, od), jnp.bfloat16),
                             act=jnp.zeros((K, T, N), jnp.int32), rew=jnp.zeros((K, T, N)), done=jnp.zeros((K, T, N), jnp.bool_))
+            if self.cond_dim:
+                st["wb"]["h"] = jnp.zeros((K, T, N, self.cond_dim), jnp.bfloat16)
         return st
 
     # real rollout of the base class, plus the env state before every step (oracle only) and a copy of the batch for the model
@@ -251,7 +265,9 @@ class DynaTrainer(Trainer):
         wb = st["wb"]
         slot = st["u"] % self.buf_k
         put = lambda b, x: jax.lax.dynamic_update_index_in_dim(b, x.astype(b.dtype), slot, 0)
-        wb = {k: put(wb[k], traj[k]) for k in wb}
+        src = dict(traj, h=_hflat(jax.tree_util.tree_map(lambda x: x.reshape((-1,) + x.shape[2:]), traj["carry"])).reshape(
+            traj["act"].shape + (-1,))) if self.cond_dim else traj
+        wb = {k: put(wb[k], src[k]) for k in wb}
         filled = jnp.minimum(st["u"] + 1, self.buf_k)
         T, N = self.cfg.num_steps, self.cfg.num_envs
 
@@ -263,7 +279,7 @@ class DynaTrainer(Trainer):
             n = jax.random.randint(kc, (self.wm_batch,), 0, N)
             mb = {kk: wb[kk][i, t, n] for kk in wb}
             loss, g = jax.value_and_grad(model_loss)(wm, mb["obs"].astype(jnp.float32), mb["act"], mb["nobs"].astype(jnp.float32),
-                                                     mb["rew"], mb["done"])
+                                                     mb["rew"], mb["done"], h=mb["h"].astype(jnp.float32) if self.cond_dim else None)
             upd, o = self.wm_opt.update(g, o, wm)
             return (optax.apply_updates(wm, upd), o), loss
 
@@ -293,7 +309,7 @@ class DynaTrainer(Trainer):
             if oracle:
                 nobs, env2, r, d = env_step(jax.random.split(k2, B), env, a)
             else:
-                nobs, r, d = model_sample(st["wm"], obs, a, k2, self.im_mode)
+                nobs, r, d = model_sample(st["wm"], obs, a, k2, self.im_mode, carry if self.cond_dim else None)
                 env2 = None
             h2 = arm.advance(caux, obs, a, d)
             ro, rc, re = draw(k3)   # a terminated row restarts at another real start point
@@ -354,7 +370,8 @@ class DynaTrainer(Trainer):
         wl, mev = jnp.zeros(()), jnp.zeros((9,))
         if self.model == "learned":
             flat = lambda x: x.reshape((-1,) + x.shape[2:])
-            mev = model_eval(st_in["wm"], *(flat(traj[k]) for k in ("obs", "act", "nobs", "rew", "done")))   # before training on it
+            hh = jax.tree_util.tree_map(flat, traj["carry"]) if self.cond_dim else None
+            mev = model_eval(st_in["wm"], *(flat(traj[k]) for k in ("obs", "act", "nobs", "rew", "done")), h=hh)   # before training on it
             st, wl = self._train_model(dict(st, u=st_in["u"]), traj, km)
             st = dict(st, u=st_in["u"] + 1)
         on = st_in["u"] >= self.im_start_u

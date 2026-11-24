@@ -92,6 +92,13 @@ class TestTrainer(unittest.TestCase):
         self.assertGreater(tr.model_params, 0)
         self.assertEqual(tr.im_steps_total, tr.n_updates * 16 * 4)
 
+    def test_learned_conditioned_on_agent_state(self):   # L4
+        arm = ARM_BUILDERS["ppo_gru"](width=32, ln=True, skip=True, tp_coef=1.0)
+        tr = DynaTrainer(arm, CFG, model="learned", wm_c=8, wm_hidden=16, wm_version=2, wm_cond=True, **SMALL)
+        self.assertEqual(tr.cond_dim, 32)
+        _, curve, _ = tr.train(6)
+        self.assertTrue(np.isfinite(curve).all())
+
     def test_oracle_runs_and_has_no_model(self):
         tr, _ = self._run("oracle")
         self.assertEqual(tr.model_params, 0)
