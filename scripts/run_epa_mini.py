@@ -161,6 +161,12 @@ def main():
                    train_seconds=train_s, wall_seconds=time.time() - t0)
         if eval_at:
             row["intermediate_evals"] = mid
+        if a.dyna and curve.shape[1] >= 13:   # TASK-041: binned Dyna diagnostics (model loss, imagined return per row, imagined done rate, imagined KL)
+            bins = np.array_split(np.arange(len(curve)), min(10, len(curve)))
+            row["dyna_diag"] = {k: [float(curve[b, c].mean()) for b in bins] for k, c in
+                                {"model_loss": 9, "im_return": 10, "im_done_frac": 11, "im_kl": 12, "m_block_acc": 13, "m_block_acc_changed": 14,
+                                 "m_mob_err": 15, "m_vec_exact": 16, "m_rew_mse": 17, "m_rew_mse_zero": 18, "m_rew_on_events": 19,
+                                 "m_done_pred": 20, "m_done_real": 21}.items() if c < curve.shape[1]}
         per_seed.append(row)
         print(f"seed {s}: reward_pct={row['reward_pct']:.2f} score_pct={row['score_pct']:.2f} "
               f"len={row['eval_mean_length']:.0f} censored={row['eval_censored']} train={train_s:.0f}s wall={row['wall_seconds']:.0f}s",

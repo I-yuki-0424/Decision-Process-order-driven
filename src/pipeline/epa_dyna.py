@@ -112,6 +112,25 @@ def model_loss(m, obs, act, nobs, rew, done, rew_w=10.0):
     return l_obs + l_rd
 
 
+def model_eval(m, obs, act, nobs, rew, done):
+    """Held-out quality of the model on a real rollout it has not been trained on yet (diagnostics only, never used to act or select):
+    [block acc. all cells, block acc. on cells that changed, mob-flag error per obs, inventory+intrinsics exact, reward MSE,
+     reward MSE of predicting 0, mean predicted reward on events r >= 0.5, predicted done prob mean, real done rate]."""
+    p = model_forward(m, obs, act)
+    t, t0 = _split_obs(nobs), _split_obs(obs)
+    w = 1.0 - done.astype(jnp.float32)
+    wd = jnp.maximum(w.sum(), 1.0)
+    pb = jnp.argmax(p["block"], -1)
+    hit = (pb == t["block"]).astype(jnp.float32)
+    ch = (t["block"] != t0["block"]).astype(jnp.float32) * w[:, None]
+    mob = jnp.abs((jax.nn.sigmoid(p["mob"]) > 0.5).astype(jnp.float32) - t["mob"]).sum((-1, -2))
+    vec = ((jnp.argmax(p["inv"], -1) == t["inv"]).all(-1) & (jnp.argmax(p["intr"], -1) == t["intr"]).all(-1)).astype(jnp.float32)
+    ev = (rew >= 0.5).astype(jnp.float32)
+    return jnp.stack([(hit.mean(-1) * w).sum() / wd, (hit * ch).sum() / jnp.maximum(ch.sum(), 1.0), (mob * w).sum() / wd,
+                      (vec * w).sum() / wd, ((p["rew"] - rew) ** 2).mean(), (rew ** 2).mean(),
+                      (p["rew"] * ev).sum() / jnp.maximum(ev.sum(), 1.0), jax.nn.sigmoid(p["done"]).mean(), done.astype(jnp.float32).mean()])
+
+
 def model_sample(m, obs, act, key):
     """Sample the next observation (in the env's own 1345-d format), reward (mean) and termination."""
     p = model_forward(m, obs, act)
@@ -305,11 +324,13 @@ class DynaTrainer(Trainer):
         traj, envs = self._traj, self._traj_env
         key, km, ki = jax.random.split(st["key"], 3)
         st = dict(st, key=key, **{k: st_in[k] for k in ("wm", "wm_opt", "wb") if k in st_in})   # the base update drops extra keys
-        wl = jnp.zeros(())
+        wl, mev = jnp.zeros(()), jnp.zeros((9,))
         if self.model == "learned":
+            flat = lambda x: x.reshape((-1,) + x.shape[2:])
+            mev = model_eval(st_in["wm"], *(flat(traj[k]) for k in ("obs", "act", "nobs", "rew", "done")))   # before training on it
             st, wl = self._train_model(dict(st, u=st_in["u"]), traj, km)
             st = dict(st, u=st_in["u"] + 1)
         on = st_in["u"] >= self.im_start_u
         params, opt, ist = jax.lax.cond(on, lambda: self._im_update(st["params"], st["opt"], st, traj, envs, ki),
                                         lambda: (st["params"], st["opt"], jnp.zeros((3,))))
-        return dict(st, params=params, opt=opt), jnp.concatenate([stats, wl[None], ist])
+        return dict(st, params=params, opt=opt), jnp.concatenate([stats, wl[None], ist, mev])

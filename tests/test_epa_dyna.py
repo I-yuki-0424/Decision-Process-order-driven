@@ -64,7 +64,7 @@ class TestTrainer(unittest.TestCase):
         arm = ARM_BUILDERS["ppo_gru"](width=32, ln=True, skip=True, tp_coef=1.0)
         tr = DynaTrainer(arm, CFG, model=model, wm_c=8, wm_hidden=16, **SMALL)
         params, curve, _ = tr.train(5)
-        self.assertEqual(curve.shape, (tr.n_updates, 13))
+        self.assertEqual(curve.shape, (tr.n_updates, 22))
         self.assertTrue(np.isfinite(curve).all())
         self.assertTrue((curve[:, 11] >= 0).all() and (curve[:, 11] <= 1).all())   # imagined done fraction
         return tr, params
