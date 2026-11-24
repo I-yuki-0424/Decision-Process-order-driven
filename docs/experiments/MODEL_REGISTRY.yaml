@@ -388,6 +388,16 @@ models:
     description: "GRU-TP trained on the last 4 rollouts per update (replay; 4 or 2 epochs, see train.update_epochs; TASK-028)"
     status: provisional
     proper_name: null
+  Base_O02_D09_S00:
+    arms: ["gru256+ln+skip+tp1+dyna_learned"]
+    description: "GRU-TP + Dyna-style PPO on rollouts imagined by a learned one-step model of the symbolic observation (model in params_total; TASK-041; settings in train.dyna_kwargs)"
+    status: provisional
+    proper_name: null
+  Base_O02_D09_S01:
+    arms: ["gru256+ln+skip+tp1+dyna_oracle"]
+    description: "ORACLE UPPER-BOUND CONTROL: same Dyna updates with the real simulator branched from visited states (P3/P10, never EP-A, never a gate; TASK-041)"
+    status: provisional
+    proper_name: null
   Idea4_O01_D07_S00:
     arms: ["tfgru64x2w128+mem+pa+hs+tp1h+rs0"]
     description: "Truck + TP head with the health reward terms zeroed (P5-contested diagnostic, TASK-027 R4; no gain, wide spread)"

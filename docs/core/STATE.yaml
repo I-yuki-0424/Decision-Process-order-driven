@@ -1468,6 +1468,25 @@ tasks:
       (ReplayTrainer is a new subclass); scripts/run_epa_mini.py main gets new flags that default off (only job command lines call it; existing
       configs produce the same command and code path).
 
+  - id: "TASK-20261125-041-dyna-g12"
+    created_at: "2026-11-25T01:30:00+09:00"
+    status: "in_progress"
+    description: >
+      Operator request (2026-11-25, free hand): re-establish why Phase 1 stalled at G1.1/G1.2, list candidate fixes and the current
+      state, verify on the PC and Kaggle (VPS short of resources), and if possible bring Phase 1 to a closable state.
+    spec_ref: "docs/experiments/2026-11-25_dyna_g12/README.md (status, cause, critical review, pre-registration)"
+    validation_commands: []
+    result: null
+    blockers:
+      - "Kaggle: kaggle.json in the repo returns 401 Unauthorized (kaggle 1.7.4.5 CLI; the newest CLI asks for KAGGLE_API_TOKEN); the credential broker has no Kaggle service (audit 684, denied not_allowed) and the PC holds no Kaggle token. Operator must issue a new Kaggle API token. PC (RTX 3060 Ti, WSL Ubuntu-22.04, venv ~/dpodvenv: jax 0.12.1, craftax 1.7.0) is used instead."
+    notes: >
+      No validation_commands supplied (missing); used: pre_commit_ban_check, the S1 smoke runs, audit/ingest after results.
+      CRITICAL REVIEW (README): Dyna gain is extra compute, not parameters; oracle arm = simulator branching, upper-bound control only;
+      imagined data never counted as env steps for the learned model, model params in params_total. Impact check (scip-neo4j, index main
+      52e4aab): Trainer and scripts/run_epa_mini.py:main ALLOWED (no LOCKED_CORE_THEORY); Trainer not modified (DynaTrainer subclass);
+      run_epa_mini main gains --dyna/--dyna-kwargs defaulting off (existing command lines unchanged). Craftax 1.7.0 on the PC vs 1.6.1 in
+      earlier Kaggle runs: the control C0 is re-run on the same seeds and versions, so S1 comparisons are within one environment.
+
   - id: "TASK-20261030-029-botsystem-interface"
     created_at: "2026-10-30T14:00:00Z"
     status: "done"
