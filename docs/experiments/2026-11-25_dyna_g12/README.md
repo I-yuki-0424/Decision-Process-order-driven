@@ -72,3 +72,13 @@ S2 (same seeds 7100-7103, at most 3 candidate variants, selection = max mean rew
 * Further variants (L3, L4) are chosen from L2's dyna_diag and recorded here before they run.
 * Oracle diagnostics (never candidates, never gates): O2 = oracle at 2:1 imagination (`im_envs=512`) to measure the ceiling headroom,
   because O1 at 1:1 (56.90) is only ~1.4 above the reference mean.
+
+## Amendment 2 (during S2, before L3 runs)
+
+Run note: S2 jobs with the v2 model failed at compile time with RESOURCE_EXHAUSTED during XLA GPU autotuning ("Failed to get configs
+for 54 out of 681 instructions"); the PC GPU is shared with the owner's desktop apps. L-arms from S2 on run with
+`XLA_FLAGS=--xla_gpu_autotune_level=0` (recorded in each file's provenance.xla_flags). The failed attempts are kept in logs_t041/failed.
+
+L2 seed 7100 diagnostics (end of training): changed-cell block accuracy 0.87 (v1 0.03), reward MSE 0.029 vs 0.043 for zero,
+predicted reward on achievement steps 0.35, inventory+intrinsics exact 0.65 per step. Per-step errors compound over the 16-step
+horizon. **L3 = L2 with `im_h=4, im_envs=1024`** (same 4096 imagined transitions per update, a quarter of the compounding).
