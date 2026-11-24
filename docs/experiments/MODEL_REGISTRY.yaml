@@ -398,6 +398,12 @@ models:
     description: "ORACLE UPPER-BOUND CONTROL: same Dyna updates with the real simulator branched from visited states (P3/P10, never EP-A, never a gate; TASK-041)"
     status: provisional
     proper_name: null
+  Base_O02_D09_S02:
+    arms: ["gru256+ln+skip+tp1+dyna_hybrid_oracle_obssim_rewsim", "gru256+ln+skip+tp1+dyna_hybrid_oracle_obsmodel_rewmodel",
+           "gru256+ln+skip+tp1+dyna_hybrid_oracle_obsmodel_rewsim", "gru256+ln+skip+tp1+dyna_hybrid_oracle_obssim_rewmodel"]
+    description: "ORACLE DIAGNOSTIC: horizon-1 factorial of Dyna sources (next observation+termination vs reward from simulator or learned model v2; TASK-041), never EP-A"
+    status: provisional
+    proper_name: null
   Idea4_O01_D07_S00:
     arms: ["tfgru64x2w128+mem+pa+hs+tp1h+rs0"]
     description: "Truck + TP head with the health reward terms zeroed (P5-contested diagnostic, TASK-027 R4; no gain, wide spread)"

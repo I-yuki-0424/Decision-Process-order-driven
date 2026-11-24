@@ -97,7 +97,7 @@ def main():
     ap.add_argument("--rew-small", type=float, default=1.0, help="TASK-026 diagnostic, P5-contested: coefficient on the |r|<0.5 reward terms in training (1 = unchanged)")
     ap.add_argument("--replay-k", type=int, default=0, help="TASK-028: >= 1 trains on the last K rollouts (src/pipeline/epa_replay.py); 0 = plain PPO")
     ap.add_argument("--rho-bar", type=float, default=1.0, help="TASK-028: truncation of the importance weight in the replay advantages")
-    ap.add_argument("--dyna", default="", choices=["", "learned", "oracle"], help="TASK-041: extra PPO updates on imagined rollouts "
+    ap.add_argument("--dyna", default="", choices=["", "learned", "oracle", "hybrid"], help="TASK-041: extra PPO updates on imagined rollouts "
                     "(src/pipeline/epa_dyna.py); 'oracle' = simulator branching, upper-bound control only, never EP-A")
     ap.add_argument("--dyna-kwargs", default="{}", help="TASK-041: JSON kwargs of DynaTrainer (im_envs, im_h, im_epochs, im_minibatches, im_start, buf_k, wm_steps, ...)")
     ap.add_argument("--eval-at", default="", help="TASK-028: comma-separated env-step counts at which the current params are also evaluated "
@@ -131,8 +131,8 @@ def main():
                     minibatches=a.minibatches, lr=a.lr, ent=a.ent, lam=a.lam, gamma=a.gamma, clip=a.clip, vf=a.vf,
                     max_grad_norm=a.max_grad_norm, value_norm=a.value_norm, adv_norm=a.adv_norm, warmup=a.warmup, remat=a.remat,
                     ent_final=a.ent_final, lr_sched=a.lr_sched, lr_knee=a.lr_knee, lr_knee_frac=a.lr_knee_frac, rew_small=a.rew_small)
-    if a.dyna == "oracle" and ("oracle" not in a.protocol or a.role == "final"):
-        raise SystemExit("--dyna oracle uses simulator branching (P3): protocol label must contain 'oracle' and it is never a final/gate run")
+    if a.dyna in ("oracle", "hybrid") and ("oracle" not in a.protocol or a.role == "final"):
+        raise SystemExit("--dyna oracle/hybrid use simulator branching (P3): protocol label must contain 'oracle' and it is never a final/gate run")
     if a.dyna and a.replay_k:
         raise SystemExit("--dyna and --replay-k are exclusive")
     if a.dyna:
@@ -140,6 +140,8 @@ def main():
     else:
         tr = ReplayTrainer(arm, cfg, a.replay_k, a.rho_bar) if a.replay_k else Trainer(arm, cfg)
     arm_name = arm.name + (f"+rp{a.replay_k}" + (f"rho{a.rho_bar:g}" if a.rho_bar != 1.0 else "") if a.replay_k else "") + (f"+dyna_{a.dyna}" if a.dyna else "")
+    if a.dyna == "hybrid":   # diagnostic factorial; 'oracle' in the label so MLflow flags it as an oracle control
+        arm_name += f"_oracle_obs{tr.hybrid_obs}_rew{tr.hybrid_rew}"
     eval_at = sorted({int(x) for x in a.eval_at.split(",") if x})
     print(f"arm={arm_name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
     print(f"provenance: commit={prov['git_commit'][:8]} dirty={prov['git_dirty']} code={prov['code_sha256'][:12]} "
@@ -180,7 +182,7 @@ def main():
         record = make_record(arm_name, a.arm, json.loads(a.arm_kwargs), cfg_rec, per_seed, a.role, a.protocol,
                              tr.env_steps_total, p_total, p_dep, a.tuning_budget, git_commit(), provenance=prov)
         record["seed_convention"] = a.seed_convention
-        if a.dyna == "oracle":   # imagined steps came from the simulator: not budget-clean, upper-bound control only
+        if a.dyna in ("oracle", "hybrid"):   # imagined steps came from the simulator: not budget-clean, upper-bound control only
             record["env_steps_auxiliary"] = tr.im_steps_total
             record["gate_eligible"] = False
         if a.role == "final" and a.allow_dirty:

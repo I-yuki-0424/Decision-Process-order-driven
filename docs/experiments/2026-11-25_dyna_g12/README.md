@@ -90,3 +90,13 @@ Hypothesis: Craftax-Classic pays each achievement once per episode and the obser
 not a function of (obs, action); the predicted reward on true achievement steps (~0.35) matches an average over repeats.
 **L4 = L2 + `wm_cond=True`**: the model also reads the agent's own recurrent state (built from its own past observations and
 actions, an allowed EP-A input; stop-gradient, the policy is not trained through the model). This is the last S2 candidate variant.
+
+## Amendment 4 (before the factorial runs): S2 budget used up, diagnostic factorial F
+
+L4 seed 7100 = 43.45 and its predicted reward on achievement steps is 0.30 (L3 0.34): conditioning on the agent state did not fix
+the reward model. L2, L3, L4 are the three allowed S2 candidates; no further candidate variant is run in this task and, unless one
+of them reaches the 56.5 qualification line on 7100-7103, no final EP-A block is run.
+
+Diagnostic F (oracle class, never a candidate, never EP-A; seeds 7100-7101 only): `--dyna hybrid` at horizon 1 (4096 start
+states x 1 step, so 1:1 like O1), next observation + termination from {sim, model v2} x reward from {sim, model v2}. It tells
+whether the reward model or the observation model costs the score, i.e. what the next model must fix.

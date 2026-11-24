@@ -103,6 +103,15 @@ class TestTrainer(unittest.TestCase):
         tr, _ = self._run("oracle")
         self.assertEqual(tr.model_params, 0)
 
+    def test_hybrid_factorial_runs(self):
+        arm = ARM_BUILDERS["ppo_gru"](width=32, ln=True, skip=True, tp_coef=1.0)
+        kw = dict(SMALL, im_h=1, im_envs=64)
+        tr = DynaTrainer(arm, CFG, model="hybrid", wm_c=8, wm_hidden=16, wm_version=2, hybrid_obs="model", hybrid_rew="sim", **kw)
+        _, curve, _ = tr.train(7)
+        self.assertTrue(np.isfinite(curve).all())
+        with self.assertRaises(ValueError):
+            DynaTrainer(arm, CFG, model="hybrid", im_h=4)
+
     def test_rejects_bad_settings(self):
         arm = ARM_BUILDERS["ppo_gru"](width=32)
         with self.assertRaises(ValueError):

@@ -194,9 +194,11 @@ def _take(tree, t, n):
 
 class DynaTrainer(Trainer):
     def __init__(self, arm, cfg: PPOConfig, model="learned", im_envs=256, im_h=16, im_epochs=2, im_minibatches=8,
-                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False, wm_version=1, wm_cond=False):
-        if model not in ("learned", "oracle"):
-            raise ValueError("model must be 'learned' or 'oracle'")
+                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False, wm_version=1, wm_cond=False, hybrid_obs="model", hybrid_rew="model"):
+        if model not in ("learned", "oracle", "hybrid"):
+            raise ValueError("model must be 'learned', 'oracle' or 'hybrid'")
+        if model == "hybrid" and (im_h != 1 or {hybrid_obs, hybrid_rew} - {"model", "sim"}):
+            raise ValueError("hybrid (diagnostic factorial) needs im_h=1 and hybrid_obs/hybrid_rew in {'model', 'sim'}")
         if not arm.recurrent or cfg.lr_sched != "linear":
             raise ValueError("DynaTrainer supports recurrent arms with the linear lr schedule")
         if (im_envs * im_h) % im_minibatches:
@@ -204,6 +206,10 @@ class DynaTrainer(Trainer):
         self.model, self.im_envs, self.im_h, self.im_epochs, self.im_mb = model, im_envs, im_h, im_epochs, im_minibatches
         self.buf_k, self.wm_steps, self.wm_batch, self.wm_c, self.wm_hidden = buf_k, wm_steps, wm_batch, wm_c, wm_hidden
         self.im_mode, self.wm_version = im_mode, wm_version
+        # model="hybrid": DIAGNOSTIC factorial at horizon 1 (every imagined step starts from a visited state, so the simulator and the model
+        # can be mixed per part): next observation + termination from `hybrid_obs`, reward from `hybrid_rew`. Uses the simulator: never EP-A.
+        self.hybrid_obs, self.hybrid_rew = hybrid_obs, hybrid_rew
+        self.sim, self.learn = model in ("oracle", "hybrid"), model in ("learned", "hybrid")
         self.cond_dim = int(_hflat(jax.tree_util.tree_map(jnp.asarray, arm.init_carry(1))).shape[-1]) if wm_cond else 0
         super().__init__(arm, cfg)
         self.im_start_u = int(im_start * self.n_updates)
@@ -223,7 +229,7 @@ class DynaTrainer(Trainer):
 
     def init(self, key):
         st = super().init(key)
-        if self.model == "learned":
+        if self.learn:
             K, T, N = self.buf_k, self.cfg.num_steps, self.cfg.num_envs
             wm = init_model(jax.random.fold_in(key, 0xD1A), self.wm_c, self.wm_hidden, self.wm_version, self.cond_dim)
             st["wm"], st["wm_opt"] = wm, self.wm_opt.init(wm)
@@ -237,7 +243,7 @@ class DynaTrainer(Trainer):
     # real rollout of the base class, plus the env state before every step (oracle only) and a copy of the batch for the model
     def _rollout(self, params, st, key):
         arm, N = self.arm, self.cfg.num_envs
-        oracle = self.model == "oracle"
+        oracle = self.sim
 
         def body(c, k):
             env_st, obs, carry, ep_ret = c
@@ -290,7 +296,7 @@ class DynaTrainer(Trainer):
     def _imagine(self, params, st, traj, envs, key):
         arm, B, H = self.arm, self.im_envs, self.im_h
         T, N = self.cfg.num_steps, self.cfg.num_envs
-        oracle = self.model == "oracle"
+        oracle = self.sim
 
         def draw(k):
             kt, kn = jax.random.split(k)
@@ -306,7 +312,12 @@ class DynaTrainer(Trainer):
             logits, value, caux = arm.step(params, carry, obs)
             a = jax.random.categorical(k1, logits)
             logp = jnp.take_along_axis(jax.nn.log_softmax(logits), a[:, None], 1)[:, 0]
-            if oracle:
+            if self.model == "hybrid":
+                nobs_s, env2, r_s, d_s = env_step(jax.random.split(k2, B), env, a)
+                nobs_m, r_m, d_m = model_sample(st["wm"], obs, a, jax.random.fold_in(k2, 1), self.im_mode, carry if self.cond_dim else None)
+                nobs, d = (nobs_s, d_s) if self.hybrid_obs == "sim" else (nobs_m, d_m)
+                r = r_s if self.hybrid_rew == "sim" else r_m
+            elif oracle:
                 nobs, env2, r, d = env_step(jax.random.split(k2, B), env, a)
             else:
                 nobs, r, d = model_sample(st["wm"], obs, a, k2, self.im_mode, carry if self.cond_dim else None)
@@ -368,7 +379,7 @@ class DynaTrainer(Trainer):
         key, km, ki = jax.random.split(st["key"], 3)
         st = dict(st, key=key, **{k: st_in[k] for k in ("wm", "wm_opt", "wb") if k in st_in})   # the base update drops extra keys
         wl, mev = jnp.zeros(()), jnp.zeros((9,))
-        if self.model == "learned":
+        if self.learn:
             flat = lambda x: x.reshape((-1,) + x.shape[2:])
             hh = jax.tree_util.tree_map(flat, traj["carry"]) if self.cond_dim else None
             mev = model_eval(st_in["wm"], *(flat(traj[k]) for k in ("obs", "act", "nobs", "rew", "done")), h=hh)   # before training on it
