@@ -31,6 +31,7 @@ GH, GW, NB, NM = 7, 9, 17, 4          # map view 7 x 9, 17 block classes, 4 mob 
 NCELL, TILE = GH * GW, NB + NM        # 63 cells x 21
 MAPD = NCELL * TILE                   # 1323
 NINV, NINT, NV = 12, 4, 10            # inventory 12 and intrinsics 4 values, each an integer 0..9 stored as value / 10
+REW_BINS = jnp.linspace(-1.0, 2.0, 31)  # model v2: two-hot reward support (step 0.1; DreamerV3-style encoding, no game knowledge)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -53,10 +54,14 @@ def _cv(p, x):   # x (B, 7, 9, C), SAME padding
     return y + p["b"]
 
 
-def init_model(key, c=64, hidden=256):
-    k = iter(jax.random.split(key, 12))
+def init_model(key, c=64, hidden=256, version=1):
+    """version 1: TASK-041 S1 model. version 2 (after the S1 diagnostic): the map and mob losses are SUMMED over the 63 cells
+    (v1 averaged them, so a changed cell weighed 1/63 of an inventory slot and the model learned to copy the view), and reward
+    is a two-hot categorical over REW_BINS (v1 regressed the mean and was worse than predicting 0). v2 is marked by the 'rew2' head."""
+    k = iter(jax.random.split(key, 13))
     vec_in = 22 + N_ACT
-    return {"v": _dense(next(k), vec_in, c), "c0": _conv(next(k), TILE + c, c), "c1": _conv(next(k), c, c),
+    extra = {"rew2": _dense(jax.random.fold_in(key, 0xBE), hidden, REW_BINS.shape[0], 0.1)} if version == 2 else {}
+    return extra | {"v": _dense(next(k), vec_in, c), "c0": _conv(next(k), TILE + c, c), "c1": _conv(next(k), c, c),
             "c2": _conv(next(k), c, c), "g": _dense(next(k), NCELL * c + c, hidden), "gm": _dense(next(k), hidden, c),
             "map": _dense(next(k), 2 * c, TILE, 0.1),
             "vec": _dense(next(k), hidden, NINV * NV + NINT * NV + 4 + 1 + 1 + 1 + 1, 0.1)}
@@ -84,7 +89,19 @@ def model_forward(m, obs, act):
 
     inv, intr, dirl = take(NINV * NV).reshape(B, NINV, NV), take(NINT * NV).reshape(B, NINT, NV), take(4)
     light, sleep, rew, done = take(1)[:, 0], take(1)[:, 0], take(1)[:, 0], take(1)[:, 0]
-    return dict(block=mp[..., :NB], mob=mp[..., NB:], inv=inv, intr=intr, dir=dirl, light=light, sleep=sleep, rew=rew, done=done)
+    out = dict(block=mp[..., :NB], mob=mp[..., NB:], inv=inv, intr=intr, dir=dirl, light=light, sleep=sleep, rew=rew, done=done)
+    if "rew2" in m:   # v2: categorical reward; `rew` becomes its expectation
+        out["rew_logits"] = _ap(m["rew2"], g)
+        out["rew"] = (jax.nn.softmax(out["rew_logits"]) * REW_BINS).sum(-1)
+    return out
+
+
+def _twohot(r):
+    r = jnp.clip(r, REW_BINS[0], REW_BINS[-1])
+    i = jnp.clip(jnp.searchsorted(REW_BINS, r, side="right") - 1, 0, REW_BINS.shape[0] - 2)
+    lo, hi = REW_BINS[i], REW_BINS[i + 1]
+    wh = (r - lo) / (hi - lo)
+    return jax.nn.one_hot(i, REW_BINS.shape[0]) * (1 - wh)[..., None] + jax.nn.one_hot(i + 1, REW_BINS.shape[0]) * wh[..., None]
 
 
 def _split_obs(o):
@@ -104,11 +121,14 @@ def model_loss(m, obs, act, nobs, rew, done, rew_w=10.0):
     w = 1.0 - done.astype(jnp.float32)
     ce = lambda lg, y: -jnp.take_along_axis(jax.nn.log_softmax(lg), y[..., None], -1)[..., 0]
     bce = lambda lg, y: optax.sigmoid_binary_cross_entropy(lg, y)
-    l_obs = (ce(p["block"], t["block"]).mean(-1) + bce(p["mob"], t["mob"]).sum(-1).mean(-1) + ce(p["inv"], t["inv"]).sum(-1)
+    v2 = "rew2" in m
+    cells = (lambda x: x.sum(-1)) if v2 else (lambda x: x.mean(-1))
+    l_obs = (cells(ce(p["block"], t["block"])) + cells(bce(p["mob"], t["mob"]).sum(-1)) + ce(p["inv"], t["inv"]).sum(-1)
              + ce(p["intr"], t["intr"]).sum(-1) + ce(p["dir"], t["dir"]) + (jax.nn.sigmoid(p["light"]) - t["light"]) ** 2
              + bce(p["sleep"], t["sleep"]))
     l_obs = (l_obs * w).sum() / jnp.maximum(w.sum(), 1.0)
-    l_rd = (rew_w * (p["rew"] - rew) ** 2 + bce(p["done"], done.astype(jnp.float32))).mean()
+    l_rew = -(_twohot(rew) * jax.nn.log_softmax(p["rew_logits"])).sum(-1) if v2 else rew_w * (p["rew"] - rew) ** 2
+    l_rd = (l_rew + bce(p["done"], done.astype(jnp.float32))).mean()
     return l_obs + l_rd
 
 
@@ -148,7 +168,10 @@ def model_sample(m, obs, act, key, mode=False):
     nobs = jnp.concatenate([jnp.concatenate([block, mob], -1).reshape(B, MAPD), inv, intr, dirv,
                             jax.nn.sigmoid(p["light"])[:, None], sleep[:, None]], -1)
     done = jax.random.bernoulli(k[6], jax.nn.sigmoid(p["done"]))
-    return nobs, p["rew"], done
+    rew = p["rew"]
+    if "rew_logits" in p:   # v2: a sampled reward value (an imagined achievement is 0 or ~1, not a smeared mean); mode -> most likely bin
+        rew = REW_BINS[cat(jax.random.fold_in(key, 7), p["rew_logits"])]
+    return nobs, rew, done
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -160,7 +183,7 @@ def _take(tree, t, n):
 
 class DynaTrainer(Trainer):
     def __init__(self, arm, cfg: PPOConfig, model="learned", im_envs=256, im_h=16, im_epochs=2, im_minibatches=8,
-                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False):
+                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False, wm_version=1):
         if model not in ("learned", "oracle"):
             raise ValueError("model must be 'learned' or 'oracle'")
         if not arm.recurrent or cfg.lr_sched != "linear":
@@ -169,7 +192,7 @@ class DynaTrainer(Trainer):
             raise ValueError("im_envs * im_h must be divisible by im_minibatches")
         self.model, self.im_envs, self.im_h, self.im_epochs, self.im_mb = model, im_envs, im_h, im_epochs, im_minibatches
         self.buf_k, self.wm_steps, self.wm_batch, self.wm_c, self.wm_hidden = buf_k, wm_steps, wm_batch, wm_c, wm_hidden
-        self.im_mode = im_mode
+        self.im_mode, self.wm_version = im_mode, wm_version
         super().__init__(arm, cfg)
         self.im_start_u = int(im_start * self.n_updates)
         # one lr schedule over every optimiser step, real and imagined (the base class only counts the real ones)
@@ -182,7 +205,7 @@ class DynaTrainer(Trainer):
         self.opt = make_optimizer(arm, lr, cfg.max_grad_norm)
         self.wm_opt = optax.chain(optax.clip_by_global_norm(1.0), optax.adam(wm_lr))
         self.update = jax.jit(self._update)
-        shapes = jax.eval_shape(lambda k: init_model(k, wm_c, wm_hidden), jax.random.PRNGKey(0))
+        shapes = jax.eval_shape(lambda k: init_model(k, wm_c, wm_hidden, wm_version), jax.random.PRNGKey(0))
         self.model_params = 0 if model == "oracle" else int(sum(np.prod(x.shape) for x in jax.tree_util.tree_leaves(shapes)))
         self.im_steps_total = (self.n_updates - self.im_start_u) * im_envs * im_h
 
@@ -190,7 +213,7 @@ class DynaTrainer(Trainer):
         st = super().init(key)
         if self.model == "learned":
             K, T, N = self.buf_k, self.cfg.num_steps, self.cfg.num_envs
-            wm = init_model(jax.random.fold_in(key, 0xD1A), self.wm_c, self.wm_hidden)
+            wm = init_model(jax.random.fold_in(key, 0xD1A), self.wm_c, self.wm_hidden, self.wm_version)
             st["wm"], st["wm_opt"] = wm, self.wm_opt.init(wm)
             od = st["obs"].shape[-1]
             st["wb"] = dict(obs=jnp.zeros((K, T, N, od), jnp.bfloat16), nobs=jnp.zeros((K, T, N, od), jnp.bfloat16),

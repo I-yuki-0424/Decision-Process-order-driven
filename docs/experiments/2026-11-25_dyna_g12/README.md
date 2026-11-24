@@ -53,3 +53,22 @@ format, reward and termination; 1.24M params, params_total 2.49M.
 * **Final EP-A block** only if the selected arm's tuning mean >= 56.5: seeds 192-201 / test 574-583, GRU-TP control on the same seeds,
   clean commit, all seeds listed. The gate claim is G1.2 only if mean - 2 SE > 55.49 and > 16.77.
 * Equal effort (P9): the control is the already-tuned GRU-TP; Dyna gets at most S1 + S2 (<= 4 configs x 4 seeds), less than GRU-TP had.
+
+## Amendment 1 (after S1, before S2): results, diagnosis, S2 variants
+
+S1 (PC, tuning seeds 7100-7103, commit b29e33a; files in results/S1): C0 48.76 +- 0.76 / 19.65; L1 37.81 +- 1.97 / 10.50
+(paired -10.95 +- 1.66); O1 (oracle, upper bound) 56.90 +- 0.95 / 23.99 (paired +8.15 +- 1.41). Rule: O1 qualifies, L1 does not ->
+the model is the bottleneck. The Dyna update itself works; the oracle gain is not an artefact of extra optimiser steps (same steps).
+
+Diagnostic D (seed 7190, role diag, commit 95d2708, held-out = the next real rollout before the model trains on it), end of training:
+block accuracy 0.94 overall but **0.03 on cells that change** (falls from 0.34 during training: the model learns to copy the view);
+**reward MSE 0.045 vs 0.044 for predicting 0** (predicted reward on achievement steps ~0.2 instead of 1); done calibrated (0.0052 vs
+0.0054); inventory+intrinsics exact 0.68. Cause found in the loss: block and mob terms were AVERAGED over the 63 cells while the vector
+terms were summed. Model v2 (`wm_version=2`): cell terms summed, reward as a two-hot categorical over 31 bins in [-1, 2] (sampled in
+imagination). v1 is unchanged (S1 reproducible).
+
+S2 (same seeds 7100-7103, at most 3 candidate variants, selection = max mean reward_pct):
+* L2 = L1 with `wm_version=2, wm_steps=16`.
+* Further variants (L3, L4) are chosen from L2's dyna_diag and recorded here before they run.
+* Oracle diagnostics (never candidates, never gates): O2 = oracle at 2:1 imagination (`im_envs=512`) to measure the ceiling headroom,
+  because O1 at 1:1 (56.90) is only ~1.4 above the reference mean.

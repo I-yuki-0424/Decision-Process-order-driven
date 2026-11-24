@@ -59,6 +59,24 @@ class TestModel(unittest.TestCase):
         self.assertLess(float(l1), 0.5 * l0)
 
 
+class TestModelV2(unittest.TestCase):
+    def test_v1_unchanged_by_v2_option(self):   # S1 results stay reproducible: v1 has no rew2 head and the same keys as before
+        m = init_model(jax.random.PRNGKey(0), c=16, hidden=32)
+        self.assertNotIn("rew2", m)
+
+    def test_twohot_reward_is_exact_on_support(self):
+        from src.pipeline.epa_dyna import REW_BINS, _twohot
+        r = jnp.array([0.0, 1.0, -0.1, 0.9, 0.05])
+        self.assertTrue(np.allclose((_twohot(r) * REW_BINS).sum(-1), r, atol=1e-5))
+
+    def test_v2_learns_and_samples(self):
+        m = init_model(jax.random.PRNGKey(0), c=16, hidden=64, version=2)
+        data = real_batch(128)
+        nobs, r, d = model_sample(m, data[0], data[1], jax.random.PRNGKey(2))
+        self.assertEqual(r.shape, (128,))
+        self.assertTrue(np.isfinite(float(model_loss(m, *data))))
+
+
 class TestTrainer(unittest.TestCase):
     def _run(self, model):
         arm = ARM_BUILDERS["ppo_gru"](width=32, ln=True, skip=True, tp_coef=1.0)
