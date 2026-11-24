@@ -131,17 +131,20 @@ def model_eval(m, obs, act, nobs, rew, done):
                       (p["rew"] * ev).sum() / jnp.maximum(ev.sum(), 1.0), jax.nn.sigmoid(p["done"]).mean(), done.astype(jnp.float32).mean()])
 
 
-def model_sample(m, obs, act, key):
-    """Sample the next observation (in the env's own 1345-d format), reward (mean) and termination."""
+def model_sample(m, obs, act, key, mode=False):
+    """Next observation in the env's own 1345-d format, reward (mean) and termination (sampled). mode=True takes the most likely
+    value of every observation part (argmax / p > 0.5) instead of sampling it: less imagined noise, no model-uncertainty spread."""
     p = model_forward(m, obs, act)
     B = obs.shape[0]
     k = jax.random.split(key, 7)
-    block = jax.nn.one_hot(jax.random.categorical(k[0], p["block"]), NB)
-    mob = jax.random.bernoulli(k[1], jax.nn.sigmoid(p["mob"])).astype(jnp.float32)
-    inv = jax.random.categorical(k[2], p["inv"]).astype(jnp.float32) / 10.0
-    intr = jax.random.categorical(k[3], p["intr"]).astype(jnp.float32) / 10.0
-    dirv = jax.nn.one_hot(jax.random.categorical(k[4], p["dir"]), 4)
-    sleep = jax.random.bernoulli(k[5], jax.nn.sigmoid(p["sleep"])).astype(jnp.float32)
+    cat = (lambda kk, lg: jnp.argmax(lg, -1)) if mode else (lambda kk, lg: jax.random.categorical(kk, lg))
+    ber = (lambda kk, lg: (lg > 0).astype(jnp.float32)) if mode else (lambda kk, lg: jax.random.bernoulli(kk, jax.nn.sigmoid(lg)).astype(jnp.float32))
+    block = jax.nn.one_hot(cat(k[0], p["block"]), NB)
+    mob = ber(k[1], p["mob"])
+    inv = cat(k[2], p["inv"]).astype(jnp.float32) / 10.0
+    intr = cat(k[3], p["intr"]).astype(jnp.float32) / 10.0
+    dirv = jax.nn.one_hot(cat(k[4], p["dir"]), 4)
+    sleep = ber(k[5], p["sleep"])
     nobs = jnp.concatenate([jnp.concatenate([block, mob], -1).reshape(B, MAPD), inv, intr, dirv,
                             jax.nn.sigmoid(p["light"])[:, None], sleep[:, None]], -1)
     done = jax.random.bernoulli(k[6], jax.nn.sigmoid(p["done"]))
@@ -157,7 +160,7 @@ def _take(tree, t, n):
 
 class DynaTrainer(Trainer):
     def __init__(self, arm, cfg: PPOConfig, model="learned", im_envs=256, im_h=16, im_epochs=2, im_minibatches=8,
-                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256):
+                 im_start=0.1, buf_k=8, wm_steps=8, wm_batch=1024, wm_lr=1e-3, wm_c=64, wm_hidden=256, im_mode=False):
         if model not in ("learned", "oracle"):
             raise ValueError("model must be 'learned' or 'oracle'")
         if not arm.recurrent or cfg.lr_sched != "linear":
@@ -166,6 +169,7 @@ class DynaTrainer(Trainer):
             raise ValueError("im_envs * im_h must be divisible by im_minibatches")
         self.model, self.im_envs, self.im_h, self.im_epochs, self.im_mb = model, im_envs, im_h, im_epochs, im_minibatches
         self.buf_k, self.wm_steps, self.wm_batch, self.wm_c, self.wm_hidden = buf_k, wm_steps, wm_batch, wm_c, wm_hidden
+        self.im_mode = im_mode
         super().__init__(arm, cfg)
         self.im_start_u = int(im_start * self.n_updates)
         # one lr schedule over every optimiser step, real and imagined (the base class only counts the real ones)
@@ -266,7 +270,7 @@ class DynaTrainer(Trainer):
             if oracle:
                 nobs, env2, r, d = env_step(jax.random.split(k2, B), env, a)
             else:
-                nobs, r, d = model_sample(st["wm"], obs, a, k2)
+                nobs, r, d = model_sample(st["wm"], obs, a, k2, self.im_mode)
                 env2 = None
             h2 = arm.advance(caux, obs, a, d)
             ro, rc, re = draw(k3)   # a terminated row restarts at another real start point
