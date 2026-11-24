@@ -1470,14 +1470,29 @@ tasks:
 
   - id: "TASK-20261125-041-dyna-g12"
     created_at: "2026-11-25T01:30:00+09:00"
-    status: "in_progress"
+    status: "done"
     description: >
       Operator request (2026-11-25, free hand): re-establish why Phase 1 stalled at G1.1/G1.2, list candidate fixes and the current
       state, verify on the PC and Kaggle (VPS short of resources), and if possible bring Phase 1 to a closable state.
     spec_ref: "docs/experiments/2026-11-25_dyna_g12/README.md (status, cause, critical review, pre-registration)"
     validation_commands: []
-    result: null
+    result: >
+      DONE, G1.2 NOT reached, Phase 1 stays open, no gate id (tuning + diagnostics only; no final EP-A block run because no candidate reached the
+      pre-registered 56.5 qualification line). PC RTX 3060 Ti, tuning seeds 7100-7103, 999,424 env steps, 256 fresh eval envs/seed; per-seed files in
+      docs/experiments/2026-11-25_dyna_g12/results/, summary RESULTS.md there. reward_pct (score_pct): C0 GRU-TP control 48.76 +- 0.76 (19.65);
+      L1 learned Dyna 37.81 +- 1.97 (paired -10.95); L2 model v2 43.71 +- 0.23 (-5.05); L3 horizon 4 43.68 +- 1.54 (-5.08); L4 model reads the
+      agent's GRU state 41.80 +- 0.81 (-6.96). Oracle controls (simulator branching, P3, never gates): O1 1:1 56.90 +- 0.95 (+8.15), O2 2:1
+      60.53 +- 1.42 (+11.77). CAUSE CONFIRMED BY INTERVENTION: policy-fresh data at the same 1M real steps closes the gap (TASK-026/028 diagnosis);
+      the admissible version fails on the world model. Horizon-1 factorial (2 seeds, same-seed C0 48.34): sim obs + sim reward 55.53, model obs +
+      sim reward 49.83, sim obs + model reward 41.57, model/model 43.24 -> the REWARD MODEL is the dominant error (predicted reward on true
+      achievement steps 0.30-0.38 in every variant); v1 map loss bug (averaged over cells, changed-cell accuracy 0.03) fixed in v2 (0.87).
+      Validation: pre_commit_ban_check passed; tests.test_epa_dyna 11/11 OK (PC CPU); MLflow: 37 result runs + 6 OOM failure records ingested
+      into mlflow_local in this checkout (restored pre-session store + new runs: phase-1 293, side-botsystem 58, UNREGISTERED 0).
+      Impact check (scip-neo4j, index main 52e4aab): Trainer and scripts/run_epa_mini.py:main ALLOWED; no existing src/ symbol modified
+      (DynaTrainer is a new subclass in a new module); run_epa_mini main gains --dyna/--dyna-kwargs, mlflow_ingest build_phase1 gains a
+      Dyna arm label, both inert for earlier result files (re-ingest: all 250 earlier phase-1 runs kept their model ids).
     blockers:
+      - "Operator decision still open from TASK-026: does GRU-TP's second-attempt G1.1 pass (block I 48.72 +- 0.36 / 18.82) close G1.1?"
       - "Kaggle: kaggle.json in the repo returns 401 Unauthorized (kaggle 1.7.4.5 CLI; the newest CLI asks for KAGGLE_API_TOKEN); the credential broker has no Kaggle service (audit 684, denied not_allowed) and the PC holds no Kaggle token. Operator must issue a new Kaggle API token. PC (RTX 3060 Ti, WSL Ubuntu-22.04, venv ~/dpodvenv: jax 0.12.1, craftax 1.7.0) is used instead."
     notes: >
       No validation_commands supplied (missing); used: pre_commit_ban_check, the S1 smoke runs, audit/ingest after results.
@@ -1486,6 +1501,12 @@ tasks:
       52e4aab): Trainer and scripts/run_epa_mini.py:main ALLOWED (no LOCKED_CORE_THEORY); Trainer not modified (DynaTrainer subclass);
       run_epa_mini main gains --dyna/--dyna-kwargs defaulting off (existing command lines unchanged). Craftax 1.7.0 on the PC vs 1.6.1 in
       earlier Kaggle runs: the control C0 is re-run on the same seeds and versions, so S1 comparisons are within one environment.
+      Run notes: the PC GPU is shared with the owner's desktop apps; a 3rd parallel job and later v2-model compiles hit CUDA OOM
+      (XLA autotuning), so L2-L4 and F ran with XLA_FLAGS=--xla_gpu_autotune_level=0 (recorded in provenance.xla_flags). The
+      MLflow rebuild required by the registry edit would have dropped 58 side-botsystem runs (their exchange/ source is not in this
+      checkout), so the pre-session store was restored and only the new runs ingested. NEXT (not started): a reward model with
+      episode memory (sequence model over the agent's own recent (obs, action) pairs), accepted only if F_sim_model reaches C0;
+      then the 2:1 ratio as candidate; final EP-A block seeds 192-201 / test 574-583 only if its tuning mean >= 56.5.
 
   - id: "TASK-20261030-029-botsystem-interface"
     created_at: "2026-10-30T14:00:00Z"

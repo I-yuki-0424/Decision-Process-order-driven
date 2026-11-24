@@ -1,0 +1,13 @@
+{
+ "model_id": "Base_O02_D09_S03",
+ "phase": 1,
+ "end_reason": "oom",
+ "note": "TASK-041 S2 L2 seed 7101, first attempt with 2 jobs in parallel: CUDA OOM during XLA autotuning; rerun with --xla_gpu_autotune_level=0 succeeded",
+ "steps_completed": null,
+ "role": "tune",
+ "protocol": "EP-A-tuning",
+ "train_seed": 7101,
+ "test_seed": 7483,
+ "git_commit": "5aab350b05343f024cb79c6cd40cd36f6fa3e093",
+ "timestamp": "2026-11-24T20:50:15Z"
+}

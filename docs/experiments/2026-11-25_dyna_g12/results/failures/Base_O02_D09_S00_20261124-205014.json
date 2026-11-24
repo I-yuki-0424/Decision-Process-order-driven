@@ -1,0 +1,13 @@
+{
+ "model_id": "Base_O02_D09_S00",
+ "phase": 1,
+ "end_reason": "oom",
+ "note": "TASK-041 diag L1 seed 7190: CUDA OOM twice (as 3rd, then 2nd job on the shared 8 GB PC GPU); rerun alone succeeded",
+ "steps_completed": null,
+ "role": "tune",
+ "protocol": "diag-dyna-model",
+ "train_seed": 7190,
+ "test_seed": 7572,
+ "git_commit": "5aab350b05343f024cb79c6cd40cd36f6fa3e093",
+ "timestamp": "2026-11-24T20:50:14Z"
+}

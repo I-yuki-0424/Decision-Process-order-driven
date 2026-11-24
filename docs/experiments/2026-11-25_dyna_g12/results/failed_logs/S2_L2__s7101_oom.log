@@ -1,0 +1,10 @@
+arm=gru256+ln+skip+tp1+dyna_learned backend=gpu updates=244 env_steps=999424 cfg=PPOConfig(total_steps=1000000, num_envs=64, num_steps=64, epochs=4, minibatches=8, lr=0.001, anneal_lr=True, gamma=0.97, lam=0.625, clip=0.2, ent=0.01, vf=1.0, max_grad_norm=0.5, value_norm=0.99, adv_norm='batch', warmup=0.05, remat=False, ent_final=-1.0, lr_sched='linear', lr_knee=0.25, lr_knee_frac=0.3, rew_small=1.0)
+provenance: commit=7798db82 dirty=False code=d4d9b673077e packages={'jax': '0.12.1', 'jaxlib': '0.12.1', 'jax-cuda12-plugin': '0.12.1', 'flax': '0.12.12', 'optax': '0.2.9', 'craftax': '1.7.0', 'numpy': '2.5.5'} xla_flags=''
+
+[... trimmed: repeated CUDA_ERROR_OUT_OF_MEMORY allocator lines removed ...]
+E1125 02:44:48.236938   10189 local_device_state.cc:176] Error when closing device: RESOURCE_EXHAUSTED: Could not synchronize CUDA stream: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+  File "/home/sigure/dpod-epa/scripts/run_epa_mini.py", line 153, in main
+  File "/home/sigure/dpod-epa/scripts/run_epa_mini.py", line 194, in <module>
+  File "/home/sigure/dpod-epa/src/pipeline/epa_harness.py", line 319, in train
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Failed to get configs for: 56 out of 681 instructions. See logs for all failures. Example failure: 
+Traceback (most recent call last):

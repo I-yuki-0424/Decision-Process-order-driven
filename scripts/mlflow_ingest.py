@@ -200,6 +200,11 @@ def build_phase1(sch, d, key, mtime_ms):
     rs = (d.get("config") or {}).get("rew_small", 1.0)
     if rs != 1.0:   # TASK-027: reward-coefficient runs (P5-contested) get their own arm label so they never share a model_id with the env-reward arm
         d = dict(d, arm=f"{d['arm']}+rs{rs:g}")
+    dk = (d.get("config") or {}).get("dyna_kwargs") or {}
+    if (d.get("config") or {}).get("dyna") == "learned" and dk:   # TASK-041: Dyna model variants get their own arm label (one model_id per configuration)
+        tag = "".join(t for k, t in (("wm_version", "wm{}"), ("wm_steps", "s{}"), ("im_h", "h{}"), ("im_envs", "e{}"), ("wm_cond", "cond")) if k in dk
+                      for t in [t.format(dk[k]) if "{}" in t else (t if dk[k] else "")])
+        d = dict(d, arm=f"{d['arm']}+{tag}")
     mid = sch.model_id(d["arm"])
     start, t_src = when(d, mtime_ms)
     params = sch.params({**d.get("config", {}), **d.get("arm_kwargs", {}), "observation": d.get("observation"),
