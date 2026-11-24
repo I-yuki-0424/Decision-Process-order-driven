@@ -24,6 +24,7 @@ import numpy as np  # noqa: E402
 
 from src.model.epa_policies import ARM_BUILDERS  # noqa: E402
 from src.pipeline.epa_harness import PPOConfig, Trainer, curve_summary, diag_summary, make_record, run_provenance, write_json  # noqa: E402
+from src.pipeline.epa_dyna import DynaTrainer  # noqa: E402
 from src.pipeline.epa_replay import ReplayTrainer  # noqa: E402
 
 
@@ -96,6 +97,9 @@ def main():
     ap.add_argument("--rew-small", type=float, default=1.0, help="TASK-026 diagnostic, P5-contested: coefficient on the |r|<0.5 reward terms in training (1 = unchanged)")
     ap.add_argument("--replay-k", type=int, default=0, help="TASK-028: >= 1 trains on the last K rollouts (src/pipeline/epa_replay.py); 0 = plain PPO")
     ap.add_argument("--rho-bar", type=float, default=1.0, help="TASK-028: truncation of the importance weight in the replay advantages")
+    ap.add_argument("--dyna", default="", choices=["", "learned", "oracle"], help="TASK-041: extra PPO updates on imagined rollouts "
+                    "(src/pipeline/epa_dyna.py); 'oracle' = simulator branching, upper-bound control only, never EP-A")
+    ap.add_argument("--dyna-kwargs", default="{}", help="TASK-041: JSON kwargs of DynaTrainer (im_envs, im_h, im_epochs, im_minibatches, im_start, buf_k, wm_steps, ...)")
     ap.add_argument("--eval-at", default="", help="TASK-028: comma-separated env-step counts at which the current params are also evaluated "
                                                   "(same evaluator; never fed back into training; the final evaluation is unchanged)")
     ap.add_argument("--warmup", type=float, default=0.0, help="fraction of optimiser steps with linear lr ramp-up (0 = off)")
@@ -127,8 +131,15 @@ def main():
                     minibatches=a.minibatches, lr=a.lr, ent=a.ent, lam=a.lam, gamma=a.gamma, clip=a.clip, vf=a.vf,
                     max_grad_norm=a.max_grad_norm, value_norm=a.value_norm, adv_norm=a.adv_norm, warmup=a.warmup, remat=a.remat,
                     ent_final=a.ent_final, lr_sched=a.lr_sched, lr_knee=a.lr_knee, lr_knee_frac=a.lr_knee_frac, rew_small=a.rew_small)
-    tr = ReplayTrainer(arm, cfg, a.replay_k, a.rho_bar) if a.replay_k else Trainer(arm, cfg)
-    arm_name = arm.name + (f"+rp{a.replay_k}" + (f"rho{a.rho_bar:g}" if a.rho_bar != 1.0 else "") if a.replay_k else "")
+    if a.dyna == "oracle" and ("oracle" not in a.protocol or a.role == "final"):
+        raise SystemExit("--dyna oracle uses simulator branching (P3): protocol label must contain 'oracle' and it is never a final/gate run")
+    if a.dyna and a.replay_k:
+        raise SystemExit("--dyna and --replay-k are exclusive")
+    if a.dyna:
+        tr = DynaTrainer(arm, cfg, model=a.dyna, **json.loads(a.dyna_kwargs))
+    else:
+        tr = ReplayTrainer(arm, cfg, a.replay_k, a.rho_bar) if a.replay_k else Trainer(arm, cfg)
+    arm_name = arm.name + (f"+rp{a.replay_k}" + (f"rho{a.rho_bar:g}" if a.rho_bar != 1.0 else "") if a.replay_k else "") + (f"+dyna_{a.dyna}" if a.dyna else "")
     eval_at = sorted({int(x) for x in a.eval_at.split(",") if x})
     print(f"arm={arm_name} backend={jax.default_backend()} updates={tr.n_updates} env_steps={tr.env_steps_total} cfg={cfg}")
     print(f"provenance: commit={prov['git_commit'][:8]} dirty={prov['git_dirty']} code={prov['code_sha256'][:12]} "
@@ -143,6 +154,7 @@ def main():
         ev = tr.evaluate(params, s + a.eval_seed_offset, a.eval_envs)
         if not per_seed:
             p_total, p_dep = arm.param_counts(params)
+            p_total += getattr(tr, "model_params", 0)   # Dyna model: trained, counted in params_total (P11), not deployed
         row = dict(seed=s, test_seed=s + a.eval_seed_offset, reward_pct=ev["reward_pct"], score_pct=ev["score_pct"], eval_episodes=ev["eval_episodes"],
                    eval_censored=ev["eval_censored"], eval_mean_length=ev["eval_mean_length"],
                    achievement_rates_pct=ev["achievement_rates_pct"], train_curve_return=curve_summary(curve), train_diag=diag_summary(curve),
@@ -156,9 +168,15 @@ def main():
         if a.save_params:
             save_params(a.save_params, a, arm.name, cfg, s, params, prov)
         cfg_rec = dict(tr.cfg._asdict(), replay_k=a.replay_k, rho_bar=a.rho_bar) if a.replay_k else cfg._asdict()
+        if a.dyna:
+            cfg_rec = dict(cfg_rec, dyna=a.dyna, dyna_kwargs=json.loads(a.dyna_kwargs), imagined_steps_total=tr.im_steps_total,
+                           model_params=tr.model_params)
         record = make_record(arm_name, a.arm, json.loads(a.arm_kwargs), cfg_rec, per_seed, a.role, a.protocol,
                              tr.env_steps_total, p_total, p_dep, a.tuning_budget, git_commit(), provenance=prov)
         record["seed_convention"] = a.seed_convention
+        if a.dyna == "oracle":   # imagined steps came from the simulator: not budget-clean, upper-bound control only
+            record["env_steps_auxiliary"] = tr.im_steps_total
+            record["gate_eligible"] = False
         if a.role == "final" and a.allow_dirty:
             record["allow_dirty"] = True
         write_json(a.out, record)
